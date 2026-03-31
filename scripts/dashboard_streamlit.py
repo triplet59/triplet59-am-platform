@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import streamlit as st
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate
@@ -27,6 +28,35 @@ def calculate_cagr(df, start_date, end_date=None):
     years = (df_period["Date"].iloc[-1] - df_period["Date"].iloc[0]).days / 365
 
     return (end_val / start_val) ** (1 / years) - 1
+
+
+@st.cache_data
+def load_country_exposure(path):
+    df = pd.read_csv(path, parse_dates=["Date"])
+    latest_date = df["Date"].max()
+    latest = df[df["Date"] == latest_date].copy()
+    country_name_map = {
+        "NIGERIA": "Nigeria",
+        "SOUTH AFRICA": "South Africa",
+        "EGYPT": "Egypt",
+        "KENYA": "Kenya",
+        "NAMIBIA": "Namibia",
+        "MOROCCO": "Morocco",
+        "MAURITIUS": "Mauritius",
+        "GHANA": "Ghana",
+        "RWANDA": "Rwanda",
+        "SENEGAL": "Senegal",
+        "TOGO": "Togo",
+        "TANZANIA": "Tanzania",
+        "TUNISIA": "Tunisia",
+        "UGANDA": "Uganda",
+        "NIGER": "Niger",
+        "ZIMBABWE": "Zimbabwe",
+    }
+    latest["Country"] = latest["Country"].map(country_name_map).fillna(
+        latest["Country"].str.title()
+    )
+    return latest
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -187,9 +217,7 @@ The platform continues to evolve with:
 *This platform is intended for informational and benchmarking purposes. Methodology and data inputs are continuously refined to ensure accuracy and investability.*
 """
 
-show_intro = st.toggle("Show Platform Overview", value=True)
-
-if show_intro:
+with st.expander("📘 Methodology & Overview", expanded=False):
     st.markdown(intro_text)
 
 col1, col2 = st.columns([0.8, 9])
@@ -824,6 +852,7 @@ with col1:
     ax.plot(am200 / am200.cummax() - 1, color=AM200_COLOR, linewidth=2)
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
+    st.caption("Drawdown calculated as peak-to-trough decline based on daily index levels.")
 
 with col2:
     st.caption("Volatility (30D)")
@@ -859,6 +888,56 @@ with col2:
     ax.tick_params(axis="x", rotation=90)
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
+
+st.caption("Country Exposure Heatmap")
+
+heatmap_view = st.toggle("AM100 vs AM200", value=False)
+
+if heatmap_view:
+    country_df = am200_country.rename_axis("Country").reset_index(name="Weight")
+    heatmap_title = "Country Exposure - AM200"
+else:
+    country_df = am100_country.rename_axis("Country").reset_index(name="Weight")
+    heatmap_title = "Country Exposure - AM100"
+
+country_name_map = {
+    "NIGERIA": "Nigeria",
+    "SOUTH AFRICA": "South Africa",
+    "EGYPT": "Egypt",
+    "KENYA": "Kenya",
+    "NAMIBIA": "Namibia",
+    "MOROCCO": "Morocco",
+    "MAURITIUS": "Mauritius",
+    "GHANA": "Ghana",
+    "RWANDA": "Rwanda",
+    "SENEGAL": "Senegal",
+    "TOGO": "Togo",
+    "TANZANIA": "Tanzania",
+    "TUNISIA": "Tunisia",
+    "UGANDA": "Uganda",
+    "NIGER": "Niger",
+    "ZIMBABWE": "Zimbabwe",
+}
+
+country_df["Country"] = country_df["Country"].map(country_name_map).fillna(
+    country_df["Country"].str.title()
+)
+
+fig = px.choropleth(
+    country_df,
+    locations="Country",
+    locationmode="country names",
+    color="Weight",
+    color_continuous_scale="Blues",
+    title=heatmap_title,
+)
+
+fig.update_layout(
+    margin=dict(l=0, r=0, t=30, b=0),
+    font=dict(size=10),
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 # ----------------------------
 # TOP HOLDINGS
@@ -931,6 +1010,39 @@ view_option = st.selectbox(
 )
 
 st.caption("Methodology & Rules")
+
+st.markdown("### Methodology Flow")
+
+st.markdown(
+    """
+**Data Pipeline -> Index Construction**
+
+1. **Raw Market Data**
+   - Prices, volumes, corporate actions
+
+2. **Cleaning & Validation**
+   - Outlier detection
+   - Missing data handling
+
+3. **Liquidity Scoring**
+   - Traded Value x Participation^2
+
+4. **Ranking Engine**
+   - Cross-market comparability
+
+5. **Eligibility Filters**
+   - Liquidity thresholds
+   - Data consistency
+
+6. **Index Construction**
+   - AM100 (Top 100)
+   - AM200 (Next 100)
+
+7. **Rebalancing**
+   - Monthly
+   - Buffer-controlled turnover
+"""
+)
 
 col1, col2 = st.columns(2)
 
