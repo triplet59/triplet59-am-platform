@@ -7,12 +7,39 @@ import streamlit as st
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 
+
+def calculate_cagr(df, start_date, end_date=None):
+    df = df.copy()
+    df["Date"] = pd.to_datetime(df["Date"])
+    df = df.sort_values("Date")
+
+    if end_date is None:
+        end_date = df["Date"].iloc[-1]
+
+    df_period = df[(df["Date"] >= start_date) & (df["Date"] <= end_date)]
+
+    if len(df_period) < 2:
+        return None
+
+    start_val = df_period["Index Level"].iloc[0]
+    end_val = df_period["Index Level"].iloc[-1]
+
+    years = (df_period["Date"].iloc[-1] - df_period["Date"].iloc[0]).days / 365
+
+    return (end_val / start_val) ** (1 / years) - 1
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
 AM200_COLOR = "#FF9F1C"
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+password = st.text_input("Enter access code", type="password")
+
+if password != "veri2026":
+    st.stop()
+
 col1, col2 = st.columns([0.8, 9])
 
 with col1:
@@ -179,35 +206,22 @@ def style_chart(fig, ax):
 # ----------------------------
 @st.cache_data
 def load_data():
-    def safe_load(path):
-        if path.endswith(".xlsx"):
-            return pd.read_excel(path, index_col=0).squeeze()
-        return pd.read_csv(path, index_col=0, parse_dates=True).squeeze()
+    def load_total_return(path, label):
+        if not os.path.exists(path):
+            st.error(f"No data file found for {label}: {path}")
+            return None
 
-    paths = {
-        "am100": [
-            "output/AM100_total_return.csv",
-            "output/AM100_history.xlsx",
-            "output/AM100_history.csv",
-        ],
-        "am200": [
-            "output/AM200_total_return.csv",
-            "output/AM200_history.xlsx",
-            "output/AM200_history.csv",
-        ],
-    }
+        df = pd.read_csv(path, parse_dates=["Date"])
+        if "Index Level" not in df.columns:
+            st.error(f"{label} file is missing required column: Index Level")
+            return None
 
-    def load_first_available(path_list, label):
-        for path in path_list:
-            if os.path.exists(path):
-                st.sidebar.success(f"{label} loaded: {path}")
-                return safe_load(path)
+        st.sidebar.success(f"{label} loaded: {path}")
+        series = df.sort_values("Date").set_index("Date")["Index Level"]
+        return series
 
-        st.error(f"No data file found for {label}")
-        return None
-
-    am100 = load_first_available(paths["am100"], "AM100")
-    am200 = load_first_available(paths["am200"], "AM200")
+    am100 = load_total_return("output/AM100_total_return.csv", "AM100")
+    am200 = load_total_return("output/AM200_total_return.csv", "AM200")
 
     if am100 is None or am200 is None:
         st.stop()
@@ -216,6 +230,28 @@ def load_data():
 
 
 am100, am200 = load_data()
+
+am100_df = am100.rename("Index Level").reset_index()
+am200_df = am200.rename("Index Level").reset_index()
+
+today = am100_df["Date"].max()
+
+# Rolling 10Y
+start_10y = today - pd.DateOffset(years=10)
+
+# Fixed periods
+start_2016 = pd.Timestamp("2016-01-01")
+start_2021 = pd.Timestamp("2021-01-01")
+
+# AM100
+am100_cagr_10y = calculate_cagr(am100_df, start_10y)
+am100_cagr_2016 = calculate_cagr(am100_df, start_2016)
+am100_cagr_5y = calculate_cagr(am100_df, start_2021)
+
+# AM200
+am200_cagr_10y = calculate_cagr(am200_df, start_10y)
+am200_cagr_2016 = calculate_cagr(am200_df, start_2016)
+am200_cagr_5y = calculate_cagr(am200_df, start_2021)
 
 
 @st.cache_data
