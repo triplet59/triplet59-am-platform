@@ -889,7 +889,7 @@ with col2:
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
 
-st.caption("Country Exposure Heatmap")
+st.markdown("### Country Exposure")
 
 heatmap_view = st.toggle("AM100 vs AM200", value=False)
 
@@ -928,16 +928,26 @@ fig = px.choropleth(
     locations="Country",
     locationmode="country names",
     color="Weight",
-    color_continuous_scale="Blues",
-    title=heatmap_title,
+    color_continuous_scale="Viridis",
 )
 
 fig.update_layout(
-    margin=dict(l=0, r=0, t=30, b=0),
+    geo=dict(
+        scope="africa",
+        projection_type="natural earth",
+        showland=True,
+        landcolor="#0E1117",
+        bgcolor="#0E1117",
+    ),
+    paper_bgcolor="#0E1117",
+    plot_bgcolor="#0E1117",
     font=dict(size=10),
+    margin=dict(l=0, r=0, t=0, b=0),
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
 
 # ----------------------------
 # TOP HOLDINGS
@@ -1009,50 +1019,52 @@ view_option = st.selectbox(
     ],
 )
 
-st.caption("Methodology & Rules")
+st.markdown("---")
 
-st.markdown("### Methodology Flow")
+st.markdown("## Methodology")
 
-st.markdown(
-    """
-**Data Pipeline -> Index Construction**
-
-1. **Raw Market Data**
-   - Prices, volumes, corporate actions
-
-2. **Cleaning & Validation**
-   - Outlier detection
-   - Missing data handling
-
-3. **Liquidity Scoring**
-   - Traded Value x Participation^2
-
-4. **Ranking Engine**
-   - Cross-market comparability
-
-5. **Eligibility Filters**
-   - Liquidity thresholds
-   - Data consistency
-
-6. **Index Construction**
-   - AM100 (Top 100)
-   - AM200 (Next 100)
-
-7. **Rebalancing**
-   - Monthly
-   - Buffer-controlled turnover
-"""
-)
-
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([2, 1])
 
 with col1:
-    st.write("Methodology Overview")
+    st.markdown("### Methodology Flow")
 
-    st.write(
+    st.markdown(
         """
-- Liquidity-driven selection using traded value  
-- Participation-adjusted liquidity scoring  
+**Data Pipeline -> Index Construction**
+
+**1. Raw Market Data**
+- Prices, volumes, corporate actions
+
+**2. Cleaning & Validation**
+- Outlier detection  
+- Missing data handling  
+
+**3. Liquidity Scoring**
+- Traded Value x Participation^2  
+
+**4. Ranking Engine**
+- Cross-market comparability  
+
+**5. Eligibility Filters**
+- Liquidity thresholds  
+- Data consistency  
+
+**6. Index Construction**
+- AM100 (Top 100)  
+- AM200 (Next 100)  
+
+**7. Rebalancing**
+- Monthly  
+- Buffer-controlled turnover  
+"""
+    )
+
+    st.markdown("### Methodology Overview")
+
+    st.markdown(
+        """
+- Liquidity-driven selection  
+- Participation-adjusted scoring  
 - Monthly rebalancing  
 - Country caps applied iteratively  
 - No interpolation of missing data  
@@ -1060,33 +1072,23 @@ with col1:
     )
 
 with col2:
-    st.write("Qualification & Ranking Rules")
+    st.markdown("### Qualification Rules")
 
-    st.write(
+    st.markdown("**Eligibility**")
+    st.markdown(
         """
-**Eligibility:**
-- Minimum trading history required
-- Valid price series (no synthetic data)
-- Volume or value data available
+- Minimum trading history  
+- Valid price series  
+- Volume or value data available  
+"""
+    )
 
-**Liquidity Model:**
-- 30 valid trading days rolling window
-- Liquidity = traded value × participation²
-- Country/regime scaling applied
-
-**Ranking:**
-- Ranked by adjusted liquidity score
-- No normalization distortions
-- Full uniqueness enforced
-
-**Selection:**
-- Top 100 → AM100
-- Next 100 → AM200
-
-**Constraints:**
-- Country cap: 40%
-- Turnover control applied
-- Monthly rebalance with buffers
+    st.markdown("**Liquidity Model**")
+    st.markdown(
+        """
+- 30 valid trading days  
+- Traded Value x Participation^2  
+- Country/regime scaling  
 """
     )
 
