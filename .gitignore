@@ -1,0 +1,17 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+.streamlit/
+.venv/
+venv/
+env/
+
+logs/
+
+output/
+!output/.gitkeep
+
+.ipynb_checkpoints/
