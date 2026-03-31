@@ -419,6 +419,25 @@ col4.markdown(
 
 st.caption("Performance Summary")
 
+# =========================
+# CAGR SECTION (STATIC)
+# =========================
+
+st.markdown("### CAGR by Period")
+
+cagr_df = pd.DataFrame(
+    {
+        "Period": ["10Y Rolling", "Since 2016", "Since 2021"],
+        "AM100": [am100_cagr_10y, am100_cagr_2016, am100_cagr_5y],
+        "AM200": [am200_cagr_10y, am200_cagr_2016, am200_cagr_5y],
+    }
+)
+
+cagr_df["AM100"] = cagr_df["AM100"].apply(lambda x: f"{x:.2%}" if x else "-")
+cagr_df["AM200"] = cagr_df["AM200"].apply(lambda x: f"{x:.2%}" if x else "-")
+
+st.dataframe(display_with_row_numbers(cagr_df), use_container_width=True)
+
 col1, col2 = st.columns(2)
 
 with col1:
