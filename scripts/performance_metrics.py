@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def calculate_drawdown(series):
+    series = series.copy()
+    peak = series.cummax()
+    drawdown = (series / peak) - 1
+    return drawdown
+
+
 def compute_metrics(index_series):
     returns = index_series.pct_change().dropna()
     print(returns.describe())
@@ -17,7 +24,7 @@ def compute_metrics(index_series):
     if sharpe > 10:
         print("WARNING: Sharpe unusually high — check inputs")
 
-    drawdown = (index_series / index_series.cummax()) - 1
+    drawdown = calculate_drawdown(index_series)
     max_dd = drawdown.min()
 
     return {

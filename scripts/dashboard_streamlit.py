@@ -30,6 +30,13 @@ def calculate_cagr(df, start_date, end_date=None):
     return (end_val / start_val) ** (1 / years) - 1
 
 
+def calculate_drawdown(series):
+    series = series.copy()
+    peak = series.cummax()
+    drawdown = (series / peak) - 1
+    return drawdown
+
+
 @st.cache_data
 def load_country_exposure(path):
     df = pd.read_csv(path, parse_dates=["Date"])
@@ -475,7 +482,7 @@ def load_metric_snapshot(path):
     cagr = (end / start) ** (1 / years) - 1
     vol = returns.std() * np.sqrt(252)
     sharpe = (returns.mean() / returns.std()) * np.sqrt(252) if returns.std() != 0 else 0
-    drawdown = (index_series / index_series.cummax()) - 1
+    drawdown = calculate_drawdown(index_series)
     max_dd = drawdown.min()
 
     return cagr, vol, sharpe, max_dd
@@ -848,8 +855,12 @@ with col1:
     st.caption("Drawdown")
     fig, ax = plt.subplots(figsize=(6, 2.4))
     style_chart(fig, ax)
-    ax.plot(am100 / am100.cummax() - 1, color=AM100_COLOR, linewidth=2)
-    ax.plot(am200 / am200.cummax() - 1, color=AM200_COLOR, linewidth=2)
+    ax.plot(am100.index, calculate_drawdown(am100), color=AM100_COLOR, linewidth=1.2)
+    ax.plot(am200.index, calculate_drawdown(am200), color=AM200_COLOR, linewidth=1.2)
+    ax.axhline(0, linestyle="--", linewidth=0.5, color="#666")
+    ax.set_title("Drawdown", fontsize=10, color="#ccc")
+    ax.tick_params(axis="x", labelsize=8, colors="#888")
+    ax.tick_params(axis="y", labelsize=8, colors="#888")
     fig.tight_layout()
     st.pyplot(fig, use_container_width=True)
     st.caption("Drawdown calculated as peak-to-trough decline based on daily index levels.")
