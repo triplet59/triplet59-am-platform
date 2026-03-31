@@ -40,6 +40,158 @@ password = st.text_input("Enter access code", type="password")
 if password != "veri2026":
     st.stop()
 
+intro_text = """
+## African Market Indices (AM100 & AM200)
+
+### Overview
+
+The African Market Indices platform provides a **liquidity-driven, investable benchmark system** designed to represent the most accessible equity opportunities across African markets.
+
+The indices are constructed to reflect **real-world investability**, prioritising securities that institutional and professional investors can realistically access, trade, and scale.
+
+---
+
+### Index Structure
+
+* **AM100 (Core Index)**
+  A concentrated, institutional-grade index of the **100 most liquid and investable equities** across Africa.
+
+* **AM200 (Expansion Index)**
+  A broader index capturing the **next 100 securities**, offering exposure to emerging, frontier, and mid-cap opportunities.
+
+---
+
+### Data Coverage
+
+* **Time Period:** January 2016 -> Present
+* **Frequency:** Daily (no interpolation)
+* **Markets Covered:** Multi-country African equity universe
+* **Data Inputs:**
+
+  * Daily closing prices
+  * Trading volumes
+  * Corporate actions (where available)
+  * FX-adjusted pricing (USD base)
+
+All data is standardised into a **consistent USD framework** to enable cross-country comparability.
+
+---
+
+### Methodology
+
+#### Liquidity-Driven Selection
+
+Constituents are ranked using a proprietary liquidity model:
+
+**Liquidity Score = Traded Value x Participation^2**
+
+This ensures:
+
+* High turnover securities are prioritised
+* Illiquid names are systematically excluded
+* Rankings reflect **true execution capacity**, not just market size
+
+---
+
+#### Index Construction Rules
+
+* **Monthly Rebalance**
+* **Entry/Exit Buffers** to reduce turnover
+* **Turnover Target:** ~2-4% per rebalance
+* **Country Cap:** 40% maximum exposure
+* **No synthetic smoothing or interpolation**
+
+---
+
+### Eligibility Criteria
+
+To qualify for inclusion, securities must:
+
+* Exhibit consistent trading activity
+* Meet minimum liquidity thresholds
+* Have reliable and continuous price data
+* Be accessible to institutional investors
+
+---
+
+### Inclusion & Removal
+
+**Entry into Index:**
+
+* Achieve sufficient liquidity ranking
+* Sustain trading consistency
+* Pass buffer thresholds
+
+**Removal from Index:**
+
+* Drop below liquidity thresholds
+* Exhibit deteriorating trading activity
+* Fail to maintain ranking within buffer range
+
+This ensures **stability while remaining responsive to market conditions**.
+
+---
+
+### Investment Rationale
+
+The indices are designed to:
+
+* Provide a **true representation of investable Africa**
+* Enable **cross-border portfolio construction**
+* Support **institutional allocation decisions**
+* Deliver **transparent, rules-based exposure**
+
+---
+
+### Key Characteristics
+
+* Liquidity-first methodology
+* Multi-country diversification
+* FX-normalised performance (USD)
+* Rules-based, transparent construction
+* Designed for scalability and replication
+
+---
+
+### Intended Users
+
+This platform is built for:
+
+* Asset managers
+* Pension funds
+* Banks and wealth platforms
+* Institutional investors
+* Regulators and market participants
+
+---
+
+### Purpose
+
+> **A unified, investable benchmark for African equities**
+
+Enabling Africa to be viewed not as fragmented markets, but as a **cohesive investment opportunity set**.
+
+---
+
+### Ongoing Development
+
+The platform continues to evolve with:
+
+* Expanded market coverage
+* Enhanced data depth
+* API access for institutional integration
+* Automated reporting and distribution
+
+---
+
+*This platform is intended for informational and benchmarking purposes. Methodology and data inputs are continuously refined to ensure accuracy and investability.*
+"""
+
+show_intro = st.toggle("Show Platform Overview", value=True)
+
+if show_intro:
+    st.markdown(intro_text)
+
 col1, col2 = st.columns([0.8, 9])
 
 with col1:
