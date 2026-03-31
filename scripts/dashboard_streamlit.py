@@ -425,18 +425,35 @@ st.caption("Performance Summary")
 
 st.markdown("### CAGR by Period")
 
-cagr_df = pd.DataFrame(
-    {
-        "Period": ["10Y Rolling", "Since 2016", "Since 2021"],
-        "AM100": [am100_cagr_10y, am100_cagr_2016, am100_cagr_5y],
-        "AM200": [am200_cagr_10y, am200_cagr_2016, am200_cagr_5y],
-    }
-)
+col1, col2, col3 = st.columns(3)
 
-cagr_df["AM100"] = cagr_df["AM100"].apply(lambda x: f"{x:.2%}" if x else "-")
-cagr_df["AM200"] = cagr_df["AM200"].apply(lambda x: f"{x:.2%}" if x else "-")
 
-st.dataframe(display_with_row_numbers(cagr_df), use_container_width=True)
+def color(val):
+    if val is None:
+        return "white"
+    return "lime" if val > 0 else "red"
+
+
+def styled(val):
+    if val is None:
+        return "-"
+    return f"<span style='color:{color(val)}'>{val:.2%}</span>"
+
+
+with col1:
+    st.markdown("**10Y Rolling**")
+    st.markdown(f"AM100: {styled(am100_cagr_10y)}", unsafe_allow_html=True)
+    st.markdown(f"AM200: {styled(am200_cagr_10y)}", unsafe_allow_html=True)
+
+with col2:
+    st.markdown("**Since 2016**")
+    st.markdown(f"AM100: {styled(am100_cagr_2016)}", unsafe_allow_html=True)
+    st.markdown(f"AM200: {styled(am200_cagr_2016)}", unsafe_allow_html=True)
+
+with col3:
+    st.markdown("**Since 2021 (5Y)**")
+    st.markdown(f"AM100: {styled(am100_cagr_5y)}", unsafe_allow_html=True)
+    st.markdown(f"AM200: {styled(am200_cagr_5y)}", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
