@@ -11,7 +11,4 @@ env/
 
 logs/
 
-output/
-!output/.gitkeep
-
 .ipynb_checkpoints/
