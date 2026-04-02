@@ -3,16 +3,16 @@ AM100 vs AM200 Performance Report
 Period: 2016–2026
 
 AM100:
-CAGR: 16.7%
-Volatility: 11.2%
-Sharpe: 1.21
-Max Drawdown: -47.4%
+CAGR: 21.9%
+Volatility: 11.1%
+Sharpe: 1.55
+Max Drawdown: -40.9%
 
 AM200:
-CAGR: 26.5%
+CAGR: 30.8%
 Volatility: 7.7%
-Sharpe: 2.60
-Max Drawdown: -35.4%
+Sharpe: 2.95
+Max Drawdown: -32.1%
 
 Observations:
 - AM200 delivers higher returns with higher volatility

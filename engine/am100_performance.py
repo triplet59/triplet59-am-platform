@@ -8,7 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.load_dividends import load_dividends
+from scripts.load_dividends import build_dividend_matrix, load_dividends
 from scripts.data_validation import DAILY_RETURN_CAP, cap_return_series
 from scripts.performance_metrics import compute_metrics
 
@@ -22,6 +22,8 @@ AM100_METRICS_FILE = "output/AM100_metrics.csv"
 AM200_METRICS_FILE = "output/AM200_metrics.csv"
 REPORT_FILE = "output/index_report.txt"
 RETURN_VALIDATION_FILE = "output/return_validation_report.csv"
+DIVIDEND_MATRIX_FILE = "output/dividend_matrix.csv"
+DIVIDEND_CROSSCHECK_FILE = "output/dividend_crosscheck_report.csv"
 
 BASE_VALUE = 1000.0
 
@@ -33,6 +35,44 @@ def normalize_index(index_df):
     index_df = index_df.copy()
     index_df["Index Level"] = index_df["Index Level"] / index_df["Index Level"].iloc[0] * BASE_VALUE
     return index_df
+
+
+def build_dividend_crosscheck(prices, dividends):
+    price_companies = {
+        col[:-6] for col in prices.columns if col.endswith(" Price")
+    }
+    dividend_companies = set(dividends.keys())
+    all_companies = sorted(price_companies | dividend_companies)
+
+    records = []
+    for company in all_companies:
+        has_price = company in price_companies
+        has_dividend = company in dividend_companies
+        dividend_events = len(dividends.get(company, []))
+        records.append(
+            {
+                "Company": company,
+                "HasPriceSeries": has_price,
+                "HasDividendSeries": has_dividend,
+                "DividendEvents": dividend_events,
+                "Status": (
+                    "OK"
+                    if has_price and has_dividend
+                    else "Missing Dividend"
+                    if has_price and not has_dividend
+                    else "Missing Price"
+                    if has_dividend and not has_price
+                    else "Missing Both"
+                ),
+            }
+        )
+
+    return pd.DataFrame(records)
+
+
+def validate_dividend(price_series, dividend_series):
+    ratio = dividend_series / price_series
+    return ratio.max() < 0.5
 
 
 def build_total_return_index(prices, history, dividends):
@@ -63,8 +103,9 @@ def build_total_return_index(prices, history, dividends):
                 continue
 
             price_col = f"{company} Price"
-            if price_col not in period_prices.columns:
-                continue
+            assert (
+                price_col in period_prices.columns
+            ), f"Missing price column for {company}: expected '{price_col}'"
 
             series = period_prices[["Date", price_col]].dropna()
             if len(series) < 2:
@@ -73,10 +114,17 @@ def build_total_return_index(prices, history, dividends):
             series = series.sort_values("Date").copy()
             series["Dividend"] = 0.0
 
+            if company not in dividends:
+                print(f"Missing dividend series: {company}")
+
             div_series = dividends.get(company)
             if div_series is not None:
                 aligned_dividends = div_series.reindex(series["Date"]).fillna(0.0)
-                series["Dividend"] = aligned_dividends.to_numpy()
+                price_series = series.set_index("Date")[price_col]
+                if validate_dividend(price_series, aligned_dividends):
+                    series["Dividend"] = aligned_dividends.to_numpy()
+                else:
+                    print(f"Invalid dividend series for {company}: dividend/price ratio exceeds 50%")
 
             series["PrevPrice"] = series[price_col].shift(1)
             series["DailyReturn"] = (series[price_col] / series["PrevPrice"]) - 1
@@ -182,6 +230,10 @@ def write_report(am100_index, am100_metrics, am200_index=None, am200_metrics=Non
 def main():
     prices = load_prices()
     dividends = load_dividends()
+    dividend_matrix = build_dividend_matrix(dividends, prices["Date"])
+    dividend_matrix.index.name = "Date"
+    dividend_matrix.to_csv(DIVIDEND_MATRIX_FILE)
+    build_dividend_crosscheck(prices, dividends).to_csv(DIVIDEND_CROSSCHECK_FILE, index=False)
 
     am100_history = load_history(AM100_HISTORY_FILE)
     am100_index, am100_validation = build_total_return_index(prices, am100_history, dividends)

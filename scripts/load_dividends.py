@@ -33,7 +33,7 @@ def load_dividends(base_dir=DIVIDEND_BASE_DIR):
         return dividend_data
 
     for country_dir in sorted(p for p in base_dir.iterdir() if p.is_dir()):
-        country = country_dir.name.upper()
+        country = country_dir.name.replace("_", " ").upper()
 
         for filepath in sorted(country_dir.glob("*.csv")):
             company = filepath.stem.upper().strip()
@@ -44,6 +44,18 @@ def load_dividends(base_dir=DIVIDEND_BASE_DIR):
             dividend_data[full_name] = df.set_index("Date")["Dividend"].sort_index()
 
     return dividend_data
+
+
+def build_dividend_matrix(dividends_dict, index):
+    if not dividends_dict:
+        return pd.DataFrame(index=index)
+
+    matrix = {
+        ticker: series.reindex(index)
+        for ticker, series in dividends_dict.items()
+    }
+
+    return pd.DataFrame(matrix, index=index).fillna(0)
 
 
 def main():

@@ -1,34 +1,37 @@
 import numpy as np
 import pandas as pd
-
+from metrics import calculate_sharpe
 FILE = "output/AM100_index.xlsx"
 
 df = pd.read_excel(FILE)
 df["Date"] = pd.to_datetime(df["Date"])
 df = df.sort_values("Date")
-
-# ================================
-# RETURNS
-# ================================
-df["Return"] = df["Index Level"].pct_change()
+am100_index_series = df["Index Level"]
 
 # ================================
 # METRICS
 # ================================
-total_return = df["Index Level"].iloc[-1] / df["Index Level"].iloc[0] - 1
+total_return = am100_index_series.iloc[-1] / am100_index_series.iloc[0] - 1
 
 years = (df["Date"].iloc[-1] - df["Date"].iloc[0]).days / 365
 annual_return = (1 + total_return) ** (1 / years) - 1
 
-volatility = df["Return"].std() * np.sqrt(12)
+returns = am100_index_series.pct_change().dropna()
+mean_return = returns.mean() * 252
+volatility = returns.std() * np.sqrt(252)
+sharpe = calculate_sharpe(am100_index_series)
 
-sharpe = annual_return / volatility if volatility != 0 else np.nan
+print("Mean return (annualised):", mean_return)
+print("Volatility (annualised):", volatility)
+print("Sharpe:", sharpe)
+
+assert sharpe < 3
 
 # ================================
 # DRAWDOWN
 # ================================
-df["Peak"] = df["Index Level"].cummax()
-df["Drawdown"] = (df["Index Level"] / df["Peak"]) - 1
+df["Peak"] = am100_index_series.cummax()
+df["Drawdown"] = (am100_index_series / df["Peak"]) - 1
 
 max_drawdown = df["Drawdown"].min()
 

@@ -1,11 +1,5 @@
 import numpy as np
-
-
-def calculate_drawdown(series):
-    series = series.copy()
-    peak = series.cummax()
-    drawdown = (series / peak) - 1
-    return drawdown
+from scripts.metrics import calculate_drawdown, calculate_sharpe
 
 
 def compute_metrics(index_series):
@@ -20,7 +14,7 @@ def compute_metrics(index_series):
     end = index_series.iloc[-1]
     years = (index_series.index[-1] - index_series.index[0]).days / 365
     cagr = (end / start) ** (1 / years) - 1
-    sharpe = annual_return / vol if vol != 0 else 0
+    sharpe = calculate_sharpe(index_series)
     if sharpe > 10:
         print("WARNING: Sharpe unusually high — check inputs")
 

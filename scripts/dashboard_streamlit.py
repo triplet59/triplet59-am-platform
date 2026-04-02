@@ -481,7 +481,9 @@ def load_metric_snapshot(path):
 
     cagr = (end / start) ** (1 / years) - 1
     vol = returns.std() * np.sqrt(252)
-    sharpe = (returns.mean() / returns.std()) * np.sqrt(252) if returns.std() != 0 else 0
+    annual_return = returns.mean() * 252
+    rf = 0.02
+    sharpe = (annual_return - rf) / vol if vol != 0 else 0
     drawdown = calculate_drawdown(index_series)
     max_dd = drawdown.min()
 

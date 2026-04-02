@@ -3,6 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scripts.metrics import calculate_drawdown, calculate_sharpe
 
 
 AM100_FILE = "output/AM100_total_return.csv"
@@ -14,9 +15,9 @@ def compute_metrics(series):
 
     cagr = (series.iloc[-1] / series.iloc[0]) ** (252 / len(returns)) - 1
     vol = returns.std() * np.sqrt(252)
-    sharpe = cagr / vol if vol != 0 else 0
+    sharpe = calculate_sharpe(series)
 
-    drawdown = (series / series.cummax()) - 1
+    drawdown = calculate_drawdown(series)
     max_dd = drawdown.min()
 
     return cagr, vol, sharpe, max_dd
