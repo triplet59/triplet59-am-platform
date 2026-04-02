@@ -37,8 +37,14 @@ def calculate_drawdown(series):
     return drawdown
 
 
+def get_file_version(path):
+    if not os.path.exists(path):
+        return None
+    return os.path.getmtime(path)
+
+
 @st.cache_data
-def load_country_exposure(path):
+def load_country_exposure(path, _version=None):
     df = pd.read_csv(path, parse_dates=["Date"])
     latest_date = df["Date"].max()
     latest = df[df["Date"] == latest_date].copy()
@@ -392,8 +398,7 @@ def style_chart(fig, ax):
 # LOAD DATA
 # ----------------------------
 @st.cache_data
-def load_data():
-    def load_total_return(path, label):
+def load_total_return(path, label, _version=None):
         if not os.path.exists(path):
             st.error(f"No data file found for {label}: {path}")
             return None
@@ -403,12 +408,15 @@ def load_data():
             st.error(f"{label} file is missing required column: Index Level")
             return None
 
-        st.sidebar.success(f"{label} loaded: {path}")
         series = df.sort_values("Date").set_index("Date")["Index Level"]
         return series
 
-    am100 = load_total_return("output/AM100_total_return.csv", "AM100")
-    am200 = load_total_return("output/AM200_total_return.csv", "AM200")
+
+def load_data():
+    am100_path = "output/AM100_total_return.csv"
+    am200_path = "output/AM200_total_return.csv"
+    am100 = load_total_return(am100_path, "AM100", get_file_version(am100_path))
+    am200 = load_total_return(am200_path, "AM200", get_file_version(am200_path))
 
     if am100 is None or am200 is None:
         st.stop()
@@ -442,13 +450,16 @@ am200_cagr_5y = calculate_cagr(am200_df, start_2021)
 
 
 @st.cache_data
-def load_history():
+def load_history(am100_version=None, am200_version=None):
     am100_hist = pd.read_excel("output/AM100_history.xlsx")
     am200_hist = pd.read_excel("output/AM200_history.xlsx")
     return am100_hist, am200_hist
 
 
-am100_hist, am200_hist = load_history()
+am100_hist, am200_hist = load_history(
+    get_file_version("output/AM100_history.xlsx"),
+    get_file_version("output/AM200_history.xlsx"),
+)
 latest_date = am100_hist["Date"].max()
 
 am100_latest = am100_hist[am100_hist["Date"] == latest_date]
@@ -470,7 +481,7 @@ else:
 # METRICS
 # ----------------------------
 @st.cache_data
-def load_metric_snapshot(path):
+def load_metric_snapshot(path, _version=None):
     df = pd.read_csv(path, parse_dates=["Date"]).sort_values("Date")
     index_series = df["Index Level"]
     returns = index_series.pct_change().dropna()
@@ -559,8 +570,14 @@ factsheet_mode = st.toggle("📄 Factsheet Mode", value=False)
 # ----------------------------
 # METRICS DISPLAY
 # ----------------------------
-cagr100, vol100, sharpe100, dd100 = load_metric_snapshot("output/AM100_total_return.csv")
-cagr200, vol200, sharpe200, dd200 = load_metric_snapshot("output/AM200_total_return.csv")
+cagr100, vol100, sharpe100, dd100 = load_metric_snapshot(
+    "output/AM100_total_return.csv",
+    get_file_version("output/AM100_total_return.csv"),
+)
+cagr200, vol200, sharpe200, dd200 = load_metric_snapshot(
+    "output/AM200_total_return.csv",
+    get_file_version("output/AM200_total_return.csv"),
+)
 
 col1, col2, col3, col4 = st.columns(4)
 
