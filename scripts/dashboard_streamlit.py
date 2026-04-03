@@ -1,4 +1,7 @@
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -328,6 +331,8 @@ The platform continues to evolve with:
 
 *This platform is intended for informational and benchmarking purposes. Methodology and data inputs are continuously refined to ensure accuracy and investability.*
 """
+
+st.write(os.listdir())
 
 with st.expander("📘 Methodology & Overview", expanded=False):
     st.markdown(intro_text)
