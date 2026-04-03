@@ -4,6 +4,14 @@ import numpy as np
 MASTER_FILE = "output/master.xlsx"
 OUTPUT_FILE = "output/AM100_history.xlsx"
 AM200_OUTPUT_FILE = "output/AM200_history.xlsx"
+AM300_OUTPUT_FILE = "output/AM300_history.xlsx"
+AM300_CAPACITY_FILE = "output/AM300_capacity.csv"
+AM100_ADV_USD_FILE = "output/AM100_adv_usd.csv"
+AM100_CAPACITY_USD_FILE = "output/AM100_capacity_usd.csv"
+AM200_ADV_USD_FILE = "output/AM200_adv_usd.csv"
+AM200_CAPACITY_USD_FILE = "output/AM200_capacity_usd.csv"
+AM300_ADV_USD_FILE = "output/AM300_adv_usd.csv"
+AM300_CAPACITY_USD_FILE = "output/AM300_capacity_usd.csv"
 LIQUIDITY_RANKING_FILE = "output/liquidity_ranking.csv"
 LIQUIDITY_REPORT_FILE = "output/liquidity_report.csv"
 RANKING_REPORT_FILE = "output/am100_ranking.csv"
@@ -48,27 +56,15 @@ REGIME_WEIGHTS = {
     "LOW": 1.0,
 }
 
-COUNTRY_SCALING = {
-    "SOUTH AFRICA": 1,
-    "NIGERIA": 1,
-    "KENYA": 1,
-    "TANZANIA": 0.001,
-    "UGANDA": 0.001,
-    "MALAWI": 0.0001,
-    "ZAMBIA": 0.001,
-}
-
-
-def compute_liquidity(price, volume, scale=1.0, window=30):
+def compute_liquidity(price, volume, window=30):
     traded_value = price * volume
-    adj_value = traded_value * scale
-    valid = adj_value.notna()
+    valid = traded_value.notna()
 
     # Rolling average of traded value using only valid trades, then realign.
-    adj_rolling_value = adj_value[valid].rolling(window).mean().reindex(adj_value.index).ffill()
-    adj_rolling_value = adj_rolling_value.clip(
-        lower=adj_rolling_value.quantile(0.05),
-        upper=adj_rolling_value.quantile(0.95),
+    rolling_value = traded_value[valid].rolling(window).mean().reindex(traded_value.index).ffill()
+    rolling_value = rolling_value.clip(
+        lower=rolling_value.quantile(0.05),
+        upper=rolling_value.quantile(0.95),
     )
 
     # Trading frequency (participation ratio)
@@ -76,13 +72,59 @@ def compute_liquidity(price, volume, scale=1.0, window=30):
     participation = trade_count / window
 
     # Final liquidity score
-    liquidity = adj_rolling_value * (participation ** 2)
+    liquidity = rolling_value * (participation ** 2)
 
-    return liquidity.ffill(), participation.ffill(), adj_rolling_value.ffill(), trade_count.ffill()
+    return liquidity.ffill(), participation.ffill(), rolling_value.ffill(), trade_count.ffill()
 
 
 def extract_country(company_name):
     return company_name.rsplit("(", 1)[-1].rstrip(")")
+
+
+def resolve_price_volume_columns(df, company):
+    explicit_usd = f"{company} Price USD"
+    standard_price = f"{company} Price"
+    volume_col = f"{company} Volume"
+
+    if explicit_usd in df.columns and volume_col in df.columns:
+        return explicit_usd, volume_col
+    if standard_price in df.columns and volume_col in df.columns:
+        return standard_price, volume_col
+    return None, None
+
+
+def build_capacity_usd_export(history_df):
+    working = history_df.copy()
+    working["Date"] = pd.to_datetime(working["Date"])
+
+    adv_usd = (
+        working["AvgDailyValue30dUSD"].fillna(working["AvgDailyValue30d"])
+        if "AvgDailyValue30dUSD" in working.columns
+        else working["AvgDailyValue30d"]
+    )
+    investable_usd = (
+        working["InvestableCapacity20USD"].fillna(adv_usd * 0.20)
+        if "InvestableCapacity20USD" in working.columns
+        else adv_usd * 0.20
+    )
+
+    return (
+        pd.DataFrame(
+            {
+                "Date": working["Date"],
+                "ADV_USD": adv_usd,
+                "InvestableCapacityUSD": investable_usd,
+            }
+        )
+        .groupby("Date")[["ADV_USD", "InvestableCapacityUSD"]]
+        .sum(min_count=1)
+        .reset_index()
+    )
+
+
+def write_adv_capacity_files(capacity_df, adv_path, capacity_path):
+    capacity_df[["Date", "ADV_USD"]].to_csv(adv_path, index=False)
+    capacity_df[["Date", "InvestableCapacityUSD"]].to_csv(capacity_path, index=False)
 
 
 def assign_regime(country):
@@ -209,6 +251,7 @@ price_cols = [col for col in df.columns if "Price" in col]
 
 results_all = []
 am200_history = []
+am300_history = []
 prev_portfolio = None
 latest_universe = None
 rebalance_audit_frames = []
@@ -239,47 +282,49 @@ for rebalance_date in month_ends:
 
         company = col.replace(" Price", "")
         company_country = extract_country(company)
-        volume_col = col.replace("Price", "Volume")
+        price_col, volume_col = resolve_price_volume_columns(df_cut, company)
 
-        if volume_col not in df_cut.columns:
+        if price_col is None or volume_col is None:
             continue
 
-        price_series = df_cut[["Date", col]].dropna()
+        price_series = df_cut[["Date", price_col]].dropna()
 
         if len(price_series) < 150:
             continue
 
         recent = price_series.tail(90)
-        trading_days = recent[col].notna().sum()
+        trading_days = recent[price_col].notna().sum()
 
         if trading_days < 15:
             continue
 
-        valid_prices = recent[col].dropna()
+        valid_prices = recent[price_col].dropna()
         if len(valid_prices) < 10:
             continue
 
-        latest_price = price_series[col].iloc[-1]
+        latest_price = price_series[price_col].iloc[-1]
 
-        merged = df_cut[[col, volume_col]].dropna().tail(30)
+        merged = df_cut[[price_col, volume_col]].dropna().tail(30)
 
         if len(merged) < 10:
             continue
 
-        price = df_cut[col]
+        price = df_cut[price_col]
         volume = df_cut[volume_col]
-        scale = COUNTRY_SCALING.get(company_country, 1.0)
         liquidity, participation, avg_value, trade_count = compute_liquidity(
             price,
             volume,
-            scale=scale,
             window=30,
         )
+        adv_usd_30d = (price * volume).rolling(30).mean()
         liquidity_score = liquidity.dropna().iloc[-1] if liquidity.notna().any() else np.nan
         participation_score = (
             participation.dropna().iloc[-1] if participation.notna().any() else np.nan
         )
         avg_value_30d = avg_value.dropna().iloc[-1] if avg_value.notna().any() else np.nan
+        avg_value_usd_30d = (
+            adv_usd_30d.dropna().iloc[-1] if adv_usd_30d.notna().any() else np.nan
+        )
         trade_count_30 = trade_count.dropna().iloc[-1] if trade_count.notna().any() else np.nan
 
         if pd.isna(liquidity_score) or liquidity_score <= 0:
@@ -298,6 +343,10 @@ for rebalance_date in month_ends:
             "Trading Days (90d)": trading_days,
             "Participation": participation_score,
             "AvgDailyValue30d": avg_value_30d,
+            "AvgDailyValue30dUSD": avg_value_usd_30d,
+            "InvestableCapacity20USD": (
+                avg_value_usd_30d * 0.20 if pd.notna(avg_value_usd_30d) else np.nan
+            ),
             "TradeCount30": trade_count_30,
         })
 
@@ -473,6 +522,17 @@ for rebalance_date in month_ends:
             am200_snapshot["Date"] = rebalance_date
             am200_history.append(am200_snapshot)
 
+            am300 = pd.concat([portfolio.copy(), am200.copy()], ignore_index=True)
+            am300 = am300.drop_duplicates(subset=["Company"]).copy()
+            am300 = apply_weight_constraints(am300)
+
+            if am300 is not None and not am300.empty:
+                am300_snapshot = am300.copy()
+                am300_snapshot = am300_snapshot.drop_duplicates(subset=["Company"])
+                am300_snapshot["Weight"] /= am300_snapshot["Weight"].sum()
+                am300_snapshot["Date"] = rebalance_date
+                am300_history.append(am300_snapshot)
+
 if results_all:
 
     final_df = pd.concat(results_all, ignore_index=True)
@@ -494,6 +554,8 @@ if results_all:
             "Weight",
             "Liquidity",
             "AvgDailyValue30d",
+            "AvgDailyValue30dUSD",
+            "InvestableCapacity20USD",
             "TradeCount30",
             "Rank",
         ]
@@ -501,7 +563,15 @@ if results_all:
         final_output = final_output[preferred_cols + remaining_cols]
         latest_universe.sort_values("Rank").to_csv(LIQUIDITY_RANKING_FILE, index=False)
         latest_universe[
-            ["Company", "Country", "Liquidity Score", "AvgDailyValue30d", "TradeCount30"]
+            [
+                "Company",
+                "Country",
+                "Liquidity Score",
+                "AvgDailyValue30d",
+                "AvgDailyValue30dUSD",
+                "InvestableCapacity20USD",
+                "TradeCount30",
+            ]
         ].rename(
             columns={"Liquidity Score": "Liquidity"}
         ).sort_values("Liquidity", ascending=False).to_csv(
@@ -509,7 +579,15 @@ if results_all:
             index=False,
         )
         latest_universe[
-            ["Rank", "Company", "Country", "Liquidity Score", "AvgDailyValue30d"]
+            [
+                "Rank",
+                "Company",
+                "Country",
+                "Liquidity Score",
+                "AvgDailyValue30d",
+                "AvgDailyValue30dUSD",
+                "InvestableCapacity20USD",
+            ]
         ].rename(
             columns={"Liquidity Score": "Liquidity"}
         ).sort_values("Rank").head(100).to_csv(
@@ -522,6 +600,23 @@ if results_all:
         am200_output = pd.concat(am200_history, ignore_index=True)
         am200_output = am200_output.drop_duplicates(subset=["Date", "Company"])
         am200_output.to_excel(AM200_OUTPUT_FILE, index=False)
+        am200_capacity_usd = build_capacity_usd_export(am200_output)
+        write_adv_capacity_files(
+            am200_capacity_usd, AM200_ADV_USD_FILE, AM200_CAPACITY_USD_FILE
+        )
+    am100_capacity_usd = build_capacity_usd_export(final_output)
+    write_adv_capacity_files(
+        am100_capacity_usd, AM100_ADV_USD_FILE, AM100_CAPACITY_USD_FILE
+    )
+    if am300_history:
+        am300_output = pd.concat(am300_history, ignore_index=True)
+        am300_output = am300_output.drop_duplicates(subset=["Date", "Company"])
+        am300_output.to_excel(AM300_OUTPUT_FILE, index=False)
+        am300_capacity = build_capacity_usd_export(am300_output)
+        am300_capacity.to_csv(AM300_CAPACITY_FILE, index=False)
+        write_adv_capacity_files(
+            am300_capacity, AM300_ADV_USD_FILE, AM300_CAPACITY_USD_FILE
+        )
     country_exposure = (
         final_output.groupby(["Date", "Country"])["Weight"].sum().reset_index()
     )

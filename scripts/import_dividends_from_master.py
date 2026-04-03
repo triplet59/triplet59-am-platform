@@ -18,6 +18,14 @@ DIVIDEND_RULES = {
     "ZAMBIA": {"type": "normal"},
     "NAMIBIA": {"type": "cents", "factor": 0.01},
 }
+DIVIDEND_OVERRIDES = {
+    ("NASPERS", "SOUTH AFRICA", "2019-09-11"): 0.01,
+    ("BIDVEST", "SOUTH AFRICA", "2016-05-30"): 0.01,
+    ("TSL", "ZIMBABWE", "2022-04-20"): 0.01,
+    ("TSL", "ZIMBABWE", "2022-07-20"): 0.01,
+    ("TSL", "ZIMBABWE", "2023-04-19"): 0.01,
+    ("TSL", "ZIMBABWE", "2021-04-21"): 0.01,
+}
 
 
 def slugify_country(country):
@@ -62,6 +70,17 @@ def normalize_dividend_by_country(value, country):
     if rule["type"] == "cents":
         return value * rule.get("factor", 1.0)
     return value
+
+
+def apply_dividend_override(value, company, country, date):
+    if value is None or pd.isna(value) or pd.isna(date):
+        return value
+
+    key = (company.upper(), country.upper(), pd.Timestamp(date).strftime("%Y-%m-%d"))
+    factor = DIVIDEND_OVERRIDES.get(key)
+    if factor is None:
+        return value
+    return value * factor
 
 
 def detect_outliers(series):
@@ -125,6 +144,10 @@ def convert_master_dividends(dividend_source=DIVIDEND_SOURCE, isin_source=ISIN_S
         pair_df["Dividend"] = pair_df["Dividend"].apply(
             lambda x: normalize_dividend_by_country(x, country)
         )
+        pair_df["Dividend"] = [
+            apply_dividend_override(value, company, country, date)
+            for value, date in zip(pair_df["Dividend"], pair_df["Date"])
+        ]
         pair_df = pair_df.dropna(subset=["Date", "Dividend"])
         pair_df = pair_df.sort_values("Date").drop_duplicates(subset=["Date"], keep="last")
 

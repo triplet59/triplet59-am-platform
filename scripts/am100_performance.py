@@ -15,11 +15,14 @@ from scripts.performance_metrics import compute_metrics
 MASTER_FILE = "output/master.xlsx"
 AM100_HISTORY_FILE = "output/AM100_history.xlsx"
 AM200_HISTORY_FILE = "output/AM200_history.xlsx"
+AM300_HISTORY_FILE = "output/AM300_history.xlsx"
 AM100_OUTPUT_XLSX = "output/AM100_index.xlsx"
 AM100_OUTPUT_CSV = "output/AM100_total_return.csv"
 AM200_OUTPUT_CSV = "output/AM200_total_return.csv"
+AM300_OUTPUT_CSV = "output/AM300_total_return.csv"
 AM100_METRICS_FILE = "output/AM100_metrics.csv"
 AM200_METRICS_FILE = "output/AM200_metrics.csv"
+AM300_METRICS_FILE = "output/AM300_metrics.csv"
 REPORT_FILE = "output/index_report.txt"
 RETURN_VALIDATION_FILE = "output/return_validation_report.csv"
 DIVIDEND_MATRIX_FILE = "output/dividend_matrix.csv"
@@ -281,6 +284,22 @@ def main():
             print("⚠️ No AM200 total return data generated")
     else:
         print("⚠️ AM200 history not found; skipped AM200 total return export")
+
+    if os.path.exists(AM300_HISTORY_FILE):
+        am300_history = load_history(AM300_HISTORY_FILE)
+        am300_index, am300_validation = build_total_return_index(prices, am300_history, dividends)
+
+        if len(am300_index) > 0:
+            am300_index.to_csv(AM300_OUTPUT_CSV, index=False)
+            am300_tr = am300_index.set_index("Date")["Index Level"]
+            print_index_debug("AM300", am300_tr)
+            am300_metrics = compute_metrics(am300_tr)
+            pd.DataFrame([am300_metrics]).to_csv(AM300_METRICS_FILE, index=False)
+            print(f"✅ AM300 total return created → {AM300_OUTPUT_CSV}")
+        else:
+            print("⚠️ No AM300 total return data generated")
+    else:
+        print("⚠️ AM300 history not found; skipped AM300 total return export")
 
     if len(am100_index) > 0:
         write_report(

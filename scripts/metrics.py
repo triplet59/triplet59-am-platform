@@ -1,6 +1,13 @@
 import numpy as np
 
 
+def calculate_cagr(series):
+    start = series.iloc[0]
+    end = series.iloc[-1]
+    years = (series.index[-1] - series.index[0]).days / 365
+    return (end / start) ** (1 / years) - 1
+
+
 def calculate_sharpe(index_series, risk_free_rate=0.02):
     """
     Calculates annualised Sharpe ratio from index level series.

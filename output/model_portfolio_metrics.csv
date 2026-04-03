@@ -1,0 +1,5 @@
+Model,Objective,Characteristics,CAGR,Volatility,Sharpe,Max Drawdown,Latest Level,Estimated Capacity
+Conservative,Stability + liquidity,"Lower volatility, high liquidity exposure, conservative mandate",0.23374478535155285,0.1010795428332986,1.5888009495231223,-0.39742453378909226,7076.782821086214,44306908991.06648
+Balanced,Stable + growth,"Moderate risk, strong diversification, institutional default",0.2510783690768126,0.08751260168706099,1.9536648484607648,-0.3746864831470188,8060.187706656658,34781060491.65555
+Growth,Maximise return,"Higher volatility, higher expected return, frontier tilt",0.2679557220305602,0.07758331678529246,2.337426669933098,-0.3525134994958429,9133.188595652637,25255211992.244606
+Aggressive,Maximum return / aggressive allocation,Optimizer-led high-risk sleeve with strong frontier tilt,0.3074590517087985,0.07690579775891179,2.6906676645074525,-0.32056782282978624,12159.328560584267,1200492286.4310563

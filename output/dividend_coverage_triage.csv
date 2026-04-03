@@ -1,0 +1,43 @@
+Company,In_AM100,In_AM200,Classification,Action
+ACCESS BANK GHANA (GHANA),False,False,Illiquid,ignore
+AECI MINING EXPLOSIVES ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+AGRICULTURAL DEVELOPMENT BANK GHANA (GHANA),False,False,Illiquid,ignore
+AIRTEL NETWORKS ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+AIRTEL UGANDA (UGANDA),False,False,Illiquid,ignore
+BRITISH AMERICAN TOBACCO UGANDA (UGANDA),False,False,Illiquid,ignore
+BRITISH AMERICAN TOBACCO ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+CAPRICORN INVESTMENT (NAMIBIA),False,False,Illiquid,ignore
+CEC AFRICA INVESTMENTS ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+CENTUM INVESTMENT UG (UGANDA),False,False,Illiquid,ignore
+CHILANGA CEMENT ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+CIMERWA RWANDA (RWANDA),False,False,Illiquid,ignore
+COPPERBELT ENERGY CORP ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+DAR ES SALAAM STOCK EXCHANGE PLC (TANZANIA),False,False,Illiquid,ignore
+DCB COMMERCIAL BANK PLC TANZANIA (TANZANIA),False,False,Illiquid,ignore
+FDH BANK MALAWI (MALAWI),False,False,Illiquid,ignore
+FMB CAPITAL HOLDINGS MALAWI (MALAWI),False,False,Illiquid,ignore
+KAVANGO RESOURCES (ZIMBABWE),False,False,Illiquid,ignore
+LETSHEGO HOLDINGS (NAMIBIA),False,False,Illiquid,ignore
+MADISON FINANCIAL SERVICES (ZAMBIA),False,False,Illiquid,ignore
+MOBILE TELECOMMUNICATIONS (NAMIBIA),False,False,Illiquid,ignore
+NAMIBIA BREWERIES (NAMIBIA),False,False,Illiquid,ignore
+NATIONAL BANK OF MALAWI (MALAWI),False,False,Illiquid,ignore
+NBS BANK MALAWI (MALAWI),False,False,Illiquid,ignore
+NICO HOLDINGS MALAWI (MALAWI),False,False,Illiquid,ignore
+PFUMA REIT (ZIMBABWE),False,False,Illiquid,ignore
+PUMA ENERGY ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+SIC INSURANCE (GHANA),False,False,Illiquid,ignore
+STANDARD BANK MALAWI (MALAWI),False,False,Illiquid,ignore
+STANDARD CHARTERED BANK ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+STARAFRICACORPORATION (ZIMBABWE),False,False,Illiquid,ignore
+ZAMBEEF PRODUCTS ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+ZAMBIA NATIONAL COMMERCIAL BANK (ZAMBIA),False,False,Illiquid,ignore
+ZAMBIA SUGAR (ZAMBIA),False,False,Illiquid,ignore
+ZAMBIAN BREWERIES (ZAMBIA),False,False,Illiquid,ignore
+ZCCM INVESTMENTS HOLDINGS ZAMBIA (ZAMBIA),False,False,Illiquid,ignore
+ZIMBABWE STOCK EXCHANGE HOLDINGS (ZIMBABWE),False,False,Illiquid,ignore
+OANDO PLC NIGERIA (NIGERIA),True,False,Missing data,source later
+BELTONE HOLDING EGYPT (EGYPT),True,False,No dividend stocks,leave
+EMAAR MISR EGYPT (EGYPT),False,True,No dividend stocks,leave
+FAWRY EGYPT (EGYPT),True,False,No dividend stocks,leave
+KENYA AIRWAYS (KENYA),False,True,No dividend stocks,leave

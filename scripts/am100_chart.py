@@ -2,12 +2,8 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+from scripts.data_loader import load_index
 from scripts.metrics import calculate_drawdown, calculate_sharpe
-
-
-AM100_FILE = "output/AM100_total_return.csv"
-AM200_FILE = "output/AM200_total_return.csv"
 
 
 def compute_metrics(series):
@@ -22,22 +18,15 @@ def compute_metrics(series):
 
     return cagr, vol, sharpe, max_dd
 
-
-def load_index_series(path):
-    df = pd.read_csv(path, parse_dates=["Date"])
-    df = df.set_index("Date")
-    return df["Index Level"]
-
-
 def main():
-    am100 = load_index_series(AM100_FILE)
+    am100 = load_index("AM100").set_index("Date")["Index Level"]
 
-    if not os.path.exists(AM200_FILE):
+    if not os.path.exists("output/AM200_total_return.csv"):
         raise FileNotFoundError(
             "output/AM200_total_return.csv is missing. Build AM200 total return first."
         )
 
-    am200 = load_index_series(AM200_FILE)
+    am200 = load_index("AM200").set_index("Date")["Index Level"]
 
     cagr100, vol100, sharpe100, dd100 = compute_metrics(am100)
     cagr200, vol200, sharpe200, dd200 = compute_metrics(am200)
