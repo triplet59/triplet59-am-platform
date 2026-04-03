@@ -1362,13 +1362,13 @@ with allocator_tab:
         "Client-ready model portfolio system built from AM100 (Core), AM200 (Growth), and AM300 (Broad Market) using daily total return index data."
     )
 
-    allocator_cols = st.columns(3)
-    for i, model_name in enumerate(MODEL_WEIGHTS):
-        with allocator_cols[i]:
+    allocator_cols = st.columns(len(MODEL_WEIGHTS))
+    for allocator_col, (model_name, weights) in zip(allocator_cols, MODEL_WEIGHTS.items()):
+        with allocator_col:
             st.markdown(f"### {model_name}")
             st.write(f"**Objective:** {MODEL_METADATA[model_name]['Objective']}")
             st.write(MODEL_METADATA[model_name]["Characteristics"])
-            for index_name, weight in MODEL_WEIGHTS[model_name].items():
+            for index_name, weight in weights.items():
                 st.write(f"{index_name}: {weight:.0%}")
 
     st.markdown("### Allocation Weights")
