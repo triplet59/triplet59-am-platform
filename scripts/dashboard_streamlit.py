@@ -673,13 +673,24 @@ am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]
 am300_cagr_2016 = am300_cagrs["since_2016"]
 am300_cagr_5y = am300_cagrs["since_2021"]
 
+analytics_coverage_notes = []
+
 for index_name, index_series, periods in [
     ("AM100", am100, am100_periods),
     ("AM200", am200, am200_periods),
     ("AM300", am300, am300_periods),
 ]:
     latest_valid = periods["latest_valid"]
-    assert latest_valid == index_series.index.max(), f"{index_name} latest valid date mismatch"
+    index_latest = index_series.index.max()
+    gap_days = (index_latest - latest_valid).days
+    if gap_days > 0:
+        analytics_coverage_notes.append(
+            f"{index_name}: analytics capped at {latest_valid.date()} due to incomplete constituent data"
+        )
+        if gap_days > 5:
+            analytics_coverage_notes.append(
+                f"{index_name}: recent data incomplete - analytics truncated"
+            )
     rolling_start, rolling_end = periods["rolling_10y"]
     if rolling_end - pd.DateOffset(years=10) > pd.Timestamp("2016-01-01"):
         assert rolling_start != pd.Timestamp("2016-01-01"), f"{index_name} rolling window incorrectly anchored to 2016"
@@ -901,6 +912,13 @@ st.caption("Performance Summary")
 # =========================
 
 st.markdown("### CAGR by Period")
+
+if analytics_coverage_notes:
+    for note in analytics_coverage_notes:
+        if "recent data incomplete" in note:
+            st.warning(note)
+        else:
+            st.caption(note)
 
 
 def color(val):
