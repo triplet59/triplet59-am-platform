@@ -42,9 +42,76 @@ def calculate_cagr(df, start_date, end_date=None):
     start_val = df_period["Index Level"].iloc[0]
     end_val = df_period["Index Level"].iloc[-1]
 
-    years = (df_period["Date"].iloc[-1] - df_period["Date"].iloc[0]).days / 365
+    years = (df_period["Date"].iloc[-1] - df_period["Date"].iloc[0]).days / 365.25
 
     return (end_val / start_val) ** (1 / years) - 1
+
+
+def calculate_cagr_series(series):
+    series = series.dropna().sort_index()
+    if len(series) < 2:
+        return None
+
+    start = series.iloc[0]
+    end = series.iloc[-1]
+    years = (series.index[-1] - series.index[0]).days / 365.25
+    if years <= 0:
+        return None
+    return (end / start) ** (1 / years) - 1
+
+
+def compute_cagr_for_periods(index_series, periods):
+    results = {}
+
+    for name, period in periods.items():
+        if name == "latest_valid":
+            continue
+        start, end = period
+        sub = index_series.loc[start:end]
+
+        if len(sub) > 1:
+            results[name] = calculate_cagr_series(sub)
+        else:
+            results[name] = None
+
+    return results
+
+
+def get_latest_valid_date(price_df, constituents):
+    price_columns = [f"{company} Price" for company in constituents if f"{company} Price" in price_df.columns]
+    if not price_columns:
+        return None
+
+    valid_rows = price_df[price_columns].dropna(how="any")
+    if valid_rows.empty:
+        return None
+
+    return valid_rows.index.max()
+
+
+def get_periods(price_df, constituents, index_series):
+    start_2016 = pd.Timestamp("2016-01-01")
+    start_2021 = pd.Timestamp("2021-01-01")
+    latest_valid = get_latest_valid_date(price_df, constituents)
+    series_latest = index_series.dropna().index.max()
+    latest = min(latest_valid, series_latest) if latest_valid is not None else series_latest
+
+    if latest is None:
+        latest = start_2016
+
+    def rolling_start(years):
+        start = latest - pd.DateOffset(years=years)
+        return max(start, start_2016)
+
+    return {
+        "rolling_10y": (rolling_start(10), latest),
+        "rolling_5y": (rolling_start(5), latest),
+        "rolling_3y": (rolling_start(3), latest),
+        "rolling_1y": (rolling_start(1), latest),
+        "since_2016": (start_2016, latest),
+        "since_2021": (start_2021, latest),
+        "latest_valid": latest,
+    }
 
 
 def calculate_drawdown(series):
@@ -537,34 +604,6 @@ am100, am200, am300 = load_data()
 
 st.write("Data Last Updated:", am100.index.max())
 
-am100_df = am100.rename("Index Level").reset_index()
-am200_df = am200.rename("Index Level").reset_index()
-am300_df = am300.rename("Index Level").reset_index()
-
-today = am100_df["Date"].max()
-
-# Rolling 10Y
-start_10y = today - pd.DateOffset(years=10)
-
-# Fixed periods
-start_2016 = pd.Timestamp("2016-01-01")
-start_2021 = pd.Timestamp("2021-01-01")
-
-# AM100
-am100_cagr_10y = calculate_cagr(am100_df, start_10y)
-am100_cagr_2016 = calculate_cagr(am100_df, start_2016)
-am100_cagr_5y = calculate_cagr(am100_df, start_2021)
-
-# AM200
-am200_cagr_10y = calculate_cagr(am200_df, start_10y)
-am200_cagr_2016 = calculate_cagr(am200_df, start_2016)
-am200_cagr_5y = calculate_cagr(am200_df, start_2021)
-
-# AM300
-am300_cagr_10y = calculate_cagr(am300_df, start_10y)
-am300_cagr_2016 = calculate_cagr(am300_df, start_2016)
-am300_cagr_5y = calculate_cagr(am300_df, start_2021)
-
 
 @st.cache_data
 def load_history(am100_version=None, am200_version=None, am300_version=None):
@@ -574,16 +613,78 @@ def load_history(am100_version=None, am200_version=None, am300_version=None):
     return am100_hist, am200_hist, am300_hist
 
 
+@st.cache_data
+def load_price_panel(_version=None):
+    path = "output/master.csv"
+    if os.path.exists(path):
+        df = pd.read_csv(path, parse_dates=["Date"])
+    else:
+        df = pd.read_excel("output/master.xlsx")
+        df["Date"] = pd.to_datetime(df["Date"])
+    return df.sort_values("Date").set_index("Date")
+
+
 am100_hist, am200_hist, am300_hist = load_history(
     get_file_version("output/AM100_history.xlsx"),
     get_file_version("output/AM200_history.xlsx"),
     get_file_version("output/AM300_history.xlsx"),
+)
+price_panel = load_price_panel(
+    get_file_version("output/master.csv")
+    if os.path.exists("output/master.csv")
+    else get_file_version("output/master.xlsx")
 )
 latest_date = am100_hist["Date"].max()
 
 am100_latest = am100_hist[am100_hist["Date"] == latest_date]
 am200_latest = am200_hist[am200_hist["Date"] == latest_date]
 am300_latest = am300_hist[am300_hist["Date"] == latest_date]
+
+am100_constituents = am100_latest["Company"].tolist()
+am200_constituents = am200_latest["Company"].tolist()
+am300_constituents = am300_latest["Company"].tolist()
+
+am100_periods = get_periods(price_panel, am100_constituents, am100)
+am200_periods = get_periods(price_panel, am200_constituents, am200)
+am300_periods = get_periods(price_panel, am300_constituents, am300)
+
+am100_cagrs = compute_cagr_for_periods(am100, am100_periods)
+am200_cagrs = compute_cagr_for_periods(am200, am200_periods)
+am300_cagrs = compute_cagr_for_periods(am300, am300_periods)
+
+am100_cagr_10y = am100_cagrs["rolling_10y"]
+am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]
+am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]
+am100_cagr_rolling_1y = am100_cagrs["rolling_1y"]
+am100_cagr_2016 = am100_cagrs["since_2016"]
+am100_cagr_5y = am100_cagrs["since_2021"]
+
+am200_cagr_10y = am200_cagrs["rolling_10y"]
+am200_cagr_rolling_5y = am200_cagrs["rolling_5y"]
+am200_cagr_rolling_3y = am200_cagrs["rolling_3y"]
+am200_cagr_rolling_1y = am200_cagrs["rolling_1y"]
+am200_cagr_2016 = am200_cagrs["since_2016"]
+am200_cagr_5y = am200_cagrs["since_2021"]
+
+am300_cagr_10y = am300_cagrs["rolling_10y"]
+am300_cagr_rolling_5y = am300_cagrs["rolling_5y"]
+am300_cagr_rolling_3y = am300_cagrs["rolling_3y"]
+am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]
+am300_cagr_2016 = am300_cagrs["since_2016"]
+am300_cagr_5y = am300_cagrs["since_2021"]
+
+for index_name, index_series, periods in [
+    ("AM100", am100, am100_periods),
+    ("AM200", am200, am200_periods),
+    ("AM300", am300, am300_periods),
+]:
+    latest_valid = periods["latest_valid"]
+    assert latest_valid == index_series.index.max(), f"{index_name} latest valid date mismatch"
+    rolling_start, rolling_end = periods["rolling_10y"]
+    if rolling_end - pd.DateOffset(years=10) > pd.Timestamp("2016-01-01"):
+        assert rolling_start != pd.Timestamp("2016-01-01"), f"{index_name} rolling window incorrectly anchored to 2016"
+    rolling_years = (rolling_end - rolling_start).days / 365.25
+    assert 9.9 <= rolling_years <= 10.1, f"{index_name} rolling window is not ~10 years"
 
 # Latest returns (daily)
 if len(am100) > 1:
@@ -801,8 +902,6 @@ st.caption("Performance Summary")
 
 st.markdown("### CAGR by Period")
 
-col1, col2, col3 = st.columns(3)
-
 
 def color(val):
     if val is None:
@@ -815,24 +914,62 @@ def styled(val):
         return "-"
     return f"<span style='color:{color(val)}'>{val:.2%}</span>"
 
+rolling_results = {
+    "AM100": {
+        "rolling_10y": am100_cagr_10y,
+        "rolling_5y": am100_cagr_rolling_5y,
+        "rolling_3y": am100_cagr_rolling_3y,
+        "rolling_1y": am100_cagr_rolling_1y,
+    },
+    "AM200": {
+        "rolling_10y": am200_cagr_10y,
+        "rolling_5y": am200_cagr_rolling_5y,
+        "rolling_3y": am200_cagr_rolling_3y,
+        "rolling_1y": am200_cagr_rolling_1y,
+    },
+    "AM300": {
+        "rolling_10y": am300_cagr_10y,
+        "rolling_5y": am300_cagr_rolling_5y,
+        "rolling_3y": am300_cagr_rolling_3y,
+        "rolling_1y": am300_cagr_rolling_1y,
+    },
+}
 
-with col1:
-    st.markdown("**10Y Rolling**")
-    st.markdown(f"AM100: {styled(am100_cagr_10y)}", unsafe_allow_html=True)
-    st.markdown(f"AM200: {styled(am200_cagr_10y)}", unsafe_allow_html=True)
-    st.markdown(f"AM300: {styled(am300_cagr_10y)}", unsafe_allow_html=True)
+fixed_results = {
+    "AM100": {
+        "since_2016": am100_cagr_2016,
+        "since_2021": am100_cagr_5y,
+    },
+    "AM200": {
+        "since_2016": am200_cagr_2016,
+        "since_2021": am200_cagr_5y,
+    },
+    "AM300": {
+        "since_2016": am300_cagr_2016,
+        "since_2021": am300_cagr_5y,
+    },
+}
 
-with col2:
-    st.markdown("**Since 2016**")
-    st.markdown(f"AM100: {styled(am100_cagr_2016)}", unsafe_allow_html=True)
-    st.markdown(f"AM200: {styled(am200_cagr_2016)}", unsafe_allow_html=True)
-    st.markdown(f"AM300: {styled(am300_cagr_2016)}", unsafe_allow_html=True)
 
-with col3:
-    st.markdown("**Since 2021 (5Y)**")
-    st.markdown(f"AM100: {styled(am100_cagr_5y)}", unsafe_allow_html=True)
-    st.markdown(f"AM200: {styled(am200_cagr_5y)}", unsafe_allow_html=True)
-    st.markdown(f"AM300: {styled(am300_cagr_5y)}", unsafe_allow_html=True)
+def safe_metric(value):
+    return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
+
+
+st.subheader("Rolling Performance")
+for index_name, results in rolling_results.items():
+    st.markdown(f"**{index_name}**")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("10Y", safe_metric(results["rolling_10y"]))
+    col2.metric("5Y", safe_metric(results["rolling_5y"]))
+    col3.metric("3Y", safe_metric(results["rolling_3y"]))
+    col4.metric("1Y", safe_metric(results["rolling_1y"]))
+
+st.subheader("Fixed Period Performance")
+for index_name, results in fixed_results.items():
+    st.markdown(f"**{index_name}**")
+    col1, col2 = st.columns(2)
+    col1.metric("Since 2016 (10Y)", safe_metric(results["since_2016"]))
+    col2.metric("Since 2021 (5Y)", safe_metric(results["since_2021"]))
 
 comparison_df = pd.DataFrame(
     {
@@ -968,6 +1105,10 @@ rolling_sharpe_100 = (rolling_mean_100 - 0.02) / rolling_vol_100
 rolling_sharpe_200 = (rolling_mean_200 - 0.02) / rolling_vol_200
 rolling_sharpe_300 = (rolling_mean_300 - 0.02) / rolling_vol_300
 
+rolling_perf_1y_100 = am100_s.pct_change(252).dropna()
+rolling_perf_1y_200 = am200_s.pct_change(252).dropna()
+rolling_perf_1y_300 = am300_s.pct_change(252).dropna()
+
 drawdown_100 = calculate_drawdown(am100_s)
 drawdown_200 = calculate_drawdown(am200_s)
 drawdown_300 = calculate_drawdown(am300_s)
@@ -1098,6 +1239,21 @@ with risk_tab:
     col4.metric("AM300 Risk", am300_label)
 
     st.markdown("## Rolling Risk")
+
+    st.subheader("Rolling 1Y Performance")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=rolling_perf_1y_100.index, y=rolling_perf_1y_100, name="AM100 1Y", line=dict(color=AM100_COLOR, width=2)))
+    fig.add_trace(go.Scatter(x=rolling_perf_1y_200.index, y=rolling_perf_1y_200, name="AM200 1Y", line=dict(color=AM200_COLOR, width=2)))
+    fig.add_trace(go.Scatter(x=rolling_perf_1y_300.index, y=rolling_perf_1y_300, name="AM300 1Y", line=dict(color=AM300_COLOR, width=2)))
+    fig.update_layout(
+        paper_bgcolor="#0E1117",
+        plot_bgcolor="#0E1117",
+        font=dict(size=10, color="#CCCCCC"),
+        margin=dict(l=0, r=0, t=30, b=0),
+        legend=dict(bgcolor="rgba(0,0,0,0)"),
+        yaxis_tickformat=".0%",
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Rolling Volatility (30D)")
     fig = go.Figure()
