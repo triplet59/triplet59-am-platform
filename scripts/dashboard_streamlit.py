@@ -69,7 +69,9 @@ def compute_cagr_for_periods(index_series, periods):
         start, end = period
         sub = index_series.loc[start:end]
 
-        if len(sub) > 1:
+        if name.startswith("rolling_") and len(sub) < 252:
+            results[name] = None
+        elif len(sub) > 1:
             results[name] = calculate_cagr_series(sub)
         else:
             results[name] = None
@@ -100,8 +102,7 @@ def get_periods(price_df, constituents, index_series):
         latest = start_2016
 
     def rolling_start(years):
-        start = latest - pd.DateOffset(years=years)
-        return max(start, start_2016)
+        return latest - pd.DateOffset(years=years)
 
     return {
         "rolling_10y": (rolling_start(10), latest),
@@ -423,6 +424,10 @@ with col2:
     """, unsafe_allow_html=True)
 st.markdown("""
 <style>
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
 .ticker {
     white-space: nowrap;
     overflow: hidden;
@@ -489,16 +494,37 @@ div[data-testid="column"] {
 }
 
 .kpi-label {
-    font-size: 11px;
-    color: #9AA4AF;
+    font-size: 13px;
+    color: #9CA3AF;
     line-height: 1.1;
     margin-bottom: 0.15rem;
 }
 
 .kpi-value {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: 600;
     line-height: 1.1;
+}
+
+.metric-label {
+    font-size: 13px;
+    color: #9CA3AF;
+}
+
+.metric-value {
+    font-size: 28px;
+    font-weight: 600;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+.small-note {
+    font-size: 12px;
+    color: #6B7280;
 }
 
 img {
@@ -913,12 +939,22 @@ st.caption("Performance Summary")
 
 st.markdown("### CAGR by Period")
 
-if analytics_coverage_notes:
-    for note in analytics_coverage_notes:
-        if "recent data incomplete" in note:
-            st.warning(note)
-        else:
-            st.caption(note)
+latest_valid_dates = {
+    "AM100": am100_periods["latest_valid"],
+    "AM200": am200_periods["latest_valid"],
+    "AM300": am300_periods["latest_valid"],
+}
+min_valid = min(latest_valid_dates.values())
+
+st.info(
+    f"Analytics calculated using data through {min_valid.date()} based on full constituent coverage."
+)
+
+with st.expander("Data Coverage Details"):
+    for index_name, valid_date in latest_valid_dates.items():
+        st.write(f"{index_name}: {valid_date.date()}")
+    st.write("Rolling start:", am100_periods["rolling_10y"][0])
+    st.write("Since 2016 start:", pd.Timestamp("2016-01-01"))
 
 
 def color(val):
@@ -1662,33 +1698,42 @@ with allocator_tab:
             x=frontier["Vol"],
             y=frontier["Return"],
             mode="markers",
-            marker=dict(size=3, color="#7DD3FC", opacity=0.55),
-            name="Frontier",
+            marker=dict(size=2, color="#7DD3FC", opacity=0.3),
+            name="Efficient Frontier",
+            hovertemplate="Return: %{y:.2%}<br>Risk: %{x:.2%}<extra></extra>",
         )
     )
-    for model_name, color in model_colors.items():
-        row = model_metrics[model_metrics["Model"] == model_name].iloc[0]
+
+    def plot_point(name, vol_value, ret_value, color):
         fig.add_trace(
             go.Scatter(
-                x=[row["Volatility"]],
-                y=[row["CAGR"]],
+                x=[vol_value],
+                y=[ret_value],
                 mode="markers+text",
-                text=[model_name],
+                text=[name],
                 textposition="top center",
-                marker=dict(size=9, color=color),
-                name=model_name,
+                marker=dict(size=10, color=color),
+                name=name,
+                hovertemplate="Return: %{y:.2%}<br>Risk: %{x:.2%}<extra></extra>",
             )
         )
+
+    for model_name, color in model_colors.items():
+        row = model_metrics[model_metrics["Model"] == model_name].iloc[0]
+        plot_point(model_name, row["Volatility"], row["CAGR"], color)
     fig.update_layout(
         paper_bgcolor="#0E1117",
         plot_bgcolor="#0E1117",
         font=dict(size=10, color="#CCCCCC"),
         margin=dict(l=0, r=0, t=30, b=0),
         legend=dict(bgcolor="rgba(0,0,0,0)"),
-        xaxis_title="Volatility",
-        yaxis_title="Expected Return",
+        xaxis_title="Risk (Annualised Volatility)",
+        yaxis_title="Expected Return (Annualised)",
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.caption(
+        "Each point represents a portfolio allocation. The curve shows the best achievable return for a given level of risk."
+    )
 
     st.markdown("### Building Block Mix")
     fig = go.Figure()
