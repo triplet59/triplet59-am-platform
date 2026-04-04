@@ -946,8 +946,10 @@ latest_valid_dates = {
 }
 min_valid = min(latest_valid_dates.values())
 
-st.info(
-    f"Analytics calculated using data through {min_valid.date()} based on full constituent coverage."
+st.markdown(
+    f"<div class='small-note'>Analytics calculated using data through {min_valid.date()} based on full constituent coverage. "
+    f"{help_text('Analytics are calculated using the latest date where all index constituents have valid data.')}</div>",
+    unsafe_allow_html=True,
 )
 
 with st.expander("Data Coverage Details"):
@@ -967,6 +969,31 @@ def styled(val):
     if val is None:
         return "-"
     return f"<span style='color:{color(val)}'>{val:.2%}</span>"
+
+
+def help_text(text):
+    return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
+
+
+def tooltip(label, text):
+    return (
+        f"<span style=\"border-bottom:1px dotted #999;\" title=\"{text}\">"
+        f"{label}"
+        f"</span>"
+    )
+
+
+def render_metric_card(label, value, help_copy=None):
+    title_attr = f" title=\"{help_copy}\"" if help_copy else ""
+    st.markdown(
+        f"""
+        <div class="kpi-card"{title_attr}>
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 rolling_results = {
     "AM100": {
@@ -1012,6 +1039,15 @@ def safe_metric(value):
 st.subheader("Rolling Performance")
 for index_name, results in rolling_results.items():
     st.markdown(f"**{index_name}**")
+    st.markdown(
+        f"<div class='small-note'>"
+        f"10Y Rolling {help_text('Trailing 10-year annualised return based on the latest available data with full constituent coverage.')} | "
+        f"5Y {help_text('Trailing annualised return over the last 5 years.')} | "
+        f"3Y {help_text('Trailing annualised return over the last 3 years.')} | "
+        f"1Y {help_text('Trailing annualised return over the last 1 year.')}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("10Y", safe_metric(results["rolling_10y"]))
     col2.metric("5Y", safe_metric(results["rolling_5y"]))
@@ -1040,29 +1076,68 @@ col1, col2, col3 = st.columns(3)
 with col1:
     st.write("AM100")
     st.markdown(
-        f"**AM100 CAGR:** <span style='{color_return(cagr100)}'>{cagr100:.2%}</span>",
+        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
+        f"<span style='{color_return(cagr100)}'>{cagr100:.2%}</span>",
         unsafe_allow_html=True,
     )
-    st.metric("Sharpe Ratio", f"{sharpe100:.2f}")
-    st.metric("Max Drawdown", f"{dd100:.2%}")
+    st.markdown(
+        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol100:.2%}",
+        unsafe_allow_html=True,
+    )
+    render_metric_card(
+        "Sharpe Ratio",
+        f"{sharpe100:.2f}",
+        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    )
+    render_metric_card(
+        "Max Drawdown",
+        f"{dd100:.2%}",
+        "Largest peak-to-trough decline over the period.",
+    )
 
 with col2:
     st.write("AM200")
     st.markdown(
-        f"**AM200 CAGR:** <span style='{color_return(cagr200)}'>{cagr200:.2%}</span>",
+        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
+        f"<span style='{color_return(cagr200)}'>{cagr200:.2%}</span>",
         unsafe_allow_html=True,
     )
-    st.metric("Sharpe Ratio", f"{sharpe200:.2f}")
-    st.metric("Max Drawdown", f"{dd200:.2%}")
+    st.markdown(
+        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol200:.2%}",
+        unsafe_allow_html=True,
+    )
+    render_metric_card(
+        "Sharpe Ratio",
+        f"{sharpe200:.2f}",
+        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    )
+    render_metric_card(
+        "Max Drawdown",
+        f"{dd200:.2%}",
+        "Largest peak-to-trough decline over the period.",
+    )
 
 with col3:
     st.write("AM300")
     st.markdown(
-        f"**AM300 CAGR:** <span style='{color_return(cagr300)}'>{cagr300:.2%}</span>",
+        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
+        f"<span style='{color_return(cagr300)}'>{cagr300:.2%}</span>",
         unsafe_allow_html=True,
     )
-    st.metric("Sharpe Ratio", f"{sharpe300:.2f}")
-    st.metric("Max Drawdown", f"{dd300:.2%}")
+    st.markdown(
+        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol300:.2%}",
+        unsafe_allow_html=True,
+    )
+    render_metric_card(
+        "Sharpe Ratio",
+        f"{sharpe300:.2f}",
+        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    )
+    render_metric_card(
+        "Max Drawdown",
+        f"{dd300:.2%}",
+        "Largest peak-to-trough decline over the period.",
+    )
 
 st.caption("Key Observations")
 
@@ -1254,13 +1329,16 @@ with risk_tab:
 
     capacity_display = pd.DataFrame(
         {
-            "Metric": ["Average Daily Traded Value (USD)", "Investable Capacity (USD, 20%)"],
+            "Metric": [
+                f"Average Daily Traded Value (USD) {help_text('Average daily traded value in USD across all constituents.')}",
+                f"Investable Capacity (USD, 20%) {help_text('Estimated investable capacity assuming 20% participation of daily traded value.')}",
+            ],
             "AM100": [f"{am100_adv_usd:,.0f}", f"{am100_capacity:,.0f}"],
             "AM200": [f"{am200_adv_usd:,.0f}", f"{am200_capacity:,.0f}"],
             "AM300": [f"{am300_adv_usd:,.0f}", f"{am300_capacity:,.0f}"],
         }
     )
-    st.dataframe(capacity_display, use_container_width=True, hide_index=True)
+    st.write(capacity_display.to_html(index=False, escape=False), unsafe_allow_html=True)
     st.caption(
         "Average Daily Traded Value (USD) represents the total value of shares traded daily across index constituents. Estimated Investable Capacity (USD, 20% participation) reflects a conservative estimate of capital that can be deployed without materially impacting market prices."
     )
@@ -1274,23 +1352,27 @@ with risk_tab:
                 row = risk_ratings[risk_ratings["Index"] == name].iloc[0]
                 if name == "AM300":
                     am300_label = row["Rating"]
-                st.metric(
+                render_metric_card(
                     f"{name} Risk",
                     row["Rating"],
-                    help=f"Multi-factor risk score: {row['Risk Score']:.2f}",
+                    f"Multi-factor risk score: {row['Risk Score']:.2f}",
                 )
                 st.caption(
                     f"Score {row['Risk Score']:.2f} | Investable Capacity {row['Capacity']:,.0f}"
                 )
             else:
-                st.metric(f"{name} Risk", "Unavailable")
+                render_metric_card(f"{name} Risk", "Unavailable")
 
     st.markdown("### AM300 Risk Snapshot")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("AM300 Volatility", f"{vol300:.2%}")
-    col2.metric("AM300 Drawdown", f"{dd300:.2%}")
-    col3.metric("AM300 Sharpe", f"{sharpe300:.2f}")
-    col4.metric("AM300 Risk", am300_label)
+    with col1:
+        render_metric_card("AM300 Volatility", f"{vol300:.2%}", "Annualised standard deviation of returns. Measures risk.")
+    with col2:
+        render_metric_card("AM300 Drawdown", f"{dd300:.2%}", "Largest peak-to-trough decline over the period.")
+    with col3:
+        render_metric_card("AM300 Sharpe", f"{sharpe300:.2f}", "Return per unit of risk. Higher indicates better risk-adjusted performance.")
+    with col4:
+        render_metric_card("AM300 Risk", am300_label, "Multi-factor risk label combining volatility, drawdown, liquidity, and concentration.")
 
     st.markdown("## Rolling Risk")
 
@@ -1441,7 +1523,10 @@ with risk_tab:
     else:
         st.info("Benchmark comparison unavailable. Run scripts/benchmark_compare.py to populate this section.")
 
-    st.markdown("## Return Decomposition")
+    st.markdown(
+        f"## Return Decomposition {help_text('Portion of total return generated from dividends rather than price appreciation.')}",
+        unsafe_allow_html=True,
+    )
     price_only_path = "output/AM100_PRICE_ONLY_total_return.csv"
     am300_price_only_path = "output/AM300_PRICE_ONLY_total_return.csv"
     if os.path.exists(price_only_path):
@@ -1501,6 +1586,7 @@ with risk_tab:
         st.caption(
             f"Approximately {div_contribution:.2%} annual return is generated from income, not price movement."
         )
+        st.caption("Dividend contribution isolates the portion of total return generated from dividends rather than price appreciation.")
 
         if os.path.exists(am300_price_only_path):
             am300_price_df = load_index("AM300_PRICE_ONLY")
@@ -1575,11 +1661,24 @@ with allocator_tab:
         "Client-ready model portfolio system built from AM100 (Core), AM200 (Growth), and AM300 (Broad Market) using daily total return index data."
     )
 
+    allocator_descriptions = {
+        "Conservative": "Lower risk portfolio with higher allocation to liquid, stable constituents.",
+        "Balanced": "Moderate risk portfolio combining growth and stability.",
+        "Growth": "Higher risk portfolio targeting higher returns through frontier exposure.",
+        "Aggressive": "Maximum return portfolio using the optimizer-led high-risk allocation.",
+    }
+
     allocator_cols = st.columns(len(MODEL_WEIGHTS))
     for allocator_col, (model_name, weights) in zip(allocator_cols, MODEL_WEIGHTS.items()):
         with allocator_col:
-            st.markdown(f"### {model_name}")
-            st.write(f"**Objective:** {MODEL_METADATA[model_name]['Objective']}")
+            st.markdown(
+                f"### {tooltip(model_name, allocator_descriptions.get(model_name, MODEL_METADATA[model_name]['Characteristics']))}",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"**Objective:** {tooltip(MODEL_METADATA[model_name]['Objective'], allocator_descriptions.get(model_name, MODEL_METADATA[model_name]['Characteristics']))}",
+                unsafe_allow_html=True,
+            )
             st.write(MODEL_METADATA[model_name]["Characteristics"])
             for index_name, weight in weights.items():
                 st.write(f"{index_name}: {weight:.0%}")
@@ -1690,7 +1789,13 @@ with allocator_tab:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("### Efficient Frontier")
+    st.markdown(
+        f"### Efficient Frontier {help_text('Each point represents a portfolio. The curve shows optimal risk-return combinations.')}",
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "The efficient frontier shows the highest expected return for each level of risk. Points represent portfolio allocations."
+    )
     frontier = simulate_random_frontier(prepare_returns_frame())
     fig = go.Figure()
     fig.add_trace(
