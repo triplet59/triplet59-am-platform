@@ -26,6 +26,31 @@ from scripts.portfolio_allocator import (
 )
 
 
+def help_text(text):
+    return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
+
+
+def tooltip(label, text):
+    return (
+        f"<span style=\"border-bottom:1px dotted #999;\" title=\"{text}\">"
+        f"{label}"
+        f"</span>"
+    )
+
+
+def render_metric_card(label, value, help_copy=None):
+    title_attr = f" title=\"{help_copy}\"" if help_copy else ""
+    st.markdown(
+        f"""
+        <div class="kpi-card"{title_attr}>
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def calculate_cagr(df, start_date, end_date=None):
     df = df.copy()
     df["Date"] = pd.to_datetime(df["Date"])
@@ -970,30 +995,6 @@ def styled(val):
         return "-"
     return f"<span style='color:{color(val)}'>{val:.2%}</span>"
 
-
-def help_text(text):
-    return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
-
-
-def tooltip(label, text):
-    return (
-        f"<span style=\"border-bottom:1px dotted #999;\" title=\"{text}\">"
-        f"{label}"
-        f"</span>"
-    )
-
-
-def render_metric_card(label, value, help_copy=None):
-    title_attr = f" title=\"{help_copy}\"" if help_copy else ""
-    st.markdown(
-        f"""
-        <div class="kpi-card"{title_attr}>
-            <div class="metric-label">{label}</div>
-            <div class="metric-value">{value}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 rolling_results = {
     "AM100": {
