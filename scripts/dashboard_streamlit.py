@@ -88,28 +88,98 @@ def calculate_cagr_series(series):
     return (end / start) ** (1 / years) - 1
 
 
+def get_rolling_window(index, years, tolerance_days=30):
+    end_date = index.max()
+    target_start = end_date - pd.DateOffset(years=years)
+
+    candidates = index[
+        (index >= target_start - pd.Timedelta(days=tolerance_days))
+        & (index <= target_start + pd.Timedelta(days=tolerance_days))
+    ]
+
+    if len(candidates) == 0:
+        return None, None, "INSUFFICIENT_DATA"
+
+    start_date = candidates.min()
+    actual_days = (end_date - start_date).days
+
+    if actual_days < (365 * years - tolerance_days):
+        return None, None, "WINDOW_TOO_SHORT"
+
+    return start_date, end_date, "OK"
+
+
+def get_fixed_window(index, start_date, end_date):
+    available = index[(index >= start_date) & (index <= end_date)]
+
+    if len(available) == 0:
+        return None, None, "NO_DATA"
+
+    return available.min(), available.max(), "OK"
+
+
+def calculate_cagr_window(series, start_date, end_date):
+    window = series.loc[start_date:end_date].dropna()
+    if len(window) < 2:
+        return None
+
+    start_val = window.iloc[0]
+    end_val = window.iloc[-1]
+    days = (window.index[-1] - window.index[0]).days
+    years = days / 365.25
+
+    if years <= 0 or start_val == 0 or pd.isna(start_val) or pd.isna(end_val):
+        return None
+
+    return (end_val / start_val) ** (1 / years) - 1
+
+
+def compute_performance(series, window_type, **kwargs):
+    index = series.dropna().index.sort_values()
+    if len(index) < 2:
+        return {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
+
+    if window_type == "rolling":
+        start, end, status = get_rolling_window(
+            index, kwargs["years"], kwargs.get("tolerance_days", 30)
+        )
+    elif window_type == "fixed":
+        start, end, status = get_fixed_window(
+            index, kwargs["start_date"], kwargs["end_date"]
+        )
+    else:
+        return {"status": "INVALID_TYPE", "cagr": None, "start": None, "end": None}
+
+    if status != "OK":
+        return {"status": status, "cagr": None, "start": None, "end": None}
+
+    cagr = calculate_cagr_window(series, start, end)
+    if cagr is None:
+        return {"status": "INVALID_SERIES", "cagr": None, "start": start, "end": end}
+
+    return {"status": "OK", "cagr": cagr, "start": start, "end": end}
+
+
 def compute_cagr_for_periods(index_series, periods):
     results = {}
 
     for name, period in periods.items():
         if name == "latest_valid" or not isinstance(period, dict):
             continue
-        start = period.get("start")
-        end = period.get("end")
-        if start is None or end is None:
-            results[name] = None
-            continue
-        if end > index_series.dropna().index.max():
-            results[name] = None
-            continue
-        sub = index_series.loc[start:end]
-
-        if name.startswith("rolling_") and len(sub) < 252:
-            results[name] = None
-        elif len(sub) > 1:
-            results[name] = calculate_cagr_series(sub)
+        if period.get("type") == "rolling":
+            results[name] = compute_performance(
+                index_series,
+                "rolling",
+                years=period["years"],
+                tolerance_days=period.get("tolerance_days", 30),
+            )
         else:
-            results[name] = None
+            results[name] = compute_performance(
+                index_series,
+                "fixed",
+                start_date=period["start"],
+                end_date=period["end"],
+            )
 
     return results
 
@@ -138,20 +208,34 @@ def get_periods(price_df, constituents, index_series):
     if latest is None:
         latest = start_2016
 
-    def resolve_start(requested_start):
-        available_dates = available_index[available_index >= requested_start]
-        if len(available_dates) == 0:
+    def resolve_start(requested_start, tolerance_days=30):
+        lower_bound = requested_start - pd.Timedelta(days=tolerance_days)
+        upper_bound = requested_start + pd.Timedelta(days=tolerance_days)
+        candidate_dates = available_index[
+            (available_index >= lower_bound) & (available_index <= upper_bound)
+        ]
+        if len(candidate_dates) == 0:
             return None
-        return available_dates.min()
+        deltas = (candidate_dates - requested_start).days
+        closest_idx = np.abs(deltas).argmin()
+        return candidate_dates[closest_idx]
 
     def rolling_window(years):
         requested_start = latest - pd.DateOffset(years=years)
         actual_start = resolve_start(requested_start)
+        sufficient_history = False
+        approximate = False
+        if actual_start is not None:
+            window_days = (latest - actual_start).days
+            sufficient_history = window_days >= 365 * years - 30
+            approximate = abs((actual_start - requested_start).days) > 7
         return {
-            "start": actual_start,
+            "start": actual_start if sufficient_history else None,
             "end": latest,
             "requested_start": requested_start,
             "years": years,
+            "approximate": approximate,
+            "sufficient_history": sufficient_history,
         }
 
     rolling_10y = rolling_window(10)
@@ -160,13 +244,13 @@ def get_periods(price_df, constituents, index_series):
     rolling_1y = rolling_window(1)
 
     return {
-        "rolling_10y": rolling_10y,
-        "rolling_5y": rolling_5y,
-        "rolling_3y": rolling_3y,
-        "rolling_1y": rolling_1y,
-        "fixed_10y": {"start": start_2016, "end": end_2025},
-        "fixed_5y": {"start": start_2016, "end": end_2020},
-        "since_2016": {"start": start_2016, "end": latest},
+        "rolling_10y": {"type": "rolling", "years": 10, "tolerance_days": 30, **rolling_10y},
+        "rolling_5y": {"type": "rolling", "years": 5, "tolerance_days": 30, **rolling_5y},
+        "rolling_3y": {"type": "rolling", "years": 3, "tolerance_days": 30, **rolling_3y},
+        "rolling_1y": {"type": "rolling", "years": 1, "tolerance_days": 30, **rolling_1y},
+        "fixed_10y": {"type": "fixed", "start": start_2016, "end": end_2025},
+        "fixed_5y": {"type": "fixed", "start": start_2016, "end": end_2020},
+        "since_2016": {"type": "fixed", "start": start_2016, "end": latest},
         "latest_valid": latest,
     }
 
@@ -734,36 +818,36 @@ am100_cagrs = compute_cagr_for_periods(am100, am100_periods)
 am200_cagrs = compute_cagr_for_periods(am200, am200_periods)
 am300_cagrs = compute_cagr_for_periods(am300, am300_periods)
 
-am100_cagr_10y = am100_cagrs["rolling_10y"]
-am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]
-am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]
-am100_cagr_rolling_1y = am100_cagrs["rolling_1y"]
-am100_cagr_2016 = am100_cagrs["since_2016"]
-am100_cagr_fixed_10y = am100_cagrs["fixed_10y"]
-am100_cagr_fixed_5y = am100_cagrs["fixed_5y"]
+am100_cagr_10y = am100_cagrs["rolling_10y"]["cagr"]
+am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]["cagr"]
+am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]["cagr"]
+am100_cagr_rolling_1y = am100_cagrs["rolling_1y"]["cagr"]
+am100_cagr_2016 = am100_cagrs["since_2016"]["cagr"]
+am100_cagr_fixed_10y = am100_cagrs["fixed_10y"]["cagr"]
+am100_cagr_fixed_5y = am100_cagrs["fixed_5y"]["cagr"]
 
-am200_cagr_10y = am200_cagrs["rolling_10y"]
-am200_cagr_rolling_5y = am200_cagrs["rolling_5y"]
-am200_cagr_rolling_3y = am200_cagrs["rolling_3y"]
-am200_cagr_rolling_1y = am200_cagrs["rolling_1y"]
-am200_cagr_2016 = am200_cagrs["since_2016"]
-am200_cagr_fixed_10y = am200_cagrs["fixed_10y"]
-am200_cagr_fixed_5y = am200_cagrs["fixed_5y"]
+am200_cagr_10y = am200_cagrs["rolling_10y"]["cagr"]
+am200_cagr_rolling_5y = am200_cagrs["rolling_5y"]["cagr"]
+am200_cagr_rolling_3y = am200_cagrs["rolling_3y"]["cagr"]
+am200_cagr_rolling_1y = am200_cagrs["rolling_1y"]["cagr"]
+am200_cagr_2016 = am200_cagrs["since_2016"]["cagr"]
+am200_cagr_fixed_10y = am200_cagrs["fixed_10y"]["cagr"]
+am200_cagr_fixed_5y = am200_cagrs["fixed_5y"]["cagr"]
 
-am300_cagr_10y = am300_cagrs["rolling_10y"]
-am300_cagr_rolling_5y = am300_cagrs["rolling_5y"]
-am300_cagr_rolling_3y = am300_cagrs["rolling_3y"]
-am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]
-am300_cagr_2016 = am300_cagrs["since_2016"]
-am300_cagr_fixed_10y = am300_cagrs["fixed_10y"]
-am300_cagr_fixed_5y = am300_cagrs["fixed_5y"]
+am300_cagr_10y = am300_cagrs["rolling_10y"]["cagr"]
+am300_cagr_rolling_5y = am300_cagrs["rolling_5y"]["cagr"]
+am300_cagr_rolling_3y = am300_cagrs["rolling_3y"]["cagr"]
+am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]["cagr"]
+am300_cagr_2016 = am300_cagrs["since_2016"]["cagr"]
+am300_cagr_fixed_10y = am300_cagrs["fixed_10y"]["cagr"]
+am300_cagr_fixed_5y = am300_cagrs["fixed_5y"]["cagr"]
 
 analytics_coverage_notes = []
 
-for index_name, index_series, periods in [
-    ("AM100", am100, am100_periods),
-    ("AM200", am200, am200_periods),
-    ("AM300", am300, am300_periods),
+for index_name, index_series, periods, period_results in [
+    ("AM100", am100, am100_periods, am100_cagrs),
+    ("AM200", am200, am200_periods, am200_cagrs),
+    ("AM300", am300, am300_periods, am300_cagrs),
 ]:
     latest_valid = periods["latest_valid"]
     index_latest = index_series.index.max()
@@ -778,19 +862,16 @@ for index_name, index_series, periods in [
             )
     for rolling_key in ["rolling_10y", "rolling_5y", "rolling_3y", "rolling_1y"]:
         rolling_period = periods[rolling_key]
-        rolling_start = rolling_period["start"]
-        rolling_end = rolling_period["end"]
-        requested_rolling_start = rolling_period["requested_start"]
-        rolling_years = rolling_period["years"]
-        if rolling_start is None:
-            continue
-        if requested_rolling_start > pd.Timestamp("2016-01-01"):
-            assert rolling_start != pd.Timestamp("2016-01-01"), (
-                f"{index_name} {rolling_key} incorrectly anchored to 2016"
+        rolling_result = period_results[rolling_key]
+        if rolling_result["status"] != "OK":
+            analytics_coverage_notes.append(
+                f"{index_name}: {rolling_key.replace('_', ' ')} unavailable due to insufficient history"
             )
-        assert (rolling_end - rolling_start).days >= 365 * rolling_years - 10, (
-            f"{index_name} {rolling_key} does not cover a true trailing window"
-        )
+            continue
+        if rolling_period["approximate"]:
+            analytics_coverage_notes.append(
+                f"{index_name}: {rolling_key.replace('_', ' ')} uses nearest available date within 30-day tolerance"
+            )
 
 # Latest returns (daily)
 if len(am100) > 1:
@@ -1060,46 +1141,60 @@ def styled(val):
 
 rolling_results = {
     "AM100": {
-        "rolling_10y": am100_cagr_10y,
-        "rolling_5y": am100_cagr_rolling_5y,
-        "rolling_3y": am100_cagr_rolling_3y,
-        "rolling_1y": am100_cagr_rolling_1y,
+        "rolling_10y": am100_cagrs["rolling_10y"],
+        "rolling_5y": am100_cagrs["rolling_5y"],
+        "rolling_3y": am100_cagrs["rolling_3y"],
+        "rolling_1y": am100_cagrs["rolling_1y"],
     },
     "AM200": {
-        "rolling_10y": am200_cagr_10y,
-        "rolling_5y": am200_cagr_rolling_5y,
-        "rolling_3y": am200_cagr_rolling_3y,
-        "rolling_1y": am200_cagr_rolling_1y,
+        "rolling_10y": am200_cagrs["rolling_10y"],
+        "rolling_5y": am200_cagrs["rolling_5y"],
+        "rolling_3y": am200_cagrs["rolling_3y"],
+        "rolling_1y": am200_cagrs["rolling_1y"],
     },
     "AM300": {
-        "rolling_10y": am300_cagr_10y,
-        "rolling_5y": am300_cagr_rolling_5y,
-        "rolling_3y": am300_cagr_rolling_3y,
-        "rolling_1y": am300_cagr_rolling_1y,
+        "rolling_10y": am300_cagrs["rolling_10y"],
+        "rolling_5y": am300_cagrs["rolling_5y"],
+        "rolling_3y": am300_cagrs["rolling_3y"],
+        "rolling_1y": am300_cagrs["rolling_1y"],
     },
 }
 
 fixed_results = {
     "AM100": {
-        "since_2016": am100_cagr_2016,
-        "fixed_10y": am100_cagr_fixed_10y,
-        "fixed_5y": am100_cagr_fixed_5y,
+        "since_2016": am100_cagrs["since_2016"],
+        "fixed_10y": am100_cagrs["fixed_10y"],
+        "fixed_5y": am100_cagrs["fixed_5y"],
     },
     "AM200": {
-        "since_2016": am200_cagr_2016,
-        "fixed_10y": am200_cagr_fixed_10y,
-        "fixed_5y": am200_cagr_fixed_5y,
+        "since_2016": am200_cagrs["since_2016"],
+        "fixed_10y": am200_cagrs["fixed_10y"],
+        "fixed_5y": am200_cagrs["fixed_5y"],
     },
     "AM300": {
-        "since_2016": am300_cagr_2016,
-        "fixed_10y": am300_cagr_fixed_10y,
-        "fixed_5y": am300_cagr_fixed_5y,
+        "since_2016": am300_cagrs["since_2016"],
+        "fixed_10y": am300_cagrs["fixed_10y"],
+        "fixed_5y": am300_cagrs["fixed_5y"],
     },
 }
 
 
-def safe_metric(value):
+def safe_metric(result):
+    if isinstance(result, dict):
+        value = result.get("cagr")
+    else:
+        value = result
     return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
+
+
+def safe_period_range(result):
+    if not isinstance(result, dict) or result.get("status") != "OK":
+        return "Insufficient data"
+    start = result.get("start")
+    end = result.get("end")
+    if start is None or end is None:
+        return "Insufficient data"
+    return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
 
 
 st.subheader("Headline Performance")
@@ -1109,6 +1204,14 @@ for index_name, results in fixed_results.items():
     col1.metric("Since 2016", safe_metric(results["since_2016"]))
     col2.metric("10Y (Fixed)", safe_metric(results["fixed_10y"]))
     col3.metric("5Y (Fixed)", safe_metric(results["fixed_5y"]))
+    st.markdown(
+        f"<div class='small-note'>"
+        f"Since 2016: {safe_period_range(results['since_2016'])} | "
+        f"10Y (Fixed): {safe_period_range(results['fixed_10y'])} | "
+        f"5Y (Fixed): {safe_period_range(results['fixed_5y'])}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 with st.expander("Rolling Performance Analysis"):
     for index_name, results in rolling_results.items():
@@ -1127,6 +1230,15 @@ with st.expander("Rolling Performance Analysis"):
         col2.metric("5Y", safe_metric(results["rolling_5y"]))
         col3.metric("3Y", safe_metric(results["rolling_3y"]))
         col4.metric("1Y", safe_metric(results["rolling_1y"]))
+        st.markdown(
+            f"<div class='small-note'>"
+            f"10Y: {safe_period_range(results['rolling_10y'])} | "
+            f"5Y: {safe_period_range(results['rolling_5y'])} | "
+            f"3Y: {safe_period_range(results['rolling_3y'])} | "
+            f"1Y: {safe_period_range(results['rolling_1y'])}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 comparison_df = pd.DataFrame(
     {
