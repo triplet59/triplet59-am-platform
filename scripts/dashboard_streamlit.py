@@ -1099,8 +1099,7 @@ latest_valid_dates = {
 min_valid = min(latest_valid_dates.values())
 
 st.markdown(
-    f"<div class='small-note'>Analytics calculated using data through {min_valid.date()} based on full constituent coverage. "
-    f"{help_text('Analytics are calculated using the latest date where all index constituents have valid data.')}</div>",
+    f"<div class='small-note'>Analytics calculated using data through {min_valid.date()} based on full constituent coverage.</div>",
     unsafe_allow_html=True,
 )
 
@@ -1216,15 +1215,7 @@ for index_name, results in fixed_results.items():
 with st.expander("Rolling Performance Analysis"):
     for index_name, results in rolling_results.items():
         st.markdown(f"**{index_name}**")
-        st.markdown(
-            f"<div class='small-note'>"
-            f"10Y Rolling {help_text('Trailing 10-year annualised return based on the latest available data with full constituent coverage.')} | "
-            f"5Y {help_text('Trailing annualised return over the last 5 years.')} | "
-            f"3Y {help_text('Trailing annualised return over the last 3 years.')} | "
-            f"1Y {help_text('Trailing annualised return over the last 1 year.')}"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
+        st.caption("Trailing annualised returns over the latest valid 10Y, 5Y, 3Y, and 1Y windows.")
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("10Y", safe_metric(results["rolling_10y"]))
         col2.metric("5Y", safe_metric(results["rolling_5y"]))
@@ -1550,8 +1541,8 @@ with risk_tab:
     capacity_display = pd.DataFrame(
         {
             "Metric": [
-                f"Average Daily Traded Value (USD) {help_text('Average daily traded value in USD across all constituents.')}",
-                f"Investable Capacity (USD, 20%) {help_text('Estimated investable capacity assuming 20% participation of daily traded value.')}",
+                "Average Daily Traded Value (USD)",
+                "Investable Capacity (USD, 20%)",
             ],
             "AM100": [f"{am100_adv_usd:,.0f}", f"{am100_capacity:,.0f}"],
             "AM200": [f"{am200_adv_usd:,.0f}", f"{am200_capacity:,.0f}"],
@@ -1743,10 +1734,8 @@ with risk_tab:
     else:
         st.info("Benchmark comparison unavailable. Run scripts/benchmark_compare.py to populate this section.")
 
-    st.markdown(
-        f"## Return Decomposition {help_text('Portion of total return generated from dividends rather than price appreciation.')}",
-        unsafe_allow_html=True,
-    )
+    st.markdown("## Return Decomposition")
+    st.caption("Portion of total return generated from dividends rather than price appreciation.")
     price_only_path = "output/AM100_PRICE_ONLY_total_return.csv"
     am300_price_only_path = "output/AM300_PRICE_ONLY_total_return.csv"
     if os.path.exists(price_only_path):
@@ -1891,14 +1880,9 @@ with allocator_tab:
     allocator_cols = st.columns(len(MODEL_WEIGHTS))
     for allocator_col, (model_name, weights) in zip(allocator_cols, MODEL_WEIGHTS.items()):
         with allocator_col:
-            st.markdown(
-                f"### {tooltip(model_name, allocator_descriptions.get(model_name, MODEL_METADATA[model_name]['Characteristics']))}",
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                f"**Objective:** {tooltip(MODEL_METADATA[model_name]['Objective'], allocator_descriptions.get(model_name, MODEL_METADATA[model_name]['Characteristics']))}",
-                unsafe_allow_html=True,
-            )
+            st.markdown(f"### {model_name}")
+            st.caption(allocator_descriptions.get(model_name, MODEL_METADATA[model_name]["Characteristics"]))
+            st.markdown(f"**Objective:** {MODEL_METADATA[model_name]['Objective']}")
             st.write(MODEL_METADATA[model_name]["Characteristics"])
             for index_name, weight in weights.items():
                 st.write(f"{index_name}: {weight:.0%}")
@@ -2009,10 +1993,7 @@ with allocator_tab:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown(
-        f"### Efficient Frontier {help_text('Each point represents a portfolio. The curve shows optimal risk-return combinations.')}",
-        unsafe_allow_html=True,
-    )
+    st.markdown("### Efficient Frontier")
     st.caption(
         "The efficient frontier shows the highest expected return for each level of risk. Points represent portfolio allocations."
     )
