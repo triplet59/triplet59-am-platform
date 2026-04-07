@@ -1250,72 +1250,113 @@ comparison_df = pd.DataFrame(
 )
 st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
+
+def metric_help_text(metric_name, period_label):
+    if metric_name == "CAGR":
+        return (
+            "Compound Annual Growth Rate.\n\n"
+            "Calculated as:\n"
+            "(end value / start value)^(1/years) - 1\n\n"
+            f"Period:\n{period_label}\n\n"
+            "Includes:\n"
+            "✔ Dividends (total return)\n"
+            "✔ FX-normalised (USD)\n\n"
+            "Excludes:\n"
+            "✖ Fees\n"
+            "✖ Slippage"
+        )
+    if metric_name == "Volatility":
+        return (
+            "Annualised standard deviation of returns.\n\n"
+            "Measures risk over the observed return path.\n\n"
+            "Includes:\n"
+            "✔ Total return moves\n"
+            "✔ FX-normalised (USD)\n\n"
+            "Excludes:\n"
+            "✖ Fees\n"
+            "✖ Slippage"
+        )
+    if metric_name == "Sharpe Ratio":
+        return (
+            "Return per unit of risk.\n\n"
+            "Calculated from annualised return and annualised volatility with a 2% risk-free rate assumption."
+        )
+    if metric_name == "Max Drawdown":
+        return "Largest peak-to-trough decline over the period."
+    return ""
+
+
+headline_period_label = safe_period_range(fixed_results["AM100"]["since_2016"])
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
     st.write("AM100")
-    st.markdown(
-        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
-        f"<span style='{color_return(cagr100)}'>{cagr100:.2%}</span>",
-        unsafe_allow_html=True,
+    st.metric(
+        label="CAGR ℹ️",
+        value=f"{cagr100:.2%}",
+        help=metric_help_text("CAGR", headline_period_label),
     )
-    st.markdown(
-        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol100:.2%}",
-        unsafe_allow_html=True,
+    st.metric(
+        label="Volatility ℹ️",
+        value=f"{vol100:.2%}",
+        help=metric_help_text("Volatility", headline_period_label),
     )
-    render_metric_card(
-        "Sharpe Ratio",
-        f"{sharpe100:.2f}",
-        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    st.metric(
+        label="Sharpe Ratio ℹ️",
+        value=f"{sharpe100:.2f}",
+        help=metric_help_text("Sharpe Ratio", headline_period_label),
     )
-    render_metric_card(
-        "Max Drawdown",
-        f"{dd100:.2%}",
-        "Largest peak-to-trough decline over the period.",
+    st.metric(
+        label="Max Drawdown ℹ️",
+        value=f"{dd100:.2%}",
+        help=metric_help_text("Max Drawdown", headline_period_label),
     )
 
 with col2:
     st.write("AM200")
-    st.markdown(
-        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
-        f"<span style='{color_return(cagr200)}'>{cagr200:.2%}</span>",
-        unsafe_allow_html=True,
+    st.metric(
+        label="CAGR ℹ️",
+        value=f"{cagr200:.2%}",
+        help=metric_help_text("CAGR", headline_period_label),
     )
-    st.markdown(
-        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol200:.2%}",
-        unsafe_allow_html=True,
+    st.metric(
+        label="Volatility ℹ️",
+        value=f"{vol200:.2%}",
+        help=metric_help_text("Volatility", headline_period_label),
     )
-    render_metric_card(
-        "Sharpe Ratio",
-        f"{sharpe200:.2f}",
-        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    st.metric(
+        label="Sharpe Ratio ℹ️",
+        value=f"{sharpe200:.2f}",
+        help=metric_help_text("Sharpe Ratio", headline_period_label),
     )
-    render_metric_card(
-        "Max Drawdown",
-        f"{dd200:.2%}",
-        "Largest peak-to-trough decline over the period.",
+    st.metric(
+        label="Max Drawdown ℹ️",
+        value=f"{dd200:.2%}",
+        help=metric_help_text("Max Drawdown", headline_period_label),
     )
 
 with col3:
     st.write("AM300")
-    st.markdown(
-        f"**CAGR** {help_text('Annualised return over the period, assuming compounding.')} "
-        f"<span style='{color_return(cagr300)}'>{cagr300:.2%}</span>",
-        unsafe_allow_html=True,
+    st.metric(
+        label="CAGR ℹ️",
+        value=f"{cagr300:.2%}",
+        help=metric_help_text("CAGR", headline_period_label),
     )
-    st.markdown(
-        f"**Volatility** {help_text('Annualised standard deviation of returns. Measures risk.')} {vol300:.2%}",
-        unsafe_allow_html=True,
+    st.metric(
+        label="Volatility ℹ️",
+        value=f"{vol300:.2%}",
+        help=metric_help_text("Volatility", headline_period_label),
     )
-    render_metric_card(
-        "Sharpe Ratio",
-        f"{sharpe300:.2f}",
-        "Return per unit of risk. Higher indicates better risk-adjusted performance.",
+    st.metric(
+        label="Sharpe Ratio ℹ️",
+        value=f"{sharpe300:.2f}",
+        help=metric_help_text("Sharpe Ratio", headline_period_label),
     )
-    render_metric_card(
-        "Max Drawdown",
-        f"{dd300:.2%}",
-        "Largest peak-to-trough decline over the period.",
+    st.metric(
+        label="Max Drawdown ℹ️",
+        value=f"{dd300:.2%}",
+        help=metric_help_text("Max Drawdown", headline_period_label),
     )
 
 st.caption("Key Observations")
