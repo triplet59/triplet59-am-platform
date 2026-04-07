@@ -25,6 +25,9 @@ from scripts.portfolio_allocator import (
     simulate_random_frontier,
 )
 
+# Temporary deployment cache-buster for Streamlit Cloud refreshes.
+st.cache_data.clear()
+
 
 def help_text(text):
     return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
@@ -856,6 +859,8 @@ am300 = am300[
 am100_df = am100.rename("Index Level").reset_index()
 am200_df = am200.rename("Index Level").reset_index()
 am300_df = am300.rename("Index Level").reset_index()
+
+st.write("Last data date:", am100_df["Date"].max())
 
 # Visual-only smoothing for plotting. This does not affect stored data or metrics.
 am100_plot = am100.copy()
