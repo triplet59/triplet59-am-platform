@@ -92,9 +92,13 @@ def compute_cagr_for_periods(index_series, periods):
     results = {}
 
     for name, period in periods.items():
-        if name == "latest_valid":
+        if name == "latest_valid" or not isinstance(period, dict):
             continue
-        start, end = period
+        start = period.get("start")
+        end = period.get("end")
+        if start is None or end is None:
+            results[name] = None
+            continue
         if end > index_series.dropna().index.max():
             results[name] = None
             continue
@@ -127,23 +131,42 @@ def get_periods(price_df, constituents, index_series):
     end_2020 = pd.Timestamp("2020-12-31")
     end_2025 = pd.Timestamp("2025-12-31")
     latest_valid = get_latest_valid_date(price_df, constituents)
-    series_latest = index_series.dropna().index.max()
+    available_index = index_series.dropna().index.sort_values()
+    series_latest = available_index.max()
     latest = min(latest_valid, series_latest) if latest_valid is not None else series_latest
 
     if latest is None:
         latest = start_2016
 
-    def rolling_start(years):
-        return latest - pd.DateOffset(years=years)
+    def resolve_start(requested_start):
+        available_dates = available_index[available_index >= requested_start]
+        if len(available_dates) == 0:
+            return None
+        return available_dates.min()
+
+    def rolling_window(years):
+        requested_start = latest - pd.DateOffset(years=years)
+        actual_start = resolve_start(requested_start)
+        return {
+            "start": actual_start,
+            "end": latest,
+            "requested_start": requested_start,
+            "years": years,
+        }
+
+    rolling_10y = rolling_window(10)
+    rolling_5y = rolling_window(5)
+    rolling_3y = rolling_window(3)
+    rolling_1y = rolling_window(1)
 
     return {
-        "rolling_10y": (rolling_start(10), latest),
-        "rolling_5y": (rolling_start(5), latest),
-        "rolling_3y": (rolling_start(3), latest),
-        "rolling_1y": (rolling_start(1), latest),
-        "fixed_10y": (start_2016, end_2025),
-        "fixed_5y": (start_2016, end_2020),
-        "since_2016": (start_2016, latest),
+        "rolling_10y": rolling_10y,
+        "rolling_5y": rolling_5y,
+        "rolling_3y": rolling_3y,
+        "rolling_1y": rolling_1y,
+        "fixed_10y": {"start": start_2016, "end": end_2025},
+        "fixed_5y": {"start": start_2016, "end": end_2020},
+        "since_2016": {"start": start_2016, "end": latest},
         "latest_valid": latest,
     }
 
@@ -753,11 +776,21 @@ for index_name, index_series, periods in [
             analytics_coverage_notes.append(
                 f"{index_name}: recent data incomplete - analytics truncated"
             )
-    rolling_start, rolling_end = periods["rolling_10y"]
-    if rolling_end - pd.DateOffset(years=10) > pd.Timestamp("2016-01-01"):
-        assert rolling_start != pd.Timestamp("2016-01-01"), f"{index_name} rolling window incorrectly anchored to 2016"
-    rolling_years = (rolling_end - rolling_start).days / 365.25
-    assert 9.9 <= rolling_years <= 10.1, f"{index_name} rolling window is not ~10 years"
+    for rolling_key in ["rolling_10y", "rolling_5y", "rolling_3y", "rolling_1y"]:
+        rolling_period = periods[rolling_key]
+        rolling_start = rolling_period["start"]
+        rolling_end = rolling_period["end"]
+        requested_rolling_start = rolling_period["requested_start"]
+        rolling_years = rolling_period["years"]
+        if rolling_start is None:
+            continue
+        if requested_rolling_start > pd.Timestamp("2016-01-01"):
+            assert rolling_start != pd.Timestamp("2016-01-01"), (
+                f"{index_name} {rolling_key} incorrectly anchored to 2016"
+            )
+        assert (rolling_end - rolling_start).days >= 365 * rolling_years - 10, (
+            f"{index_name} {rolling_key} does not cover a true trailing window"
+        )
 
 # Latest returns (daily)
 if len(am100) > 1:
@@ -993,8 +1026,24 @@ st.markdown(
 with st.expander("Data Coverage Details"):
     for index_name, valid_date in latest_valid_dates.items():
         st.write(f"{index_name}: {valid_date.date()}")
-    st.write("Rolling start:", am100_periods["rolling_10y"][0])
+    requested_rolling_start = am100_periods["rolling_10y"]["requested_start"]
+    actual_rolling_start = am100_periods["rolling_10y"]["start"]
+    rolling_end = am100_periods["rolling_10y"]["end"]
+    st.write("Rolling requested start:", requested_rolling_start)
+    st.write("Rolling actual start used:", actual_rolling_start)
+    st.write("Rolling end date:", rolling_end)
+    if actual_rolling_start is not None:
+        st.write(
+            "10Y Rolling:",
+            f"{actual_rolling_start.strftime('%d %b %Y')} -> {rolling_end.strftime('%d %b %Y')}",
+        )
     st.write("Since 2016 start:", pd.Timestamp("2016-01-01"))
+    if actual_rolling_start is not None:
+        window_length = (rolling_end - actual_rolling_start).days / 365
+        st.write("Rolling window length (years):", round(window_length, 3))
+        rolling_gap_days = (actual_rolling_start - requested_rolling_start).days
+        if rolling_gap_days > 7:
+            st.write("10Y rolling status:", "Approximate 10Y")
 
 
 def color(val):
