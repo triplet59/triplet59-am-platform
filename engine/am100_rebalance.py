@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from liquidity_tools import compute_liquidity
 
 MASTER_FILE = "output/master.xlsx"
 OUTPUT_FILE = "output/AM100_history.xlsx"
@@ -55,27 +56,6 @@ REGIME_WEIGHTS = {
     "MID": 1.0,
     "LOW": 1.0,
 }
-
-def compute_liquidity(price, volume, window=30):
-    traded_value = price * volume
-    valid = traded_value.notna()
-
-    # Rolling average of traded value using only valid trades, then realign.
-    rolling_value = traded_value[valid].rolling(window).mean().reindex(traded_value.index).ffill()
-    rolling_value = rolling_value.clip(
-        lower=rolling_value.quantile(0.05),
-        upper=rolling_value.quantile(0.95),
-    )
-
-    # Trading frequency (participation ratio)
-    trade_count = valid.rolling(window).sum()
-    participation = trade_count / window
-
-    # Final liquidity score
-    liquidity = rolling_value * (participation ** 2)
-
-    return liquidity.ffill(), participation.ffill(), rolling_value.ffill(), trade_count.ffill()
-
 
 def extract_country(company_name):
     return company_name.rsplit("(", 1)[-1].rstrip(")")
@@ -311,20 +291,17 @@ for rebalance_date in month_ends:
 
         price = df_cut[price_col]
         volume = df_cut[volume_col]
-        liquidity, participation, avg_value, trade_count = compute_liquidity(
+        liquidity, participation, avg_value, trade_count, liquidity_diag = compute_liquidity(
             price,
             volume,
             window=30,
         )
-        adv_usd_30d = (price * volume).rolling(30).mean()
         liquidity_score = liquidity.dropna().iloc[-1] if liquidity.notna().any() else np.nan
         participation_score = (
             participation.dropna().iloc[-1] if participation.notna().any() else np.nan
         )
         avg_value_30d = avg_value.dropna().iloc[-1] if avg_value.notna().any() else np.nan
-        avg_value_usd_30d = (
-            adv_usd_30d.dropna().iloc[-1] if adv_usd_30d.notna().any() else np.nan
-        )
+        avg_value_usd_30d = avg_value_30d
         trade_count_30 = trade_count.dropna().iloc[-1] if trade_count.notna().any() else np.nan
 
         if pd.isna(liquidity_score) or liquidity_score <= 0:
@@ -348,6 +325,10 @@ for rebalance_date in month_ends:
                 avg_value_usd_30d * 0.20 if pd.notna(avg_value_usd_30d) else np.nan
             ),
             "TradeCount30": trade_count_30,
+            "StaleVolumeDays30d": liquidity_diag["stale_volume_days"],
+            "ClippedValueDays30d": liquidity_diag["clipped_value_days"],
+            "MedianTradedValueUSD": liquidity_diag["median_traded_value_usd"],
+            "TradedValueCapUSD": liquidity_diag["traded_value_cap_usd"],
         })
 
     if not records:
