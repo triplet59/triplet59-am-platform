@@ -1,0 +1,4 @@
+Company,CoveragePct,FirstValidDate,LastValidDate,LargeGapCount,MaxGapDays,LatestAvgDailyUSDLiquidity,MeanAvgDailyUSDLiquidity,LiquidityTier,LatestRank,AM100,AM200,AM300,Status,Reason
+NORTHAM PLATINUM HOLDINGS (SOUTH AFRICA),0.683971099812684,2016-01-02,2026-12-03,9,31,663021850.2982758,190367355.23038825,AM100-scale,30.0,True,False,True,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+COMMERCIAL INTERNATIONAL BANK EGYPT (EGYPT),0.6438319507626439,2016-01-06,2026-12-03,12,61,363715949.9316071,176467696.6026219,AM100-scale,45.0,True,False,True,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+AECI MINING EXPLOSIVES ZAMBIA (ZAMBIA),0.64008563018464,2016-01-07,2026-12-02,16,31,62646.65691860464,22931.1517023732,Below AM200-scale,,False,False,False,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps

@@ -25,6 +25,10 @@ from scripts.portfolio_allocator import (
     simulate_random_frontier,
 )
 
+APP_MODE = os.getenv("APP_MODE", "internal").strip().lower()
+IS_INVESTOR = APP_MODE == "investor"
+IS_INTERNAL = not IS_INVESTOR
+
 # Temporary deployment cache-buster for Streamlit Cloud refreshes.
 st.cache_data.clear()
 
@@ -998,7 +1002,8 @@ col1.info("AM100: Concentrated, institutional-grade core index")
 col2.info("AM200: Expansion sleeve for broader frontier exposure")
 col3.info("AM300: All-share flagship total return benchmark")
 
-factsheet_mode = st.toggle("📄 Factsheet Mode", value=False)
+factsheet_mode = False if IS_INVESTOR else st.toggle("📄 Factsheet Mode", value=False)
+show_curated_view = IS_INVESTOR or factsheet_mode
 
 
 # ----------------------------
@@ -1016,6 +1021,98 @@ cagr300, vol300, sharpe300, dd300 = load_metric_snapshot(
     "output/AM300_total_return.csv",
     get_file_version("output/AM300_total_return.csv"),
 )
+
+top_country_am100 = am100_latest.groupby("Country")["Weight"].sum().idxmax()
+top_country_am200 = am200_latest.groupby("Country")["Weight"].sum().idxmax()
+top_country_am300 = am300_latest.groupby("Country")["Weight"].sum().idxmax()
+am100_country = (
+    am100_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+)
+am200_country = (
+    am200_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+)
+am300_country = (
+    am300_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+)
+
+if show_curated_view:
+    title = "AM Indices Investor View" if IS_INVESTOR else "AM Indices Factsheet"
+    st.markdown(f"# {title}")
+    st.write("AM100 (Core) vs AM200 (Expansion) vs AM300 (All Share)")
+    st.caption("Curated product view with high-level index characteristics and no proprietary construction detail.")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("AM100 CAGR", f"{cagr100:.2%}")
+        st.metric("AM100 Volatility", f"{vol100:.2%}")
+        st.metric("AM100 Sharpe", f"{sharpe100:.2f}")
+    with col2:
+        st.metric("AM200 CAGR", f"{cagr200:.2%}")
+        st.metric("AM200 Volatility", f"{vol200:.2%}")
+        st.metric("AM200 Sharpe", f"{sharpe200:.2f}")
+    with col3:
+        st.metric("AM300 CAGR", f"{cagr300:.2%}")
+        st.metric("AM300 Volatility", f"{vol300:.2%}")
+        st.metric("AM300 Sharpe", f"{sharpe300:.2f}")
+
+    st.caption("Performance")
+    fig, ax = plt.subplots(figsize=(6, 2.6))
+    style_chart(fig, ax)
+    ax.plot(am100_plot, label="AM100", color=AM100_COLOR, linewidth=2)
+    ax.plot(am200_plot, label="AM200", color=AM200_COLOR, linewidth=2)
+    ax.plot(am300, label="AM300", color=AM300_COLOR, linewidth=2)
+    ax.legend(frameon=False, fontsize=10)
+    fig.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+
+    st.caption("Country Allocation")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**AM100**")
+        fig, ax = plt.subplots(figsize=(6, 2.6))
+        style_chart(fig, ax)
+        ax.bar(am100_country.index, am100_country.values, color=AM100_COLOR)
+        ax.tick_params(axis="x", rotation=90)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+    with col2:
+        st.markdown("**AM200**")
+        fig, ax = plt.subplots(figsize=(6, 2.6))
+        style_chart(fig, ax)
+        ax.bar(am200_country.index, am200_country.values, color=AM200_COLOR)
+        ax.tick_params(axis="x", rotation=90)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+
+    st.caption("Top Holdings")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**AM100 Top 10**")
+        investor_am100 = (
+            am100_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+            .head(10)
+            .reset_index(drop=True)
+        )
+        st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
+    with col2:
+        st.markdown("**AM200 Top 10**")
+        investor_am200 = (
+            am200_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+            .head(10)
+            .reset_index(drop=True)
+        )
+        st.dataframe(display_with_row_numbers(investor_am200), use_container_width=True)
+
+    st.caption("Key Observations")
+    st.write(f"• AM300 sits between AM100 and AM200 with CAGR {cagr300:.2%}")
+    st.write("• AM100 is the core sleeve, AM200 is the expansion sleeve, and AM300 is the broad flagship benchmark.")
+    st.write(f"• AM100 is currently most exposed to {top_country_am100}.")
+    st.write(f"• AM200 shows broader expansion exposure led by {top_country_am200}.")
+    st.write(f"• AM300 flagship exposure is led by {top_country_am300}.")
+
+    st.markdown("---")
+    st.caption("Veri AM Indices • Curated Investor View")
+    st.stop()
 
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -1460,6 +1557,85 @@ st.markdown(
     f"<div class='ticker'><span>{ticker_text}</span></div>",
     unsafe_allow_html=True,
 )
+
+if show_curated_view:
+    title = "AM Indices Investor View" if IS_INVESTOR else "AM Indices Factsheet"
+    st.markdown(f"# {title}")
+    st.write("AM100 (Core) vs AM200 (Expansion) vs AM300 (All Share)")
+    st.caption("Curated product view with high-level index characteristics and no proprietary construction detail.")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("AM100 CAGR", f"{cagr100:.2%}")
+        st.metric("AM100 Volatility", f"{vol100:.2%}")
+        st.metric("AM100 Sharpe", f"{sharpe100:.2f}")
+    with col2:
+        st.metric("AM200 CAGR", f"{cagr200:.2%}")
+        st.metric("AM200 Volatility", f"{vol200:.2%}")
+        st.metric("AM200 Sharpe", f"{sharpe200:.2f}")
+    with col3:
+        st.metric("AM300 CAGR", f"{cagr300:.2%}")
+        st.metric("AM300 Volatility", f"{vol300:.2%}")
+        st.metric("AM300 Sharpe", f"{sharpe300:.2f}")
+
+    st.caption("Performance")
+    fig, ax = plt.subplots(figsize=(6, 2.6))
+    style_chart(fig, ax)
+    ax.plot(am100_plot, label="AM100", color=AM100_COLOR, linewidth=2)
+    ax.plot(am200_plot, label="AM200", color=AM200_COLOR, linewidth=2)
+    ax.plot(am300, label="AM300", color=AM300_COLOR, linewidth=2)
+    ax.legend(frameon=False, fontsize=10)
+    fig.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+
+    st.caption("Country Allocation")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**AM100**")
+        fig, ax = plt.subplots(figsize=(6, 2.6))
+        style_chart(fig, ax)
+        ax.bar(am100_country.index, am100_country.values, color=AM100_COLOR)
+        ax.tick_params(axis="x", rotation=90)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+    with col2:
+        st.markdown("**AM200**")
+        fig, ax = plt.subplots(figsize=(6, 2.6))
+        style_chart(fig, ax)
+        ax.bar(am200_country.index, am200_country.values, color=AM200_COLOR)
+        ax.tick_params(axis="x", rotation=90)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+
+    st.caption("Top Holdings")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**AM100 Top 10**")
+        investor_am100 = (
+            am100_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+            .head(10)
+            .reset_index(drop=True)
+        )
+        st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
+    with col2:
+        st.markdown("**AM200 Top 10**")
+        investor_am200 = (
+            am200_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+            .head(10)
+            .reset_index(drop=True)
+        )
+        st.dataframe(display_with_row_numbers(investor_am200), use_container_width=True)
+
+    st.caption("Key Observations")
+    st.write(f"• AM300 sits between AM100 and AM200 with CAGR {cagr300:.2%}")
+    st.write("• AM100 is the core sleeve, AM200 is the expansion sleeve, and AM300 is the broad flagship benchmark.")
+    st.write(f"• AM100 is currently most exposed to {top_country_am100}.")
+    st.write(f"• AM200 shows broader expansion exposure led by {top_country_am200}.")
+    st.write(f"• AM300 flagship exposure is led by {top_country_am300}.")
+
+    st.markdown("---")
+    st.caption("Veri AM Indices • Curated Investor View")
+    st.stop()
 
 allocator_levels = pd.concat(
     [

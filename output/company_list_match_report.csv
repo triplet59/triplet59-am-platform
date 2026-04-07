@@ -1,0 +1,202 @@
+InputCompany,MatchType,MatchedCompany,AM100,AM200,AM300,CoveragePct,LatestAvgDailyUSDLiquidity,LatestRank,Status,Reason
+Gold Fields Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+FirstRand Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Standard Bank Group Ltd,likely_match,STANDARD BANK GROUP (SOUTH AFRICA),True,False,True,0.683971099812684,763101480.4683908,22.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Capitec Bank Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Impala Platinum Holdings Ltd,likely_match,IMPALA PLATINUM HOLDINGS (SOUTH AFRICA),True,False,True,0.683971099812684,847129056.7816092,19.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Absa Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Harmony Gold Mining,likely_match,HARMONY GOLD MINING COMPANY (SOUTH AFRICA),True,False,True,0.683971099812684,724075859.3965517,27.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Sibanye Stillwater Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Sanlam Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Valterra Platinum Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Discovery Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Bid Corporation Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Commercial International Bank (CIB),likely_match,COMMERCIAL INTERNATIONAL BANK EGYPT (EGYPT),True,False,True,0.6438319507626439,363715949.9316071,45.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Delta Corporation Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Nedbank Group Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Northam Platinum Holdings Limited,likely_match,NORTHAM PLATINUM HOLDINGS (SOUTH AFRICA),True,False,True,0.683971099812684,663021850.2982758,30.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Shoprite Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Remgro Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Sasol Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+OUTsurance Group Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Attijariwafa Bank,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Vodacom Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Bidvest Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Growthpoint Properties,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Clicks Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Pepkor Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Anglo American PLC,exact_normalized,ANGLO AMERICAN (SOUTH AFRICA),True,False,True,0.683971099812684,562320805.2097701,25.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Tiger Brands Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+MTN Nigeria,exact_normalized,MTN NIGERIA (NIGERIA),True,False,True,0.453037195611453,1768027619.8441176,17.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Mr Price Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Guaranty Trust Holding Company PLC,likely_match,GUARANTY TRUST HOLDING COMPANY NIGERIA (NIGERIA),True,False,True,0.6604227990366605,2354960903.95,8.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Redefine Properties Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Safaricom,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Momentum Metropolitan Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Kumba Iron Ore Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Naspers Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Aspen Pharmacare Hldgs Ltd,likely_match,ASPEN PHARMACARE HOLDINGS (SOUTH AFRICA),True,False,True,0.683971099812684,194344755.05,71.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Woolworths Holdings Ltd,likely_match,WOOLWORTHS HOLDINGS (SOUTH AFRICA),True,False,True,0.683971099812684,235666240.84310347,64.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Zenith Bank,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Maroc Telecom (Itissalat Al Maghrib Ste SA),missing,,,,,,,,Missing entirely,not_in_master_dataset
+Vukile Property Fund,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Fortress Real Estate Investments Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+PSG Financial Services Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Banque Centrale Populaire,likely_match,BANQUE CENTRALE POPULAIRE MOROCCO (MOROCCO),False,True,True,0.6612255820176612,20591439.114417177,158.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+AVI Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Equity Group,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Hyprop Investments,missing,,,,,,,,Missing entirely,not_in_master_dataset
+KCB Group PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+First HoldCo Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Talaat Moustafa Group Holding,likely_match,TALAAT MOUSTAFA GROUP EGYPT (EGYPT),True,False,True,0.6435643564356436,181027996.9614881,57.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+The Foschini Group,missing,,,,,,,,Missing entirely,not_in_master_dataset
+LafargeHolcim Maroc,likely_match,LAFARGEHOLCIM MAROC MOROCCO (MOROCCO),False,True,True,0.6612255820176612,17827730.18404908,152.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+CRDB Bank PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+African Rainbow Min Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Compagnie Sucrerie Marocaine et de Raffinage SA,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Ciments du Maroc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Telecom Egypt,exact_normalized,TELECOM EGYPT (EGYPT),False,True,True,0.6435643564356436,71476272.60333332,114.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Motus Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Bank of Africa (BMCE),likely_match,BANK OF AFRICA NIGER (NIGER),True,False,True,0.6622959593256623,13732710.319767442,70.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Santam Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Truworths International Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Dangote Cement,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Telkom SA SOC Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Access Holdings PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Eastern Tobacco,likely_match,EASTERN TOBACCO EGYPT (EGYPT),True,False,True,0.643029167781643,64640833.83101191,14.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Dis-Chem Pharmacies,exact_normalized,DIS-CHEM PHARMACIES (SOUTH AFRICA),False,True,True,0.6245651592186245,32949312.53448276,120.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Netcare Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Thungela Resources,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Spar Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+TAQA Morocco S.A.,likely_match,TAQA MOROCCO (MOROCCO),False,True,True,0.6612255820176612,9908266.754601227,163.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Pick n Pay Stores Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Life Health Grp Hldgs Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Exxaro Resources,exact_normalized,EXXARO RESOURCES (SOUTH AFRICA),True,False,True,0.683971099812684,117065733.5816092,75.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Omnia Holdings,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Heliopolis Co. for Housing & Development,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Fawry for Banking & Payment Technology,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Label Vie,missing,,,,,,,,Missing entirely,not_in_master_dataset
+EFG Hermes,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Grindrod Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Sun International Limmited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Reunert Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Coronation Fund Managers Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Abu Qir Fertilizers and Chemical Industries Co SAE,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Douja Promotion Groupe Addoha S.A.,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Raubex Group Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+e-Finance Investment Group,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Tanzania Breweries Public Limited Company,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Edita Food Industries Company (S.A.E),missing,,,,,,,,Missing entirely,not_in_master_dataset
+Beltone Holding,likely_match,BELTONE HOLDING EGYPT (EGYPT),True,False,True,0.6424939791276425,160861127.59029764,92.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Investec PLC,exact_normalized,INVESTEC (SOUTH AFRICA),True,False,True,0.683971099812684,127599752.51206896,81.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Tsogo Sun Gaming,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Old Mutual Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Palm Hills Development Company,likely_match,PALM HILLS DEVELOPMANT COMPANY EGYPT (EGYPT),True,False,True,0.6438319507626439,115513027.05291668,100.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Juhayna Food Industries S.A.E,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Ibnsina Pharma,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Ninety One Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Madinet Masr For Housing and Development,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Oriental Weavers Carpets Company,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Sidi Kerir Petrochemicals,likely_match,SIDI KERIR PETROCHEMICALS EGYPT (EGYPT),False,True,True,0.6435643564356436,42659679.957559526,107.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Ecobank Transnational Incorporated,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Airtel Africa,missing,,,,,,,,Missing entirely,not_in_master_dataset
+MTN Group Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Arabian Cement Company,missing,,,,,,,,Missing entirely,not_in_master_dataset
+AECI Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+United Bank for Africa,likely_match,UNITED BANK FOR AFRICA NIGERIA (NIGERIA),True,False,True,0.6604227990366605,894030517.3920587,21.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Stanbic Uganda Holdings Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Jaiz Bank Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Stanbic IBTC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+BUA Cement,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Fidelity Bank Holdings PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+MTN Uganda Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Wema Bank Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+FCMB Group,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Lafarge Africa,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Stanbic IBTC Holdings Plc,likely_match,STANBIC IBTC HOLDINGS NIGERIA (NIGERIA),True,False,True,0.6604227990366605,367134202.1897059,90.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Oando PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Dangote Sugar Refinery PLC,likely_match,DANGOTE SUGAR REFINERY NIGERIA (NIGERIA),True,False,True,0.6604227990366605,249366159.4976471,65.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Honeywell Flour Mills,likely_match,HONEYWELL FLOUR MILLS NIGERIA (NIGERIA),False,True,True,0.6604227990366605,56827656.71452942,113.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Kenya Electricity Generating Company PLC,likely_match,KENYA ELECTRICITY GENERATING CO (KENYA),False,True,True,0.6639015252876639,17329444.832294118,144.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Co-operative Bank,likely_match,CO-OPERATIVE BANK KENYA (KENYA),False,True,True,0.6641691196146642,23319395.698235296,131.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Kenya Reinsurance Corporation Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+CI Capital Holding,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Aradel Holdings PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Alexandria Containers and goods,missing,,,,,,,,Missing entirely,not_in_master_dataset
+NASCON Allied Industries,likely_match,NASCON ALLIED INDUSTRIES NIGERIA (NIGERIA),True,False,True,0.6604227990366605,221997431.97,74.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+The CIC Insurance Group PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+KAP Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Fidson Healthcare Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+The Kenya Power and Lighting Company PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+HF Group Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+I&M Group PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Credit Agricole - Egypt Bank (S.A.E.),missing,,,,,,,,Missing entirely,not_in_master_dataset
+ArcelorMittal South Africa Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Hulamin Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Export Development Bank of Egypt,missing,,,,,,,,Missing entirely,not_in_master_dataset
+CalBank PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+IBL Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Sonatel,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Zambia National Commercial Bank Plc,exact_normalized,ZAMBIA NATIONAL COMMERCIAL BANK (ZAMBIA),False,False,False,0.6408884131656409,659130.4673837209,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+CEIL Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Seplat Energy,missing,,,,,,,,Missing entirely,not_in_master_dataset
+New Mauritius Hotels,exact_normalized,NEW MAURITIUS HOTELS (MAURITIUS),False,True,True,0.6582820444206583,978112.2798816568,183.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Capricorn Group Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+East African Breweries,likely_match,EAST AFRICAN BREWERIES KENYA (KENYA),False,True,True,0.6617607706716617,34609074.011764705,119.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+NMB Bank,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Namibia Breweries Limited,likely_match,TANZANIA BREWERIES LTD (TANZANIA),True,False,True,0.6582820444206583,582713485.9649123,12.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Nestlé Nigeria PLC,likely_match,NESTLÉ NIGERIA (NIGERIA),True,False,True,0.6604227990366605,325537270.0994118,46.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+Poulina Group Holding S.A,likely_match,POULINA GROUP HOLDING TUNISIA (TUNISIA),False,True,True,0.6018196414236018,799216.4584615384,188.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Faisal Islamic Bank of Egypt,missing,,,,,,,,Missing entirely,not_in_master_dataset
+NCBA Group,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Société de Fabrication des Boissons de Tunisie Société Anonyme (SFBT),missing,,,,,,,,Missing entirely,not_in_master_dataset
+Ste Nationale de Siderurgie SA,missing,,,,,,,,Missing entirely,not_in_master_dataset
+MCB Group Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+First National Bank of Botswana Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+SBM Holdings Ltd,missing,,,,,,,,Missing entirely,not_in_master_dataset
+GCB Bank PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Stanbic Holdings PLC,likely_match,STANBIC HOLDINGS KENYA (KENYA),False,True,True,0.6625635536526626,29307052.22058824,142.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+British American Tobacco Kenya plc,exact_normalized,BRITISH AMERICAN TOBACCO KENYA (KENYA),False,True,True,0.6572116671126572,16707690.952941176,150.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Sechaba Brewery Holdings Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Choppies Enterprises Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+ZCCM Investments Holdings Plc,likely_match,ZCCM INVESTMENTS HOLDINGS ZAMBIA (ZAMBIA),False,False,False,0.6296494514316296,77076.2951744186,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Britam Holdings PLC,likely_match,BRITAM HOLDINGS KENYA (KENYA),False,True,True,0.6639015252876639,3395755.4981176467,174.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Jubilee Holdings Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Letshego Holdings,exact_normalized,LETSHEGO HOLDINGS (NAMIBIA),False,False,False,0.0917848541610917,290356.203030303,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Transpaco,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Centum Investment Company,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Bamburi Cement Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+National Bank of Malawi,exact_normalized,NATIONAL BANK OF MALAWI (MALAWI),True,False,True,0.6427615734546428,122940094.30358826,96.0,Included AM100,coverage_below_95pct; starts_after_2016; large_data_gaps
+BUA Foods,missing,,,,,,,,Missing entirely,not_in_master_dataset
+El Sewedy Electric,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Tanzania Cigarette Publice Limited Company,missing,,,,,,,,Missing entirely,not_in_master_dataset
+QNB Alahli,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Suez Canal Bank,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Maridive and Oil Services S.A.E.,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Geregu Power Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Ecobank Ghana PLC,exact_normalized,ECOBANK GHANA (GHANA),False,False,False,0.6451699223976451,240232.05759036145,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Agricultural Development Bank PLC,likely_match,AGRICULTURAL DEVELOPMENT BANK GHANA (GHANA),False,False,False,0.6087770939256087,39.04734939759036,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Standard Chartered Bank Ghana PLC,exact_normalized,STANDARD CHARTERED BANK GHANA (GHANA),False,False,False,0.6451699223976451,127562.26,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Societe Generale Ghana PLC,likely_match,SOCIÉTÉ GÉNÉRALE GHANA (GHANA),False,False,False,0.6475782713406476,588182.6790963855,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Republic Bank (Ghana) PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+TotalEnergies Marketing Ghana PLC,likely_match,TOTALENERGIES MARKETING KENYA (KENYA),False,True,True,0.6622959593256623,1116288.7608823532,182.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+GOIL PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Fan Milk PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Enterprise Group PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+SIC Insurance PLC,exact_normalized,SIC INSURANCE (GHANA),False,False,False,0.6449023280706448,137133.8437349398,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Cocoa Processing Company Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Mega African Capital Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Clydestone (Ghana) PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Intravenous Infusions PLC,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Aluworks Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Camelot Ghana Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Standard Chartered Bank Kenya Ltd,likely_match,STANDARD CHARTERED BANK KENYA (KENYA),False,True,True,0.6641691196146642,21022605.75147059,148.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Diamond Trust Bank Kenya Ltd,likely_match,DIAMOND TRUST BANK KENYA (KENYA),False,True,True,0.6604227990366605,9822955.863235297,149.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+"Crédit Immobilier et Hôtelier, Société Anonyme",missing,,,,,,,,Missing entirely,not_in_master_dataset
+DCB Commercial Bank Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Maendeleo Bank Plc,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Zambia Sugar Plc,exact_normalized,ZAMBIA SUGAR (ZAMBIA),False,False,False,0.6392828472036393,116836.39639534884,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Wilson Bayly Holmes - Ovcon Limited,likely_match,WILSON BAYLY HOLMES OVCON (SOUTH AFRICA),False,True,True,0.683971099812684,22441540.20632184,128.0,Included AM200,coverage_below_95pct; starts_after_2016; large_data_gaps
+Standard Chartered Bank Zambia Plc,exact_normalized,STANDARD CHARTERED BANK ZAMBIA (ZAMBIA),False,False,False,0.6414236018196414,26796.00186046512,,Excluded,coverage_below_95pct; starts_after_2016; large_data_gaps
+Airtel Uganda Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
+Seed Co International Limited,missing,,,,,,,,Missing entirely,not_in_master_dataset
