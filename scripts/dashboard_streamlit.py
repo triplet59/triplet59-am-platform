@@ -95,6 +95,9 @@ def compute_cagr_for_periods(index_series, periods):
         if name == "latest_valid":
             continue
         start, end = period
+        if end > index_series.dropna().index.max():
+            results[name] = None
+            continue
         sub = index_series.loc[start:end]
 
         if name.startswith("rolling_") and len(sub) < 252:
@@ -121,7 +124,8 @@ def get_latest_valid_date(price_df, constituents):
 
 def get_periods(price_df, constituents, index_series):
     start_2016 = pd.Timestamp("2016-01-01")
-    start_2021 = pd.Timestamp("2021-01-01")
+    end_2020 = pd.Timestamp("2020-12-31")
+    end_2025 = pd.Timestamp("2025-12-31")
     latest_valid = get_latest_valid_date(price_df, constituents)
     series_latest = index_series.dropna().index.max()
     latest = min(latest_valid, series_latest) if latest_valid is not None else series_latest
@@ -137,8 +141,9 @@ def get_periods(price_df, constituents, index_series):
         "rolling_5y": (rolling_start(5), latest),
         "rolling_3y": (rolling_start(3), latest),
         "rolling_1y": (rolling_start(1), latest),
+        "fixed_10y": (start_2016, end_2025),
+        "fixed_5y": (start_2016, end_2020),
         "since_2016": (start_2016, latest),
-        "since_2021": (start_2021, latest),
         "latest_valid": latest,
     }
 
@@ -711,21 +716,24 @@ am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]
 am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]
 am100_cagr_rolling_1y = am100_cagrs["rolling_1y"]
 am100_cagr_2016 = am100_cagrs["since_2016"]
-am100_cagr_5y = am100_cagrs["since_2021"]
+am100_cagr_fixed_10y = am100_cagrs["fixed_10y"]
+am100_cagr_fixed_5y = am100_cagrs["fixed_5y"]
 
 am200_cagr_10y = am200_cagrs["rolling_10y"]
 am200_cagr_rolling_5y = am200_cagrs["rolling_5y"]
 am200_cagr_rolling_3y = am200_cagrs["rolling_3y"]
 am200_cagr_rolling_1y = am200_cagrs["rolling_1y"]
 am200_cagr_2016 = am200_cagrs["since_2016"]
-am200_cagr_5y = am200_cagrs["since_2021"]
+am200_cagr_fixed_10y = am200_cagrs["fixed_10y"]
+am200_cagr_fixed_5y = am200_cagrs["fixed_5y"]
 
 am300_cagr_10y = am300_cagrs["rolling_10y"]
 am300_cagr_rolling_5y = am300_cagrs["rolling_5y"]
 am300_cagr_rolling_3y = am300_cagrs["rolling_3y"]
 am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]
 am300_cagr_2016 = am300_cagrs["since_2016"]
-am300_cagr_5y = am300_cagrs["since_2021"]
+am300_cagr_fixed_10y = am300_cagrs["fixed_10y"]
+am300_cagr_fixed_5y = am300_cagrs["fixed_5y"]
 
 analytics_coverage_notes = []
 
@@ -1025,15 +1033,18 @@ rolling_results = {
 fixed_results = {
     "AM100": {
         "since_2016": am100_cagr_2016,
-        "since_2021": am100_cagr_5y,
+        "fixed_10y": am100_cagr_fixed_10y,
+        "fixed_5y": am100_cagr_fixed_5y,
     },
     "AM200": {
         "since_2016": am200_cagr_2016,
-        "since_2021": am200_cagr_5y,
+        "fixed_10y": am200_cagr_fixed_10y,
+        "fixed_5y": am200_cagr_fixed_5y,
     },
     "AM300": {
         "since_2016": am300_cagr_2016,
-        "since_2021": am300_cagr_5y,
+        "fixed_10y": am300_cagr_fixed_10y,
+        "fixed_5y": am300_cagr_fixed_5y,
     },
 }
 
@@ -1042,30 +1053,31 @@ def safe_metric(value):
     return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
 
 
-st.subheader("Rolling Performance")
-for index_name, results in rolling_results.items():
-    st.markdown(f"**{index_name}**")
-    st.markdown(
-        f"<div class='small-note'>"
-        f"10Y Rolling {help_text('Trailing 10-year annualised return based on the latest available data with full constituent coverage.')} | "
-        f"5Y {help_text('Trailing annualised return over the last 5 years.')} | "
-        f"3Y {help_text('Trailing annualised return over the last 3 years.')} | "
-        f"1Y {help_text('Trailing annualised return over the last 1 year.')}"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("10Y", safe_metric(results["rolling_10y"]))
-    col2.metric("5Y", safe_metric(results["rolling_5y"]))
-    col3.metric("3Y", safe_metric(results["rolling_3y"]))
-    col4.metric("1Y", safe_metric(results["rolling_1y"]))
-
-st.subheader("Fixed Period Performance")
+st.subheader("Headline Performance")
 for index_name, results in fixed_results.items():
     st.markdown(f"**{index_name}**")
-    col1, col2 = st.columns(2)
-    col1.metric("Since 2016 (10Y)", safe_metric(results["since_2016"]))
-    col2.metric("Since 2021 (5Y)", safe_metric(results["since_2021"]))
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Since 2016", safe_metric(results["since_2016"]))
+    col2.metric("10Y (Fixed)", safe_metric(results["fixed_10y"]))
+    col3.metric("5Y (Fixed)", safe_metric(results["fixed_5y"]))
+
+with st.expander("Rolling Performance Analysis"):
+    for index_name, results in rolling_results.items():
+        st.markdown(f"**{index_name}**")
+        st.markdown(
+            f"<div class='small-note'>"
+            f"10Y Rolling {help_text('Trailing 10-year annualised return based on the latest available data with full constituent coverage.')} | "
+            f"5Y {help_text('Trailing annualised return over the last 5 years.')} | "
+            f"3Y {help_text('Trailing annualised return over the last 3 years.')} | "
+            f"1Y {help_text('Trailing annualised return over the last 1 year.')}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("10Y", safe_metric(results["rolling_10y"]))
+        col2.metric("5Y", safe_metric(results["rolling_5y"]))
+        col3.metric("3Y", safe_metric(results["rolling_3y"]))
+        col4.metric("1Y", safe_metric(results["rolling_1y"]))
 
 comparison_df = pd.DataFrame(
     {
