@@ -383,7 +383,7 @@ logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
 AM200_COLOR = "#FF9F1C"
 AM300_COLOR = "#22C55E"
-BUILD_VERSION = "8775ffd"
+BUILD_VERSION = "21aa1d7"
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
