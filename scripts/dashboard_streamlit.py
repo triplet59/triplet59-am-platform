@@ -383,6 +383,7 @@ logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
 AM200_COLOR = "#FF9F1C"
 AM300_COLOR = "#22C55E"
+BUILD_VERSION = "8775ffd"
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
@@ -584,6 +585,8 @@ with col2:
         </span>
     </div>
     """, unsafe_allow_html=True)
+
+st.caption(f"Build: {BUILD_VERSION}")
 
 header_spacer, header_logout = st.columns([8, 1])
 with header_logout:
