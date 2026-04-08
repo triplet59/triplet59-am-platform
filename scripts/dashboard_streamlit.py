@@ -2325,70 +2325,118 @@ with overview_tab:
 with overview_tab:
     st.markdown("## 🏦 Constituents")
 
-    col1, col2 = st.columns(2)
+    if IS_INVESTOR:
+        st.caption("Top Holdings")
 
-    with col1:
-        st.caption("AM100 Top 10")
+        investor_col1, investor_col2, investor_col3 = st.columns(3)
 
-        am100_top = (
-            am100_latest.sort_values("Weight", ascending=False)[
-                ["Company", "Country", "Weight"]
-            ].head(10)
+        with investor_col1:
+            st.markdown("**AM100 Top 10**")
+            investor_am100 = (
+                am100_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+                .head(10)
+                .reset_index(drop=True)
+            )
+            st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
+
+        with investor_col2:
+            st.markdown("**AM200 Top 10**")
+            investor_am200 = (
+                am200_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+                .head(10)
+                .reset_index(drop=True)
+            )
+            st.dataframe(display_with_row_numbers(investor_am200), use_container_width=True)
+
+        with investor_col3:
+            st.markdown("**AM300 Top 10**")
+            investor_am300 = (
+                am300_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
+                .head(10)
+                .reset_index(drop=True)
+            )
+            st.dataframe(display_with_row_numbers(investor_am300), use_container_width=True)
+
+        st.caption("Geographic Exposure")
+        investor_country_exposure = pd.concat(
+            [
+                am100_country.rename("AM100"),
+                am200_country.rename("AM200"),
+                am300_country.rename("AM300"),
+            ],
+            axis=1,
+        ).fillna(0)
+        investor_country_exposure = (
+            investor_country_exposure.sort_values("AM300", ascending=False)
+            .reset_index()
+            .rename(columns={"index": "Country"})
         )
-        am100_top["Weight"] = am100_top["Weight"].map("{:.2%}".format)
+        st.dataframe(investor_country_exposure, use_container_width=True, hide_index=True)
+    else:
+        col1, col2 = st.columns(2)
 
-        st.dataframe(display_with_row_numbers(am100_top), use_container_width=True)
+        with col1:
+            st.caption("AM100 Top 10")
 
-    with col2:
-        st.caption("AM200 Top 10")
+            am100_top = (
+                am100_latest.sort_values("Weight", ascending=False)[
+                    ["Company", "Country", "Weight"]
+                ].head(10)
+            )
+            am100_top["Weight"] = am100_top["Weight"].map("{:.2%}".format)
 
-        am200_top = (
-            am200_latest.sort_values("Weight", ascending=False)[
-                ["Company", "Country", "Weight"]
-            ].head(10)
+            st.dataframe(display_with_row_numbers(am100_top), use_container_width=True)
+
+        with col2:
+            st.caption("AM200 Top 10")
+
+            am200_top = (
+                am200_latest.sort_values("Weight", ascending=False)[
+                    ["Company", "Country", "Weight"]
+                ].head(10)
+            )
+            am200_top["Weight"] = am200_top["Weight"].map("{:.2%}".format)
+
+            st.dataframe(display_with_row_numbers(am200_top), use_container_width=True)
+
+        with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
+            am100_full = (
+                am100_latest.sort_values("Rank", ascending=True)[
+                    ["Company", "Country", "Weight", "Rank"]
+                ]
+            )
+            search = st.text_input("Search AM100", key="am100_search")
+            if search:
+                am100_full = am100_full[
+                    am100_full["Company"].str.contains(search, case=False)
+                ]
+            am100_full["Weight"] = am100_full["Weight"].map("{:.2%}".format)
+            st.dataframe(display_with_row_numbers(am100_full), use_container_width=True)
+
+        with st.expander("🔍 View Full AM200 Constituents (101–200)"):
+            am200_full = (
+                am200_latest.sort_values("Rank", ascending=True)[
+                    ["Company", "Country", "Weight", "Rank"]
+                ]
+            )
+            search = st.text_input("Search AM200", key="am200_search")
+            if search:
+                am200_full = am200_full[
+                    am200_full["Company"].str.contains(search, case=False)
+                ]
+            am200_full["Weight"] = am200_full["Weight"].map("{:.2%}".format)
+            st.dataframe(display_with_row_numbers(am200_full), use_container_width=True)
+
+        st.caption("Holdings Explorer")
+
+        view_option = st.selectbox(
+            "Select View",
+            [
+                "Top 10 (AM100 & AM200)",
+                "Full AM100 (Top 100)",
+                "Full AM200 (101–200)",
+            ],
         )
-        am200_top["Weight"] = am200_top["Weight"].map("{:.2%}".format)
-
-        st.dataframe(display_with_row_numbers(am200_top), use_container_width=True)
-
-    with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
-        am100_full = (
-            am100_latest.sort_values("Rank", ascending=True)[
-                ["Company", "Country", "Weight", "Rank"]
-            ]
-        )
-        search = st.text_input("Search AM100", key="am100_search")
-        if search:
-            am100_full = am100_full[
-                am100_full["Company"].str.contains(search, case=False)
-            ]
-        am100_full["Weight"] = am100_full["Weight"].map("{:.2%}".format)
-        st.dataframe(display_with_row_numbers(am100_full), use_container_width=True)
-
-    with st.expander("🔍 View Full AM200 Constituents (101–200)"):
-        am200_full = (
-            am200_latest.sort_values("Rank", ascending=True)[
-                ["Company", "Country", "Weight", "Rank"]
-            ]
-        )
-        search = st.text_input("Search AM200", key="am200_search")
-        if search:
-            am200_full = am200_full[
-                am200_full["Company"].str.contains(search, case=False)
-            ]
-        am200_full["Weight"] = am200_full["Weight"].map("{:.2%}".format)
-        st.dataframe(display_with_row_numbers(am200_full), use_container_width=True)
-
-    st.caption("Holdings Explorer")
-
-    view_option = st.selectbox(
-        "Select View",
-        [
-            "Top 10 (AM100 & AM200)",
-            "Full AM100 (Top 100)",
-            "Full AM200 (101–200)",
-        ],
-    )
 
     st.markdown("---")
 
