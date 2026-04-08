@@ -1162,26 +1162,6 @@ cagr300, vol300, sharpe300, dd300 = load_metric_snapshot(
     get_file_version("output/AM300_total_return.csv"),
 )
 
-if IS_INVESTOR:
-    render_investor_view(
-        am100_plot=am100_plot,
-        am200_plot=am200_plot,
-        am300=am300,
-        cagr100=cagr100,
-        vol100=vol100,
-        sharpe100=sharpe100,
-        cagr200=cagr200,
-        vol200=vol200,
-        sharpe200=sharpe200,
-        cagr300=cagr300,
-        vol300=vol300,
-        sharpe300=sharpe300,
-        am100_latest=am100_latest,
-        am200_latest=am200_latest,
-        am300_latest=am300_latest,
-    )
-    st.stop()
-
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 col1.markdown(
