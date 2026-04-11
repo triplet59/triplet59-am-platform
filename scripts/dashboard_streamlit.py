@@ -54,6 +54,23 @@ def render_metric_card(label, value, help_copy=None):
     )
 
 
+def safe_display(value, fallback="N/A"):
+    return value if value is not None else fallback
+
+
+def get_top_country(df):
+    if df is None or df.empty or "Country" not in df.columns or "Weight" not in df.columns:
+        return None
+    grouped = df.groupby("Country")["Weight"].sum()
+    return grouped.idxmax() if not grouped.empty else None
+
+
+def get_country_weights(df):
+    if df is None or df.empty or "Country" not in df.columns or "Weight" not in df.columns:
+        return pd.Series(dtype=float)
+    return df.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+
+
 def calculate_cagr(df, start_date, end_date=None):
     df = df.copy()
     df["Date"] = pd.to_datetime(df["Date"])
@@ -394,6 +411,8 @@ AM100_COLOR = "#4DA3FF"
 AM200_COLOR = "#FF9F1C"
 AM300_COLOR = "#22C55E"
 BUILD_VERSION = "21aa1d7"
+SHOW_AM200 = False
+SHOW_AM300 = False
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
@@ -1449,34 +1468,34 @@ if vol200 > vol100:
 if dd200 < dd100:
     obs.append("AM200 has experienced deeper drawdowns, highlighting higher risk.")
 
-top_country_am100 = am100_latest.groupby("Country")["Weight"].sum().idxmax()
-top_country_am200 = am200_latest.groupby("Country")["Weight"].sum().idxmax()
-top_country_am300 = am300_latest.groupby("Country")["Weight"].sum().idxmax()
-am100_country = (
-    am100_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
-)
-am200_country = (
-    am200_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
-)
-am300_country = (
-    am300_latest.groupby("Country")["Weight"].sum().sort_values(ascending=False)
-)
+top_country_am100 = get_top_country(am100_latest)
+top_country_am200 = get_top_country(am200_latest) if SHOW_AM200 else None
+top_country_am300 = get_top_country(am300_latest) if SHOW_AM300 else None
+am100_country = get_country_weights(am100_latest)
+am200_country = get_country_weights(am200_latest) if SHOW_AM200 else pd.Series(dtype=float)
+am300_country = get_country_weights(am300_latest) if SHOW_AM300 else pd.Series(dtype=float)
 latest_am100 = am100.iloc[-1]
-latest_am200 = am200.iloc[-1]
-latest_am300 = am300.iloc[-1]
+latest_am200 = am200.iloc[-1] if SHOW_AM200 and len(am200) else None
+latest_am300 = am300.iloc[-1] if SHOW_AM300 and len(am300) else None
 
-ticker_text = f"""
-AM100: {latest_am100:.2f} ({ret100:.2%}) •
-AM200: {latest_am200:.2f} ({ret200:.2%}) •
-AM300: {latest_am300:.2f} ({ret300:.2%}) •
-Top Country AM100: {top_country_am100} •
-Top Country AM200: {top_country_am200} •
-Top Country AM300: {top_country_am300}
-"""
+ticker_parts = [
+    f"AM100: {latest_am100:.2f} ({ret100:.2%})",
+    f"Top Country AM100: {safe_display(top_country_am100)}",
+]
+if SHOW_AM200 and latest_am200 is not None:
+    ticker_parts.append(f"AM200: {latest_am200:.2f} ({ret200:.2%})")
+    ticker_parts.append(f"Top Country AM200: {safe_display(top_country_am200)}")
+if SHOW_AM300 and latest_am300 is not None:
+    ticker_parts.append(f"AM300: {latest_am300:.2f} ({ret300:.2%})")
+    ticker_parts.append(f"Top Country AM300: {safe_display(top_country_am300)}")
+ticker_text = " •\n".join(ticker_parts)
 
-obs.append(f"AM100 is most exposed to {top_country_am100}.")
-obs.append(f"AM200 shows strongest exposure to {top_country_am200}.")
-obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
+if top_country_am100:
+    obs.append(f"AM100 is most exposed to {top_country_am100}.")
+if SHOW_AM200 and top_country_am200:
+    obs.append(f"AM200 shows strongest exposure to {top_country_am200}.")
+if SHOW_AM300 and top_country_am300:
+    obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
 
 def external_capacity_metrics(snapshot):
     if "AvgDailyValue30dUSD" in snapshot.columns:
@@ -2203,12 +2222,23 @@ with overview_tab:
 
     with col2:
         st.caption("AM200")
-        fig, ax = plt.subplots(figsize=(6, 2.4))
-        style_chart(fig, ax)
-        ax.bar(am200_country.index, am200_country.values, color=AM200_COLOR)
-        ax.tick_params(axis="x", rotation=90)
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+        if SHOW_AM200 and not am200_country.empty:
+            fig, ax = plt.subplots(figsize=(6, 2.4))
+            style_chart(fig, ax)
+            ax.bar(am200_country.index, am200_country.values, color=AM200_COLOR)
+            ax.tick_params(axis="x", rotation=90)
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+        else:
+            st.info(
+                """
+                AM200 (Expanded Investable Africa)
+
+                This index is currently in development and will extend the AM100 universe to include additional investable equities under slightly relaxed liquidity constraints.
+
+                Expected release: Phase 2
+                """
+            )
 
     st.markdown(
         """
