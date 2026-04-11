@@ -58,6 +58,14 @@ def safe_display(value, fallback="N/A"):
     return value if value is not None else fallback
 
 
+def validate_final_weights(df, label="Index"):
+    if df is None or df.empty or "Weight" not in df.columns:
+        return
+    total_weight = float(df["Weight"].fillna(0).sum())
+    if abs(total_weight - 1.0) >= 0.001:
+        st.warning(f"{label} weights sum to {total_weight:.4f}, not 1.0000.")
+
+
 def get_top_country(df):
     if df is None or df.empty or "Country" not in df.columns or "Weight" not in df.columns:
         return None
@@ -69,6 +77,33 @@ def get_country_weights(df):
     if df is None or df.empty or "Country" not in df.columns or "Weight" not in df.columns:
         return pd.Series(dtype=float)
     return df.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+
+
+def prepare_constituent_table(df, include_rank=False, limit=None, search=None):
+    if df is None or df.empty:
+        cols = ["Company", "Country", "Weight"]
+        if include_rank:
+            cols.append("Rank")
+        return pd.DataFrame(columns=cols)
+
+    validate_final_weights(df)
+    display_df = df.copy()
+    display_df = display_df.sort_values(["Weight", "Company"], ascending=[False, True])
+    display_df["Rank"] = np.arange(1, len(display_df) + 1)
+
+    if search:
+        display_df = display_df[
+            display_df["Company"].astype(str).str.contains(search, case=False, na=False)
+        ]
+
+    cols = ["Company", "Country", "Weight"]
+    if include_rank:
+        cols.append("Rank")
+    if limit is not None:
+        display_df = display_df.head(limit)
+    display_df = display_df[cols].copy()
+    display_df["Weight"] = display_df["Weight"].map("{:.2%}".format)
+    return display_df.reset_index(drop=True)
 
 
 def calculate_cagr(df, start_date, end_date=None):
@@ -2344,29 +2379,23 @@ with overview_tab:
 
         with investor_col1:
             st.markdown("**AM100 Top 10**")
-            investor_am100 = (
-                am100_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
-                .head(10)
-                .reset_index(drop=True)
-            )
+            investor_am100 = prepare_constituent_table(am100_latest, limit=10)[
+                ["Company", "Country", "Weight"]
+            ]
             st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
 
         with investor_col2:
             st.markdown("**AM200 Top 10**")
-            investor_am200 = (
-                am200_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
-                .head(10)
-                .reset_index(drop=True)
-            )
+            investor_am200 = prepare_constituent_table(am200_latest, limit=10)[
+                ["Company", "Country", "Weight"]
+            ]
             st.dataframe(display_with_row_numbers(investor_am200), use_container_width=True)
 
         with investor_col3:
             st.markdown("**AM300 Top 10**")
-            investor_am300 = (
-                am300_latest.sort_values("Weight", ascending=False)[["Company", "Country"]]
-                .head(10)
-                .reset_index(drop=True)
-            )
+            investor_am300 = prepare_constituent_table(am300_latest, limit=10)[
+                ["Company", "Country", "Weight"]
+            ]
             st.dataframe(display_with_row_numbers(investor_am300), use_container_width=True)
 
         st.caption("Geographic Exposure")
@@ -2389,54 +2418,26 @@ with overview_tab:
 
         with col1:
             st.caption("AM100 Top 10")
-
-            am100_top = (
-                am100_latest.sort_values("Weight", ascending=False)[
-                    ["Company", "Country", "Weight"]
-                ].head(10)
-            )
-            am100_top["Weight"] = am100_top["Weight"].map("{:.2%}".format)
-
+            am100_top = prepare_constituent_table(am100_latest, limit=10)
             st.dataframe(display_with_row_numbers(am100_top), use_container_width=True)
 
         with col2:
             st.caption("AM200 Top 10")
-
-            am200_top = (
-                am200_latest.sort_values("Weight", ascending=False)[
-                    ["Company", "Country", "Weight"]
-                ].head(10)
-            )
-            am200_top["Weight"] = am200_top["Weight"].map("{:.2%}".format)
-
+            am200_top = prepare_constituent_table(am200_latest, limit=10)
             st.dataframe(display_with_row_numbers(am200_top), use_container_width=True)
 
         with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
-            am100_full = (
-                am100_latest.sort_values("Rank", ascending=True)[
-                    ["Company", "Country", "Weight", "Rank"]
-                ]
-            )
             search = st.text_input("Search AM100", key="am100_search")
-            if search:
-                am100_full = am100_full[
-                    am100_full["Company"].str.contains(search, case=False)
-                ]
-            am100_full["Weight"] = am100_full["Weight"].map("{:.2%}".format)
+            am100_full = prepare_constituent_table(
+                am100_latest, include_rank=True, search=search
+            )
             st.dataframe(display_with_row_numbers(am100_full), use_container_width=True)
 
         with st.expander("🔍 View Full AM200 Constituents (101–200)"):
-            am200_full = (
-                am200_latest.sort_values("Rank", ascending=True)[
-                    ["Company", "Country", "Weight", "Rank"]
-                ]
-            )
             search = st.text_input("Search AM200", key="am200_search")
-            if search:
-                am200_full = am200_full[
-                    am200_full["Company"].str.contains(search, case=False)
-                ]
-            am200_full["Weight"] = am200_full["Weight"].map("{:.2%}".format)
+            am200_full = prepare_constituent_table(
+                am200_latest, include_rank=True, search=search
+            )
             st.dataframe(display_with_row_numbers(am200_full), use_container_width=True)
 
         st.caption("Holdings Explorer")
