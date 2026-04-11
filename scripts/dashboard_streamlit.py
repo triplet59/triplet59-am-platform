@@ -64,6 +64,9 @@ def validate_final_weights(df, label="Index"):
     total_weight = float(df["Weight"].fillna(0).sum())
     if abs(total_weight - 1.0) >= 0.001:
         st.warning(f"{label} weights sum to {total_weight:.4f}, not 1.0000.")
+    ordered = df.sort_values(["Weight", "Company"], ascending=[False, True])["Weight"]
+    if not ordered.is_monotonic_decreasing:
+        st.warning(f"{label} weight ordering inconsistency detected.")
 
 
 def get_top_country(df):
@@ -440,6 +443,62 @@ def load_metrics_csv(path, _version=None):
     return df.iloc[0].to_dict()
 
 
+@st.cache_data
+def load_constituent_snapshot_insights(path, _version=None):
+    if not os.path.exists(path):
+        return None
+
+    df = pd.read_excel(path)
+    if df.empty or "Date" not in df.columns or "Weight" not in df.columns:
+        return None
+
+    df["Date"] = pd.to_datetime(df["Date"])
+    latest_date = df["Date"].max()
+    snapshot = (
+        df[df["Date"] == latest_date]
+        .copy()
+        .sort_values(["Weight", "Company"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+    if snapshot.empty:
+        return None
+
+    turnover_values = []
+    rebalance_dates = sorted(df["Date"].dropna().unique())
+    filtered_dates = []
+    prev_set = None
+    for rebalance_date in rebalance_dates:
+        current_set = set(df[df["Date"] == rebalance_date]["Company"].dropna())
+        if prev_set is None or current_set != prev_set:
+            filtered_dates.append(rebalance_date)
+        prev_set = current_set
+
+    prev = None
+    for rebalance_date in filtered_dates:
+        current = df[df["Date"] == rebalance_date].set_index("Company")["Weight"]
+        if prev is not None:
+            aligned = prev.rename("prev").to_frame().join(
+                current.rename("cur"), how="outer"
+            ).fillna(0.0)
+            one_way_turnover = 0.5 * (aligned["cur"] - aligned["prev"]).abs().sum()
+            turnover_values.append(float(one_way_turnover))
+        prev = current
+
+    country_weights = (
+        snapshot.groupby("Country")["Weight"].sum().sort_values(ascending=False)
+        if "Country" in snapshot.columns
+        else pd.Series(dtype=float)
+    )
+
+    return {
+        "latest_date": latest_date,
+        "constituents": int(len(snapshot)),
+        "top10_weight": float(snapshot["Weight"].head(10).sum()),
+        "top_country": country_weights.index[0] if not country_weights.empty else None,
+        "avg_turnover": float(np.mean(turnover_values)) if turnover_values else None,
+    }
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
@@ -498,6 +557,9 @@ The result is a transparent, investable benchmark aligned with real-world constr
 """
 
 am100_metrics = load_metrics_csv("output/AM100_metrics.csv", BUILD_VERSION)
+am100_snapshot_insights = load_constituent_snapshot_insights(
+    "output/AM100_history.xlsx", BUILD_VERSION
+)
 
 if IS_INVESTOR:
     st.title("AM100 - African Institutional Equity Index")
@@ -510,6 +572,30 @@ if IS_INVESTOR:
         col3.metric("Sharpe", f"{am100_metrics.get('Sharpe', 0):.2f}")
         col4.metric(
             "Max Drawdown", f"{am100_metrics.get('Max Drawdown', 0) * 100:.1f}%"
+        )
+
+    if am100_snapshot_insights:
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric(
+            "Top 10 Concentration",
+            f"{am100_snapshot_insights.get('top10_weight', 0) * 100:.1f}%",
+        )
+        avg_turnover = am100_snapshot_insights.get("avg_turnover")
+        col2.metric(
+            "Avg Turnover",
+            f"{avg_turnover * 100:.1f}%" if avg_turnover is not None else "N/A",
+        )
+        col3.metric(
+            "Constituents", f"{am100_snapshot_insights.get('constituents', 0)}"
+        )
+        col4.metric(
+            "Top Country", safe_display(am100_snapshot_insights.get("top_country"))
+        )
+        st.caption(
+            """
+            Turnover reflects quarterly rebalancing in markets with evolving liquidity conditions.
+            Higher turnover is typical of frontier equity markets and reflects real investability constraints.
+            """
         )
 else:
     st.title("Veri African Indices")
