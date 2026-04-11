@@ -499,6 +499,38 @@ def load_constituent_snapshot_insights(path, _version=None):
     }
 
 
+@st.cache_data
+def load_index_overlap_metrics(am100_path, am200_path, am300_path, _version=None):
+    paths = [am100_path, am200_path, am300_path]
+    if not all(os.path.exists(path) for path in paths):
+        return None
+
+    am100 = pd.read_excel(am100_path)
+    am200 = pd.read_excel(am200_path)
+    am300 = pd.read_excel(am300_path)
+
+    for df in (am100, am200, am300):
+        if df.empty or "Date" not in df.columns or "Company" not in df.columns:
+            return None
+        df["Date"] = pd.to_datetime(df["Date"])
+
+    latest_date = am100["Date"].max()
+    s100 = set(am100[am100["Date"] == latest_date]["Company"])
+    s200 = set(am200[am200["Date"] == latest_date]["Company"])
+    s300 = set(am300[am300["Date"] == latest_date]["Company"])
+
+    def overlap_pct(left, right):
+        if not left:
+            return None
+        return len(left & right) / len(left)
+
+    return {
+        "AM100_in_AM200": overlap_pct(s100, s200),
+        "AM100_in_AM300": overlap_pct(s100, s300),
+        "AM200_in_AM300": overlap_pct(s200, s300),
+    }
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
@@ -557,13 +589,27 @@ The result is a transparent, investable benchmark aligned with real-world constr
 """
 
 am100_metrics = load_metrics_csv("output/AM100_metrics.csv", BUILD_VERSION)
+am200_metrics = load_metrics_csv("output/AM200_metrics.csv", BUILD_VERSION)
+am300_metrics = load_metrics_csv("output/AM300_metrics.csv", BUILD_VERSION)
 am100_snapshot_insights = load_constituent_snapshot_insights(
     "output/AM100_history.xlsx", BUILD_VERSION
+)
+am200_snapshot_insights = load_constituent_snapshot_insights(
+    "output/AM200_history.xlsx", BUILD_VERSION
+)
+am300_snapshot_insights = load_constituent_snapshot_insights(
+    "output/AM300_history.xlsx", BUILD_VERSION
+)
+index_overlap_metrics = load_index_overlap_metrics(
+    "output/AM100_history.xlsx",
+    "output/AM200_history.xlsx",
+    "output/AM300_history.xlsx",
+    BUILD_VERSION,
 )
 
 if IS_INVESTOR:
     st.title("AM100 - African Institutional Equity Index")
-    st.markdown(methodology_text)
+    st.markdown(intro_text)
 
     if am100_metrics:
         col1, col2, col3, col4 = st.columns(4)
@@ -597,6 +643,28 @@ if IS_INVESTOR:
             Higher turnover is typical of frontier equity markets and reflects real investability constraints.
             """
         )
+
+    if index_overlap_metrics:
+        st.subheader("Index Structure")
+        col1, col2, col3 = st.columns(3)
+        col1.metric(
+            "AM100 ⊂ AM200",
+            f"{index_overlap_metrics.get('AM100_in_AM200', 0) * 100:.0f}%",
+        )
+        col2.metric(
+            "AM100 ⊂ AM300",
+            f"{index_overlap_metrics.get('AM100_in_AM300', 0) * 100:.0f}%",
+        )
+        col3.metric(
+            "AM200 ⊂ AM300",
+            f"{index_overlap_metrics.get('AM200_in_AM300', 0) * 100:.0f}%",
+        )
+        st.caption(
+            """
+            Each index is a strict superset of the previous tier, ensuring consistency,
+            transparency, and comparability across the AM index family.
+            """
+        )
 else:
     st.title("Veri African Indices")
     st.markdown(
@@ -606,6 +674,132 @@ else:
         AM100 applies hard USD liquidity, trading-consistency, and total-return standards to define the investable African equity universe. AM200 and AM300 remain part of the wider framework, but AM100 is the benchmark tier currently positioned for institutional use.
         """
     )
+
+if IS_INTERNAL and all(
+    x is not None
+    for x in [
+        am100_metrics,
+        am200_metrics,
+        am300_metrics,
+        am100_snapshot_insights,
+        am200_snapshot_insights,
+        am300_snapshot_insights,
+    ]
+):
+    st.markdown(
+        """
+        **The AM index family provides a tiered view of African equity markets,
+        from institutional core exposure to broader frontier opportunity sets.**
+        """
+    )
+
+    def pct_metric(metrics, key):
+        return f"{metrics.get(key, 0) * 100:.2f}%"
+
+    def num_metric(metrics, key):
+        return f"{metrics.get(key, 0):.2f}"
+
+    def turnover_metric(snapshot):
+        value = snapshot.get("avg_turnover")
+        return f"{value * 100:.1f}%" if value is not None else "N/A"
+
+    st.subheader("AM Index Comparison")
+    comparison_df = pd.DataFrame(
+        {
+            "Metric": [
+                "CAGR",
+                "Volatility",
+                "Sharpe Ratio",
+                "Max Drawdown",
+                "Constituents",
+                "Turnover",
+            ],
+            "AM100": [
+                pct_metric(am100_metrics, "CAGR"),
+                pct_metric(am100_metrics, "Volatility"),
+                num_metric(am100_metrics, "Sharpe"),
+                pct_metric(am100_metrics, "Max Drawdown"),
+                am100_snapshot_insights.get("constituents"),
+                turnover_metric(am100_snapshot_insights),
+            ],
+            "AM200": [
+                pct_metric(am200_metrics, "CAGR"),
+                pct_metric(am200_metrics, "Volatility"),
+                num_metric(am200_metrics, "Sharpe"),
+                pct_metric(am200_metrics, "Max Drawdown"),
+                am200_snapshot_insights.get("constituents"),
+                turnover_metric(am200_snapshot_insights),
+            ],
+            "AM300": [
+                pct_metric(am300_metrics, "CAGR"),
+                pct_metric(am300_metrics, "Volatility"),
+                num_metric(am300_metrics, "Sharpe"),
+                pct_metric(am300_metrics, "Max Drawdown"),
+                am300_snapshot_insights.get("constituents"),
+                turnover_metric(am300_snapshot_insights),
+            ],
+        }
+    )
+    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+
+    st.subheader("Performance Snapshot")
+    row1 = st.columns(3)
+    row1[0].metric("AM100 CAGR", pct_metric(am100_metrics, "CAGR"))
+    row1[1].metric("AM200 CAGR", pct_metric(am200_metrics, "CAGR"))
+    row1[2].metric("AM300 CAGR", pct_metric(am300_metrics, "CAGR"))
+    row2 = st.columns(3)
+    row2[0].metric("AM100 Sharpe", num_metric(am100_metrics, "Sharpe"))
+    row2[1].metric("AM200 Sharpe", num_metric(am200_metrics, "Sharpe"))
+    row2[2].metric("AM300 Sharpe", num_metric(am300_metrics, "Sharpe"))
+
+    if index_overlap_metrics:
+        st.subheader("Index Structure")
+        col1, col2, col3 = st.columns(3)
+        col1.metric(
+            "AM100 ⊂ AM200",
+            f"{index_overlap_metrics.get('AM100_in_AM200', 0) * 100:.0f}%",
+        )
+        col2.metric(
+            "AM100 ⊂ AM300",
+            f"{index_overlap_metrics.get('AM100_in_AM300', 0) * 100:.0f}%",
+        )
+        col3.metric(
+            "AM200 ⊂ AM300",
+            f"{index_overlap_metrics.get('AM200_in_AM300', 0) * 100:.0f}%",
+        )
+        st.caption(
+            """
+            The AM index family is constructed as a strictly nested system.
+            Each tier expands the investable universe while maintaining a consistent methodology.
+            """
+        )
+
+    st.subheader("Interpretation")
+    st.markdown(
+        """
+        - **AM100** represents the highest-liquidity institutional core
+        - **AM200** expands the universe while maintaining investability
+        - **AM300** captures broader frontier opportunities
+
+        Performance dispersion reflects **liquidity constraints and market depth**,
+        not changes in methodology.
+        """
+    )
+
+    fig, ax = plt.subplots()
+    ax.bar(
+        ["AM100", "AM200", "AM300"],
+        [
+            am100_metrics.get("CAGR", 0) * 100,
+            am200_metrics.get("CAGR", 0) * 100,
+            am300_metrics.get("CAGR", 0) * 100,
+        ],
+        color=[AM100_COLOR, AM200_COLOR, AM300_COLOR],
+    )
+    ax.set_title("CAGR Comparison")
+    ax.set_ylabel("Return (%)")
+    fig.tight_layout()
+    st.pyplot(fig, use_container_width=True)
 
 st.markdown("---")
 
