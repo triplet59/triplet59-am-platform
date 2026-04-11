@@ -378,6 +378,16 @@ def load_benchmark_data(_version=None):
     return df.sort_values("Date")
 
 
+@st.cache_data
+def load_metrics_csv(path, _version=None):
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path)
+    if df.empty:
+        return None
+    return df.iloc[0].to_dict()
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 logo_path = os.path.join(BASE_DIR, "..", "assets", "veri_logo.png")
 AM100_COLOR = "#4DA3FF"
@@ -414,7 +424,53 @@ IS_INVESTOR = MODE == "investor"
 IS_INTERNAL = MODE == "internal"
 
 intro_text = """
-## African Market Indices (AM100, AM200 & AM300)
+**AM100 is a rules-based, institutional-grade equity index designed to reflect the investable African equity universe.**
+
+### Key Principles:
+- USD-based liquidity filtering (>= $1M ADV)
+- Consistent trading activity (>= 90% of trading days)
+- Verified total return methodology (price + dividends)
+- Quarterly rebalancing with implementation lag
+
+### What AM100 Represents:
+AM100 reflects where institutional capital can realistically be deployed across African equity markets.
+
+### What AM100 Does Not Do:
+- It does not include illiquid or intermittently traded securities
+- It does not artificially expand into frontier markets without sufficient liquidity
+- It does not optimise for backtested performance
+
+The result is a transparent, investable benchmark aligned with real-world constraints.
+"""
+
+am100_metrics = load_metrics_csv("output/AM100_metrics.csv", BUILD_VERSION)
+
+if IS_INVESTOR:
+    st.title("AM100 - African Institutional Equity Index")
+    st.markdown(methodology_text)
+
+    if am100_metrics:
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("CAGR", f"{am100_metrics.get('CAGR', 0) * 100:.1f}%")
+        col2.metric("Volatility", f"{am100_metrics.get('Volatility', 0) * 100:.1f}%")
+        col3.metric("Sharpe", f"{am100_metrics.get('Sharpe', 0):.2f}")
+        col4.metric(
+            "Max Drawdown", f"{am100_metrics.get('Max Drawdown', 0) * 100:.1f}%"
+        )
+else:
+    st.title("Veri African Indices")
+    st.markdown(
+        """
+        **AM100 is the institutional core of the Veri African Indices suite.**
+
+        AM100 applies hard USD liquidity, trading-consistency, and total-return standards to define the investable African equity universe. AM200 and AM300 remain part of the wider framework, but AM100 is the benchmark tier currently positioned for institutional use.
+        """
+    )
+
+st.markdown("---")
+
+methodology_text = """
+## African Market Indices Framework
 
 ### Overview
 
@@ -455,26 +511,24 @@ All data is standardised into a **consistent USD framework** to enable cross-cou
 
 ### Methodology
 
-#### Liquidity-Driven Selection
+#### Institutional Selection Rules
 
-Constituents are ranked using a proprietary liquidity model:
+Constituents are screened using hard institutional rules rather than performance optimisation:
 
-**Liquidity Score = Traded Value x Participation^2**
-
-This ensures:
-
-* High turnover securities are prioritised
-* Illiquid names are systematically excluded
-* Rankings reflect **true execution capacity**, not just market size
+* USD-based liquidity filter: **30-day ADV >= $1M**
+* Trading activity: **>= 90% of trading days**
+* Verified total return inputs: **price, volume, and dividends**
+* USD-normalised comparison across markets
 
 ---
 
 #### Index Construction Rules
 
-* **Monthly Rebalance**
-* **Entry/Exit Buffers** to reduce turnover
-* **Turnover Target:** ~2-4% per rebalance
-* **Country Cap:** 40% maximum exposure
+* **Quarterly observation**
+* **One-month implementation lag**
+* **Entry/Exit Buffers:** 100 / 120
+* **Stock Cap:** 5% maximum
+* **Country Cap:** 25% maximum
 * **No synthetic smoothing or interpolation**
 
 ---
@@ -494,15 +548,15 @@ To qualify for inclusion, securities must:
 
 **Entry into Index:**
 
-* Achieve sufficient liquidity ranking
-* Sustain trading consistency
-* Pass buffer thresholds
+* Meet hard liquidity and trading thresholds
+* Sustain data integrity and dividend coverage
+* Rank within the eligible investable set
 
 **Removal from Index:**
 
-* Drop below liquidity thresholds
-* Exhibit deteriorating trading activity
-* Fail to maintain ranking within buffer range
+* Fall below liquidity or trading thresholds
+* Lose required data integrity
+* Fail to maintain ranking within the buffer range
 
 This ensures **stability while remaining responsive to market conditions**.
 
@@ -521,7 +575,7 @@ The indices are designed to:
 
 ### Key Characteristics
 
-* Liquidity-first methodology
+* Institutional liquidity methodology
 * Multi-country diversification
 * FX-normalised performance (USD)
 * Rules-based, transparent construction
@@ -569,7 +623,7 @@ if DEBUG:
     st.write(os.listdir())
 
 with st.expander("📘 Methodology & Overview", expanded=False):
-    st.markdown(intro_text)
+    st.markdown(methodology_text)
 
 col1, col2 = st.columns([0.8, 9])
 
@@ -2156,7 +2210,20 @@ with overview_tab:
         fig.tight_layout()
         st.pyplot(fig, use_container_width=True)
 
-    st.markdown("### Africa Investability Map")
+    st.markdown(
+        """
+        ### 🌍 Africa Investability Map
+
+        This map shows which African markets meet institutional liquidity and trading standards under the AM100 methodology.
+
+        Markets are included based on:
+        - Minimum liquidity thresholds
+        - Trading consistency
+        - Data integrity
+
+        Exclusions reflect structural market constraints, not qualitative judgement.
+        """
+    )
 
     if investability_map is not None and not investability_map.empty:
         iso_map = {
@@ -2229,6 +2296,9 @@ with overview_tab:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown(
+            "*Note: Markets excluded from AM100 may still present attractive investment opportunities but currently fall below institutional liquidity and trading thresholds.*"
+        )
     else:
         st.info("Investability map will appear once output/investability_map.csv is available.")
 
