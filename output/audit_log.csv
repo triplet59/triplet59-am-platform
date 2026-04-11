@@ -1,57 +1,100 @@
 company,country,status,reason,flag_low_history,flag_illiquid,flag_missing_data,flag_outlier_return
 ABU DHABI ISLAMIC BANK EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 ABU QIR FERTILIZERS EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+ALEXANDRIA CONTAINERS AND GOODS (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 ALEXANDRIA MINERAL OILS EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+ARABIAN CEMENT COMPANY (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 BELTONE HOLDING EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 COMMERCIAL INTERNATIONAL BANK EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 EFG HOLDING EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+EL AHLI INVESTMENT AND DEVELOPMENT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 EAST DELTA FLOUR MILLS EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 EASTERN TOBACCO EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+EDITA FOOD INDUSTRIES COMPANY (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 EGYPT ALUMINIUM (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+EL SEWEDY ELECTRIC (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 EMAAR MISR EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+EXPORT DEVELOPMENT BANK OF (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 FAWRY EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 GB AUTO EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+HELIOPOLIS CO. FOR HOUSING & DEVELOPMENT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+IBNSINA PHARMA (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+JUHAYNA FOOD INDUSTRIES (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+MARIDIVE OIL SERVICE EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 ORASCOM INVESTMENT HOLDING EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 PALM HILLS DEVELOPMANT COMPANY EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+QATAR NATIONAL BANK ALAHLY (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 RAYA HOLDING EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
+SUEZ CANAL BANK (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 SIDI KERIR PETROCHEMICALS EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 TALAAT MOUSTAFA GROUP EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 TELECOM EGYPT (EGYPT),EGYPT,INCLUDED,passed filters,False,False,False,False
 ACCESS BANK GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 AGRICULTURAL DEVELOPMENT BANK GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+ALUWORKS LIMITED (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+CAMELOT GHANA LIMITED (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 CALBANK PLC GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+CLYDESTONE GHANA PLC (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+COCOA PROCESSING COMPANY LIMITED (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 ECOBANK GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 ECOBANK TRANSITIONAL INC GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+ENTERPRISE GROUP PLC (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+FAN MILK PLC (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 GCB BANK PLC GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+GOIL PLC (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+INTRAVENOUS INFUSIONS (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 MTN GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+MEGA AFRICAN CAPITAL LIMITED (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+REPUBLIC BANK (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 SIC INSURANCE (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
-SOCIÉTÉ GÉNÉRALE GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
+SOCIETE GENERALE GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 STANDARD CHARTERED BANK GHANA (GHANA),GHANA,INCLUDED,passed filters,False,False,False,False
 ABSA BANK KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+BAMBURI CEMENT PLC (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 BRITAM HOLDINGS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 BRITISH AMERICAN TOBACCO KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+CARBACID INVESTMENTS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+CENTUM INVESTMENT KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 CIC INSURANCE GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
-CO-OPERATIVE BANK KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+COOPERATIVE BANK KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 DIAMOND TRUST BANK KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+EVEREADY EAST AFRICA KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 EAST AFRICAN BREWERIES KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 EQUITY GROUP HOLDINGS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
-I&M GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+HF GROUP (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+HOME AFRIKA KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+IM GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 JUBILEE HOLDINGS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 KCB GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+KENYA PIPELINE COMPANY KENYA (KENYA),KENYA,INCLUDED,passed filters,True,True,False,False
 KENYA AIRWAYS (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 KENYA ELECTRICITY GENERATING CO (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 KENYA POWER (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+KENYA REINSURANCE CORPORATION LIMITED (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+LIBERTY KENYA HOLDINGS (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+LONGHORN KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+NAIROBI BUSINESS VENTURES KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+NAIROBI SECURITIES EXCHANGE KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+NATION MEDIA GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 NCBA GROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+SASINI KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+SCANGROUP KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 SAFARICOM KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 STANBIC HOLDINGS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 STANDARD CHARTERED BANK KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
 TOTALENERGIES MARKETING KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+UCHUMI SUPERMARKETS KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+WILLIAMSON TEA KENYA (KENYA),KENYA,INCLUDED,passed filters,False,False,False,False
+AIRTEL MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
+BLANTYRE HOTELS MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 FDH BANK MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 FMB CAPITAL HOLDINGS MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
+ICON PROPERTIES MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 NBS BANK MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 NATIONAL BANK OF MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 NICO HOLDINGS MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 STANDARD BANK MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
+TELEKOM NETWORKS MALAWI (MALAWI),MALAWI,INCLUDED,passed filters,False,False,False,False
 ASCENCIA MAURITIUS (MAURITIUS),MAURITIUS,INCLUDED,passed filters,False,False,False,False
 CEIL MAURITIUS (MAURITIUS),MAURITIUS,INCLUDED,passed filters,False,False,False,False
 CIM FINANCIAL SERVICES MAURITIUS (MAURITIUS),MAURITIUS,INCLUDED,passed filters,False,False,False,False
@@ -69,11 +112,13 @@ BANQUE CENTRALE POPULAIRE MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,Fals
 CIH BANK (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 CIMENTS DU MAROC MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 COSUMAR MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
+DOUJA PROMOTION GROUPE ADDOHA SA (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 LAFARGEHOLCIM MAROC MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 MANAGEM MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 MAROC TELECOM MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 MARSA MAROC MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
 TAQA MOROCCO (MOROCCO),MOROCCO,INCLUDED,passed filters,False,False,False,False
+CAPRICORN INVESTMENT (NAMIBIA),NAMIBIA,INCLUDED,passed filters,False,True,False,False
 CAPRICORN INVESTMENT (NAMIBIA),NAMIBIA,INCLUDED,passed filters,False,True,False,False
 CORONATION (NAMIBIA),NAMIBIA,INCLUDED,passed filters,False,False,False,False
 LETSHEGO HOLDINGS (NAMIBIA),NAMIBIA,INCLUDED,passed filters,False,True,False,False
@@ -110,7 +155,7 @@ JULIUS BERGER NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,Fals
 LAFARGE AFRICA NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
 MTN NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
 NASCON ALLIED INDUSTRIES NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
-NESTLÉ NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
+NESTLE NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
 NIGERIAN BREWERIES (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
 OANDO PLC NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
 OKOMU OIL PALM NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,False
@@ -130,50 +175,66 @@ ZENITH BANK NIGERIA (NIGERIA),NIGERIA,INCLUDED,passed filters,False,False,False,
 BANK OF KIGALI RWANDA (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
 BRALIRWA RWANDA (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
 CIMERWA RWANDA (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
-I&M BANK RWANDA (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
-MTN RWANDACELL (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
+IM BANK (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
+MTN RWANDA (RWANDA),RWANDA,INCLUDED,passed filters,False,False,False,False
 BANK OF AFRICA SENEGAL (SENEGAL),SENEGAL,INCLUDED,passed filters,False,False,False,False
 SONATEL SENEGAL (SENEGAL),SENEGAL,INCLUDED,passed filters,False,False,False,False
 TOTALENERGIES MARKETING SENEGAL (SENEGAL),SENEGAL,INCLUDED,passed filters,False,False,False,False
+AECI (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 ABSA (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 AFRICAN RAINBOW MINERALS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 ANGLO AMERICAN (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 ANGLOGOLD ASHANTI ADR (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+ARCELORMITTAL SOUTH AFRICA LIMITED (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 ASPEN PHARMACARE HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 AVI (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 BHP (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 BID CORP (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+BID CORPORATION (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 BIDVEST (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 BLUE LABEL TELECOMS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 BRITISH AMERICAN TOBACCO (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 CAPITEC BANK (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+CHOPPIES ENTERPRISES LIMITED (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 CLICKS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
-DIS-CHEM PHARMACIES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+DISCHEM PHARMACIES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 DISCOVERY HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 EXXARO RESOURCES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 FIRSTRAND (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+FORTRESS REIT LTD (SOUTH AFRICA),SOUTH_AFRICA,EXCLUDED,price is 0 or NaN in last 90 days,False,True,,
 FOSCHINI (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 GLENCORE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 GOLD FIELDS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 GRINDROD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+GROWTHPOINT PROPERTIES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+HYPROP INVESTMENTS LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 HARMONY GOLD MINING COMPANY (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+HULAMIN LIMITED (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 IMPALA PLATINUM HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 INVESTEC (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+KAP LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 KUMBA IRON ORE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 LIFE HEALTHCARE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 MTN GROUP (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 MONDI (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+MOTUS HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 MR PRICE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 NASPERS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+NEDBANK LIMITED (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+NETCARE LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 NINETY ONE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 NORTHAM PLATINUM HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+OMNIA HOLDINGS LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 OUTSURANCE (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 OLD MUTUAL (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 PPC (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 PSG KONSULT (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+PEPKOR HOLDINGS LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+PICK N PAY STORES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 PROSUS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 QUILTER (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 RAUBEX (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+REDEFINE PROPERTIES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 REINET INVEST (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 REMGRO (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 SPAR (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
@@ -182,51 +243,74 @@ SANTAM (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,Fal
 SHOPRITE HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 SIBANYE STILLWATER (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 STANDARD BANK GROUP (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+SUN INTERNATIONAL LTD (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+THUNGELA RESOURSES (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 TIGER BRANDS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+TRANSPACO (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 TRUWORTHS INT (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+TSOGO SUN GAMING (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 VODACOM (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 WILSON BAYLY HOLMES OVCON (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
 WOOLWORTHS HOLDINGS (SOUTH AFRICA),SOUTH_AFRICA,INCLUDED,passed filters,False,False,False,False
+AFRIPRISE INVESTMENT TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 CRDB BANK PLC TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 DCB COMMERCIAL BANK PLC TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 DAR ES SALAAM STOCK EXCHANGE PLC (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+KCB GROUP TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+MAENDELEO BANK TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+MKOMBOZI COMMERCIAL BANK TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+MUCOBA BANK TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+MWALIMU COMMERCIAL BANK TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 NMB BANK TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 NATIONAL INVESTMENT COMPANY TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+PRECISION AIR SERVICES TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+SWISSPORT TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+TANZANIA TEA PACKERS (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+TOL GASES TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 TANGA CEMENT TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 TANZANIA BREWERIES LTD (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 TANZANIA CIGARETTE COMPANY (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 TANZANIA PORTLAND CEMENT (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
+VODACOM TANZANIA (TANZANIA),TANZANIA,INCLUDED,passed filters,False,False,False,False
 ORAGROUP TOGO (TOGO),TOGO,INCLUDED,passed filters,False,False,False,False
 AMEN BANK TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 ATTIJARI BANK TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 BIAT TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 BANQUE NATIONALE AGRICOLE TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 BANQUE DE TUNISIE TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
-DÉLICE HOLDING TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
+DELICE HOLDING TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 ONE TECH HOLDING TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 POULINA GROUP HOLDING TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
-SOCIÉTÉ FRIGORIFIQUE ET BRASSERIE DE TUNIS TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
+SOCIETE FRIGORIFIQUE ET BRASSERIE DE TUNIS TUNISIA (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
+SOCIETE DE FABRICATION DES BOISSONS DE TUNISIE SOCIETE ANONYME (TUNISIA),TUNISIA,INCLUDED,passed filters,False,False,False,False
 AIRTEL UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
+BANK OF BARODA UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
 BRITISH AMERICAN TOBACCO UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
 CENTUM INVESTMENT UG (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
 EAST AFRICAN BREWERIES UG (UGANDA),UGANDA,EXCLUDED,derived volume invalid,,,,
 JUBILEE HOLDINGS UG (UGANDA),UGANDA,EXCLUDED,derived volume invalid,,,,
 MTN UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
 STANBIC BANK UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
-AECI MINING EXPLOSIVES ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+UMEME UGANDA (UGANDA),UGANDA,INCLUDED,passed filters,False,False,False,False
 AIRTEL NETWORKS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 BRITISH AMERICAN TOBACCO ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
-CEC AFRICA INVESTMENTS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
-CHILANGA CEMENT ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+CEC AFRICA INVESTMENT ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 COPPERBELT ENERGY CORP ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+CHILANGA CEMENT ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+DOT COM ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,True,False,False,False
+KLAPTON RE REAL ESTATE ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,True,True,False,False
 MADISON FINANCIAL SERVICES (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 PUMA ENERGY ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+REAL ESTATE INVESTMENTS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+SHOPRITE HOLDINGS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 STANDARD CHARTERED BANK ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
-ZCCM INVESTMENTS HOLDINGS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
-ZAMBEEF PRODUCTS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
-ZAMBIA NATIONAL COMMERCIAL BANK (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+ZAMBEEF PRODUCTS (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+ZAMBIA BATA SHOE (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 ZAMBIA SUGAR (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
 ZAMBIAN BREWERIES (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+ZCCM INVESTMENTS HOLDINGS ZAMBIA (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+ZAMBIA NATIONAL COMMERCIAL BANK (ZAMBIA),ZAMBIA,INCLUDED,passed filters,False,False,False,False
+DELTA CORPORATION LIMITED (ZIMBABWE),ZIMBABWE,INCLUDED,passed filters,False,False,False,False
 FIRST CAPITAL BANK (ZIMBABWE),ZIMBABWE,INCLUDED,passed filters,False,False,False,False
 HIPPO VALLEY ESTATES (ZIMBABWE),ZIMBABWE,INCLUDED,passed filters,False,False,False,False
 INNSCOR AFRICA (ZIMBABWE),ZIMBABWE,INCLUDED,passed filters,False,False,False,False

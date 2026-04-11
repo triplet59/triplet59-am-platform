@@ -1,0 +1,51 @@
+Company,HasPriceData,Status,Dividend_Status,Materiality,Action,ActionRequired,DividendEvents,WorkbookHeader,HasDividendSeries,LatestMaxWeight,BestLiquidityRank,InAM100
+AECI (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.01017662386592698,139.0,False
+AGRICULTURAL DEVELOPMENT BANK GHANA (GHANA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+ALUWORKS LIMITED (GHANA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+ARCELORMITTAL SOUTH AFRICA LIMITED (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.02516093768438265,102.0,False
+CEC AFRICA INVESTMENT ZAMBIA (ZAMBIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+CLYDESTONE (GHANA) PLC (GHANA),False,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,NONE,0,,True,,,False
+CLYDESTONE GHANA PLC (GHANA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+COCOA PROCESSING COMPANY LIMITED (GHANA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+COOPERATIVE BANK KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.01039525856140681,140.0,False
+DCB COMMERCIAL BANK PLC TANZANIA (TANZANIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.003988019522415014,179.0,False
+DISCHEM PHARMACIES (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.008671318465990589,148.0,False
+DOT COM ZAMBIA (ZAMBIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+DOUJA PROMOTION GROUPE ADDOHA SA (MOROCCO),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.004077481885027093,177.0,False
+EL AHLI INVESTMENT AND DEVELOPMENT (EGYPT),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.0066456242295384,160.0,False
+HOME AFRIKA KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+HYPROP INVESTMENTS LTD (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.01506839046861874,124.0,False
+IM BANK (RWANDA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+IM GROUP KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.002174450198376969,194.0,False
+KAP LTD (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.005150710176357346,25.0,True
+KAVANGO RESOURCES (ZIMBABWE),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+KENYA AIRWAYS (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+KENYA PIPELINE COMPANY KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+KLAPTON RE REAL ESTATE ZAMBIA (ZAMBIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+LETSHEGO HOLDINGS (NAMIBIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+MARIDIVE OIL SERVICE EGYPT (EGYPT),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+MEGA AFRICAN CAPITAL LIMITED (GHANA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+MOTUS HOLDINGS (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.01877141100478323,113.0,False
+MTN RWANDA (RWANDA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+MUCOBA BANK TANZANIA (TANZANIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+MWALIMU COMMERCIAL BANK TANZANIA (TANZANIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+NAIROBI BUSINESS VENTURES KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+NEDBANK LIMITED (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.004638774064762395,28.0,True
+NETCARE LTD (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.01544609964744023,121.0,False
+OMNIA HOLDINGS LTD (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.006078457263423175,161.0,False
+PFUMA REIT (ZIMBABWE),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+PICK N PAY STORES (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.0008386927252682356,93.0,True
+PRECISION AIR SERVICES TANZANIA (TANZANIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+STANDARD CHARTERED BANK ZAMBIA (ZAMBIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+STARAFRICACORPORATION (ZIMBABWE),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+SUN INTERNATIONAL LTD (SOUTH AFRICA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,0.00471846793263575,169.0,False
+TANZANIA TEA PACKERS (TANZANIA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+UCHUMI SUPERMARKETS KENYA (KENYA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+UMEME UGANDA (UGANDA),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,False,,,False
+ZIMBABWE STOCK EXCHANGE HOLDINGS (ZIMBABWE),True,Missing Source,MISSING_SOURCE_ASSUMED_ZERO,NON_MATERIAL,Assume zero; no mapped header or dividend file,SOURCE_DIVIDENDS,0,,True,,,False
+BELTONE HOLDING EGYPT (EGYPT),True,Zero Dividend,ZERO_CONFIRMED,MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/egypt/BELTONE HOLDING EGYPT.csv,SOURCE_DIVIDENDS,0,BELTONE HOLDING EGYPT (EGYPT),True,0.03495498333887967,41.0,True
+EMAAR MISR EGYPT (EGYPT),True,Zero Dividend,ZERO_CONFIRMED,MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/egypt/EMAAR MISR EGYPT.csv,SOURCE_DIVIDENDS,0,EMAAR MISR EGYPT (EGYPT),True,0.02515375890773567,104.0,False
+FAWRY EGYPT (EGYPT),True,Zero Dividend,ZERO_CONFIRMED,MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/egypt/FAWRY EGYPT.csv,SOURCE_DIVIDENDS,0,FAWRY EGYPT (EGYPT),True,0.01450727651325905,71.0,True
+OANDO PLC NIGERIA (NIGERIA),True,Zero Dividend,ZERO_CONFIRMED,MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/nigeria/OANDO PLC NIGERIA.csv,SOURCE_DIVIDENDS,0,OANDO PLC NIGERIA (NIGERIA),True,0.002586890125590396,67.0,True
+SUEZ CANAL BANK (EGYPT),True,Zero Dividend,ZERO_CONFIRMED,NON_MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/egypt/SUEZ CANAL BANK.csv,SOURCE_DIVIDENDS,0,,True,,,False
+ZAMBEEF PRODUCTS (ZAMBIA),True,Zero Dividend,ZERO_CONFIRMED,NON_MATERIAL,Zero file ensured: /Users/derrythornalley/AM100_DATA/data/dividends/zambia/ZAMBEEF PRODUCTS.csv,SOURCE_DIVIDENDS,0,,True,,,False

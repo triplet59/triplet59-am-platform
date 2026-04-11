@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -27,8 +28,80 @@ REPORT_FILE = "output/index_report.txt"
 RETURN_VALIDATION_FILE = "output/return_validation_report.csv"
 DIVIDEND_MATRIX_FILE = "output/dividend_matrix.csv"
 DIVIDEND_CROSSCHECK_FILE = "output/dividend_crosscheck_report.csv"
+DIVIDEND_RESOLUTION_FILE = "output/dividend_resolution.csv"
 
 BASE_VALUE = 1000.0
+LEGACY_COMPANY_ALIASES = {
+    "ZAMBEEF PRODUCTS ZAMBIA (ZAMBIA)": "ZAMBEEF PRODUCTS (ZAMBIA)",
+    "CO-OPERATIVE BANK KENYA (KENYA)": "COOPERATIVE BANK KENYA (KENYA)",
+    "NESTLÉ NIGERIA (NIGERIA)": "NESTLE NIGERIA (NIGERIA)",
+    "CENTUM INVESTMENT (KENYA) (KENYA)": "CENTUM INVESTMENT KENYA (KENYA)",
+    "DOUJA PROMOTION GROUPE ADDOHA S.A. (MOROCCO)": "DOUJA PROMOTION GROUPE ADDOHA SA (MOROCCO)",
+    "DIS-CHEM PHARMACIES (SOUTH AFRICA)": "DISCHEM PHARMACIES (SOUTH AFRICA)",
+    "NATION MEDIA GROUP (KENYA) (KENYA)": "NATION MEDIA GROUP KENYA (KENYA)",
+    "REDEFINE PROPERTIES SOUTH AFRICA (SOUTH AFRICA)": "REDEFINE PROPERTIES (SOUTH AFRICA)",
+    "PPC SOUTH AFRICA (SOUTH AFRICA)": "PPC (SOUTH AFRICA)",
+    "REINET INVEST SOUTH AFRICA (SOUTH AFRICA)": "REINET INVEST (SOUTH AFRICA)",
+    "NASPERS SOUTH AFRICA (SOUTH AFRICA)": "NASPERS (SOUTH AFRICA)",
+    "BLUE LABEL TELECOMS SOUTH AFRICA (SOUTH AFRICA)": "BLUE LABEL TELECOMS (SOUTH AFRICA)",
+    "MTN GROUP SOUTH AFRICA (SOUTH AFRICA)": "MTN GROUP (SOUTH AFRICA)",
+    "GRINDROD SOUTH AFRICA (SOUTH AFRICA)": "GRINDROD (SOUTH AFRICA)",
+    "STANDARD BANK GROUP SOUTH AFRICA (SOUTH AFRICA)": "STANDARD BANK GROUP (SOUTH AFRICA)",
+    "FIRSTRAND SOUTH AFRICA (SOUTH AFRICA)": "FIRSTRAND (SOUTH AFRICA)",
+    "BRITISH AMERICAN TOBACCO SOUTH AFRICA (SOUTH AFRICA)": "BRITISH AMERICAN TOBACCO (SOUTH AFRICA)",
+    "SHOPRITE HOLDINGS SOUTH AFRICA (SOUTH AFRICA)": "SHOPRITE HOLDINGS (SOUTH AFRICA)",
+    "ANGLO AMERICAN SOUTH AFRICA (SOUTH AFRICA)": "ANGLO AMERICAN (SOUTH AFRICA)",
+    "WOOLWORTHS HOLDINGS SOUTH AFRICA (SOUTH AFRICA)": "WOOLWORTHS HOLDINGS (SOUTH AFRICA)",
+    "ANGLOGOLD ASHANTI ADR SOUTH AFRICA (SOUTH AFRICA)": "ANGLOGOLD ASHANTI ADR (SOUTH AFRICA)",
+    "ABSA SOUTH AFRICA (SOUTH AFRICA)": "ABSA (SOUTH AFRICA)",
+    "SANLAM SOUTH AFRICA (SOUTH AFRICA)": "SANLAM (SOUTH AFRICA)",
+    "BIDVEST SOUTH AFRICA (SOUTH AFRICA)": "BIDVEST (SOUTH AFRICA)",
+    "VODACOM SOUTH AFRICA (SOUTH AFRICA)": "VODACOM (SOUTH AFRICA)",
+    "KCB GROUP (TANZANIA) (TANZANIA)": "KCB GROUP TANZANIA (TANZANIA)",
+    "AFRIPRISE INVESTMENT (TANZANIA) (TANZANIA)": "AFRIPRISE INVESTMENT TANZANIA (TANZANIA)",
+    "NAIROBI SECURITIES EXCHANGE (KENYA) (KENYA)": "NAIROBI SECURITIES EXCHANGE KENYA (KENYA)",
+    "BANK OF BARODA (UGANDA) (UGANDA)": "BANK OF BARODA UGANDA (UGANDA)",
+    "CARBACID INVESTMENTS (KENYA) (KENYA)": "CARBACID INVESTMENTS KENYA (KENYA)",
+    "DÉLICE HOLDING TUNISIA (TUNISIA)": "DELICE HOLDING TUNISIA (TUNISIA)",
+    "HOME AFRIKA (KENYA) (KENYA)": "HOME AFRIKA KENYA (KENYA)",
+    "I&M BANK RWANDA (RWANDA)": "IM BANK (RWANDA)",
+    "I&M GROUP KENYA (KENYA)": "IM GROUP KENYA (KENYA)",
+    "MAENDELEO BANK (TANZANIA) (TANZANIA)": "MAENDELEO BANK TANZANIA (TANZANIA)",
+    "MARIDIVE & OIL SERVICE (EGYPT) (EGYPT)": "MARIDIVE OIL SERVICE EGYPT (EGYPT)",
+    "MKOMBOZI COMMERCIAL BANK (TANZANIA) (TANZANIA)": "MKOMBOZI COMMERCIAL BANK TANZANIA (TANZANIA)",
+    "MTN RWANDACELL (RWANDA)": "MTN RWANDA (RWANDA)",
+    "MWALIMU COMMERCIAL BANK (TANZANIA) (TANZANIA)": "MWALIMU COMMERCIAL BANK TANZANIA (TANZANIA)",
+    "NAIROBI BUSINESS VENTURES (KENYA) (KENYA)": "NAIROBI BUSINESS VENTURES KENYA (KENYA)",
+    "SASINI (KENYA) (KENYA)": "SASINI KENYA (KENYA)",
+    "SCANGROUP (KENYA) (KENYA)": "SCANGROUP KENYA (KENYA)",
+    "SOCIÉTÉ DE FABRICATION DES BOISSONS DE TUNISIE SOCIÉTÉ ANONYME (TUNISIA)": "SOCIETE DE FABRICATION DES BOISSONS DE TUNISIE SOCIETE ANONYME (TUNISIA)",
+    "SOCIÉTÉ FRIGORIFIQUE ET BRASSERIE DE TUNIS TUNISIA (TUNISIA)": "SOCIETE FRIGORIFIQUE ET BRASSERIE DE TUNIS TUNISIA (TUNISIA)",
+    "TOL GASES (TANZANIA) (TANZANIA)": "TOL GASES TANZANIA (TANZANIA)",
+    "UCHUMI SUPERMARKETS (KENYA) (KENYA)": "UCHUMI SUPERMARKETS KENYA (KENYA)",
+}
+
+
+def normalize_history_name(name):
+    name = str(name).upper()
+    name = name.replace("-", "")
+    name = name.replace(".", "")
+    name = name.replace("É", "E")
+    name = re.sub(r"\s+", " ", name)
+    return name.strip()
+
+
+def clean_history_name(name):
+    name = str(name).strip()
+    name = re.sub(r"\s+", " ", name)
+
+    # Collapse accidental duplicated country tokens without changing identity.
+    # Example: "ABSA BANK KENYA KENYA (KENYA)" -> "ABSA BANK KENYA (KENYA)"
+    match = re.search(r"\(([^)]+)\)\s*$", name)
+    if match:
+        country = re.escape(match.group(1))
+        name = re.sub(rf"\b({country})\s+\1(?=\s*\({country}\)\s*$)", r"\1", name)
+
+    return name.strip()
 
 
 def normalize_index(index_df):
@@ -47,26 +120,41 @@ def build_dividend_crosscheck(prices, dividends):
     dividend_companies = set(dividends.keys())
     all_companies = sorted(price_companies | dividend_companies)
 
+    resolution = {}
+    if os.path.exists(DIVIDEND_RESOLUTION_FILE):
+        resolution_df = pd.read_csv(DIVIDEND_RESOLUTION_FILE)
+        resolution = resolution_df.set_index("Company").to_dict("index")
+
     records = []
     for company in all_companies:
         has_price = company in price_companies
         has_dividend = company in dividend_companies
         dividend_events = len(dividends.get(company, []))
+        resolution_row = resolution.get(company, {})
+        resolution_status = resolution_row.get("Status")
+        if has_price and resolution_status in {"Zero Dividend", "Mapping Required", "Missing Source"}:
+            status = resolution_status
+        else:
+            status = (
+                "OK"
+                if has_price and has_dividend
+                else "Missing Dividend"
+                if has_price and not has_dividend
+                else "Missing Price"
+                if has_dividend and not has_price
+                else "Missing Both"
+            )
         records.append(
             {
                 "Company": company,
                 "HasPriceSeries": has_price,
                 "HasDividendSeries": has_dividend,
                 "DividendEvents": dividend_events,
-                "Status": (
-                    "OK"
-                    if has_price and has_dividend
-                    else "Missing Dividend"
-                    if has_price and not has_dividend
-                    else "Missing Price"
-                    if has_dividend and not has_price
-                    else "Missing Both"
-                ),
+                "Status": status,
+                "Dividend_Status": resolution_row.get("Dividend_Status"),
+                "Materiality": resolution_row.get("Materiality"),
+                "ResolutionAction": resolution_row.get("Action"),
+                "WorkbookHeader": resolution_row.get("WorkbookHeader"),
             }
         )
 
@@ -78,7 +166,20 @@ def validate_dividend(price_series, dividend_series):
     return ratio.max() < 0.5
 
 
+def sanitize_dividend_series(price_series, dividend_series):
+    for scale in (1.0, 100.0, 1000.0, 10000.0):
+        candidate = dividend_series / scale
+        if validate_dividend(price_series, candidate):
+            return candidate, scale
+    return None, None
+
+
 def build_total_return_index(prices, history, dividends):
+    resolution = {}
+    if os.path.exists(DIVIDEND_RESOLUTION_FILE):
+        resolution_df = pd.read_csv(DIVIDEND_RESOLUTION_FILE)
+        resolution = resolution_df.set_index("Company").to_dict("index")
+
     rebalance_dates = sorted(history["Date"].unique())
     index_levels = []
     current_index = BASE_VALUE
@@ -99,13 +200,28 @@ def build_total_return_index(prices, history, dividends):
         segment_returns = []
 
         for _, row in weights_df.iterrows():
-            company = row["Company"]
+            company = clean_history_name(row["Company"])
+            company = LEGACY_COMPANY_ALIASES.get(company, company)
             weight = row["Weight"]
 
             if pd.isna(weight) or weight <= 0:
                 continue
 
             price_col = f"{company} Price"
+            if price_col not in period_prices.columns:
+                normalized_company = normalize_history_name(company)
+                matches = [
+                    col[:-6]
+                    for col in period_prices.columns
+                    if col.endswith(" Price")
+                    and normalize_history_name(col[:-6]) == normalized_company
+                ]
+                if len(matches) == 1:
+                    matched_company = matches[0]
+                    company = matched_company
+                    price_col = f"{company} Price"
+                elif len(matches) > 1:
+                    print(f"AMBIGUOUS MATCH: {company} -> {matches}")
             assert (
                 price_col in period_prices.columns
             ), f"Missing price column for {company}: expected '{price_col}'"
@@ -117,15 +233,20 @@ def build_total_return_index(prices, history, dividends):
             series = series.sort_values("Date").copy()
             series["Dividend"] = 0.0
 
-            if company not in dividends:
+            resolution_row = resolution.get(company, {})
+            resolution_status = resolution_row.get("Status")
+            if company not in dividends and resolution_status not in {"Zero Dividend", "Missing Source"}:
                 print(f"Missing dividend series: {company}")
 
             div_series = dividends.get(company)
             if div_series is not None:
                 aligned_dividends = div_series.reindex(series["Date"]).fillna(0.0)
                 price_series = series.set_index("Date")[price_col]
-                if validate_dividend(price_series, aligned_dividends):
-                    series["Dividend"] = aligned_dividends.to_numpy()
+                sanitized_dividends, scale = sanitize_dividend_series(price_series, aligned_dividends)
+                if sanitized_dividends is not None:
+                    if scale != 1.0:
+                        print(f"Scaled dividend series for {company} by 1/{int(scale)}")
+                    series["Dividend"] = sanitized_dividends.to_numpy()
                 else:
                     print(f"Invalid dividend series for {company}: dividend/price ratio exceeds 50%")
 

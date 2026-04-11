@@ -1,6 +1,7 @@
-import pandas as pd
+import os
+
 import numpy as np
-from liquidity_tools import compute_liquidity
+import pandas as pd
 
 MASTER_FILE = "output/master.xlsx"
 OUTPUT_FILE = "output/AM100_history.xlsx"
@@ -20,13 +21,13 @@ UNIVERSE_RANKED_FILE = "output/am_universe_ranked.csv"
 REBALANCE_AUDIT_PATTERN = "output/rebalance_audit_{yyyymm}.csv"
 REPORT_FILE = "output/am100_report.txt"
 COUNTRY_EXPOSURE_FILE = "output/country_exposure.csv"
+DIVIDEND_RESOLUTION_FILE = "output/dividend_resolution.csv"
 
-MAX_STOCK_WEIGHT = 0.10
-MAX_COUNTRY_WEIGHT = 0.40
+MAX_STOCK_WEIGHT = 0.05
+MAX_COUNTRY_WEIGHT = 0.25
 MAX_PER_COUNTRY = int(100 * MAX_COUNTRY_WEIGHT)
-MIN_DOLLAR_LIQUIDITY = 5000
-MIN_PARTICIPATION = 0.30
-MAX_LOW_LIQ_EXPOSURE = 0.25
+MIN_DOLLAR_LIQUIDITY = 1_000_000
+MIN_TRADING_DAYS_90D = 81
 TARGET_N = 100
 ENTRY_BUFFER = 100
 EXIT_BUFFER = 120
@@ -34,6 +35,8 @@ MAX_FALLBACK_RANK = 80
 RELAXED_FALLBACK_RANK = 90
 MAX_TURNOVER = 0.20
 PROTECTED_RANK = 60
+REBALANCE_MONTHS = {3, 6, 9, 12}
+MIN_HOLD_MONTHS = 3
 
 REGIME_MAP = {
     "SOUTH AFRICA": "HIGH",
@@ -56,6 +59,7 @@ REGIME_WEIGHTS = {
     "MID": 1.0,
     "LOW": 1.0,
 }
+ELIGIBLE_DIVIDEND_STATUSES = {"OK", "ZERO_CONFIRMED"}
 
 def extract_country(company_name):
     return company_name.rsplit("(", 1)[-1].rstrip(")")
@@ -71,6 +75,17 @@ def resolve_price_volume_columns(df, company):
     if standard_price in df.columns and volume_col in df.columns:
         return standard_price, volume_col
     return None, None
+
+
+def load_dividend_gate():
+    if not os.path.exists(DIVIDEND_RESOLUTION_FILE):
+        print(f"WARNING: dividend resolution file missing: {DIVIDEND_RESOLUTION_FILE}")
+        return {}
+
+    resolution = pd.read_csv(DIVIDEND_RESOLUTION_FILE)
+    resolution["Company"] = resolution["Company"].astype(str).str.strip()
+    resolution["Dividend_Status"] = resolution["Dividend_Status"].astype(str).str.strip()
+    return dict(zip(resolution["Company"], resolution["Dividend_Status"]))
 
 
 def build_capacity_usd_export(history_df):
@@ -109,6 +124,44 @@ def write_adv_capacity_files(capacity_df, adv_path, capacity_path):
 
 def assign_regime(country):
     return REGIME_MAP.get(country, "LOW")
+
+
+def build_month_ends(dates):
+    month_end_series = (
+        dates.drop_duplicates()
+        .sort_values()
+        .groupby([dates.dt.year, dates.dt.month])
+        .max()
+    )
+    return [pd.Timestamp(x) for x in month_end_series.tolist()]
+
+
+def build_rebalance_schedule(dates):
+    month_ends = build_month_ends(dates)
+    month_end_set = {pd.Timestamp(x) for x in month_ends}
+    schedule = []
+
+    for selection_date in month_ends:
+        if selection_date.month not in REBALANCE_MONTHS:
+            continue
+
+        implementation_date = pd.Timestamp(selection_date) + pd.offsets.MonthEnd(1)
+        implementation_date = pd.Timestamp(implementation_date)
+
+        if implementation_date not in month_end_set:
+            continue
+
+        schedule.append((pd.Timestamp(selection_date), implementation_date))
+
+    return schedule
+
+
+def minimum_hold_satisfied(entry_date, implementation_date):
+    if entry_date is None or pd.isna(entry_date):
+        return True
+    return pd.Timestamp(implementation_date) >= (
+        pd.Timestamp(entry_date) + pd.DateOffset(months=MIN_HOLD_MONTHS)
+    )
 
 
 def normalize_by_regime(df):
@@ -183,36 +236,15 @@ def apply_country_cap_iterative(portfolio, max_country_weight=MAX_COUNTRY_WEIGHT
 
 
 def apply_weight_constraints(portfolio):
-    total_liquidity = portfolio["Liquidity Score"].sum()
+    total_liquidity = portfolio["AvgDailyValue30dUSD"].sum()
 
     if total_liquidity == 0:
         return None
 
-    portfolio["Weight"] = portfolio["Liquidity Score"] / total_liquidity
+    portfolio["Weight"] = portfolio["AvgDailyValue30dUSD"] / total_liquidity
     portfolio["Country"] = portfolio["Company"].str.extract(r"\((.*?)\)")
     portfolio["Regime"] = portfolio["Country"].map(assign_regime)
     portfolio = apply_stock_cap(portfolio)
-    portfolio = apply_country_cap_iterative(portfolio)
-
-    for _ in range(10):
-        regime_weights = portfolio.groupby("Regime")["Weight"].sum()
-        low_liq_weight = regime_weights.get("LOW", 0.0)
-
-        if low_liq_weight <= MAX_LOW_LIQ_EXPOSURE + 1e-6:
-            break
-
-        excess = low_liq_weight - MAX_LOW_LIQ_EXPOSURE
-        low_mask = portfolio["Regime"] == "LOW"
-        non_low_mask = ~low_mask
-
-        portfolio.loc[low_mask, "Weight"] *= MAX_LOW_LIQ_EXPOSURE / low_liq_weight
-
-        non_low_total = portfolio.loc[non_low_mask, "Weight"].sum()
-        if non_low_total > 0:
-            portfolio.loc[non_low_mask, "Weight"] *= (1 + excess / non_low_total)
-
-        portfolio["Weight"] /= portfolio["Weight"].sum()
-
     portfolio = apply_country_cap_iterative(portfolio)
     portfolio["Weight"] /= portfolio["Weight"].sum()
     return portfolio
@@ -235,26 +267,20 @@ am300_history = []
 prev_portfolio = None
 latest_universe = None
 rebalance_audit_frames = []
+constituent_entry_dates = {}
+dividend_gate = load_dividend_gate()
 
 # ================================
-# MONTH-END REBALANCE DATES (FIXED)
+# QUARTER-END OBSERVATION / NEXT MONTH-END IMPLEMENTATION
 # ================================
-dates = df["Date"]
-
-month_ends = (
-    dates.drop_duplicates()
-         .sort_values()
-         .groupby([dates.dt.year, dates.dt.month])
-         .max()
-         .values
-)
+rebalance_schedule = build_rebalance_schedule(df["Date"])
 
 # ================================
 # MAIN LOOP
 # ================================
-for rebalance_date in month_ends:
+for selection_date, implementation_date in rebalance_schedule:
 
-    df_cut = df[df["Date"] <= rebalance_date]
+    df_cut = df[df["Date"] <= selection_date]
 
     records = []
 
@@ -267,112 +293,71 @@ for rebalance_date in month_ends:
         if price_col is None or volume_col is None:
             continue
 
-        price_series = df_cut[["Date", price_col]].dropna()
-
-        if len(price_series) < 150:
+        dividend_status = dividend_gate.get(company)
+        if dividend_status not in ELIGIBLE_DIVIDEND_STATUSES:
             continue
 
-        recent = price_series.tail(90)
-        trading_days = recent[price_col].notna().sum()
+        price_series = pd.to_numeric(df_cut[price_col], errors="coerce").where(lambda s: s.gt(0))
+        volume_series = pd.to_numeric(df_cut[volume_col], errors="coerce").where(lambda s: s.gt(0))
+        valid_obs = price_series.notna() & volume_series.notna()
 
-        if trading_days < 15:
+        if valid_obs.sum() < 150:
             continue
 
-        valid_prices = recent[price_col].dropna()
+        recent_window_start = pd.Timestamp(selection_date) - pd.offsets.BDay(89)
+        recent_mask = (df_cut["Date"] >= recent_window_start) & (df_cut["Date"] <= selection_date)
+        recent_valid_obs = valid_obs[recent_mask]
+        trading_days = int(recent_valid_obs.sum())
+
+        if trading_days < MIN_TRADING_DAYS_90D:
+            continue
+
+        valid_prices = price_series[recent_mask].dropna()
         if len(valid_prices) < 10:
             continue
 
-        latest_price = price_series[price_col].iloc[-1]
+        latest_price = price_series.dropna().iloc[-1]
+        traded_value_usd = (price_series * volume_series).dropna()
+        adv_usd_series = traded_value_usd.rolling(30, min_periods=30).mean()
+        avg_value_usd_30d = adv_usd_series.iloc[-1] if not adv_usd_series.empty else np.nan
 
-        merged = df_cut[[price_col, volume_col]].dropna().tail(30)
-
-        if len(merged) < 10:
+        if pd.isna(avg_value_usd_30d) or avg_value_usd_30d < MIN_DOLLAR_LIQUIDITY:
             continue
 
-        price = df_cut[price_col]
-        volume = df_cut[volume_col]
-        liquidity, participation, avg_value, trade_count, liquidity_diag = compute_liquidity(
-            price,
-            volume,
-            window=30,
-        )
-        liquidity_score = liquidity.dropna().iloc[-1] if liquidity.notna().any() else np.nan
-        participation_score = (
-            participation.dropna().iloc[-1] if participation.notna().any() else np.nan
-        )
-        avg_value_30d = avg_value.dropna().iloc[-1] if avg_value.notna().any() else np.nan
-        avg_value_usd_30d = avg_value_30d
-        trade_count_30 = trade_count.dropna().iloc[-1] if trade_count.notna().any() else np.nan
-
-        if pd.isna(liquidity_score) or liquidity_score <= 0:
-            continue
-
-        if liquidity_score < MIN_DOLLAR_LIQUIDITY:
-            continue
-
-        if pd.isna(participation_score) or participation_score < MIN_PARTICIPATION:
-            continue
+        trade_count_30 = min(len(traded_value_usd.tail(30)), 30) if not traded_value_usd.empty else np.nan
 
         records.append({
             "Company": company,
-            "Liquidity Score": liquidity_score,
+            "Dividend_Status": dividend_status,
+            "Liquidity Score": avg_value_usd_30d,
             "Price": latest_price,
             "Trading Days (90d)": trading_days,
-            "Participation": participation_score,
-            "AvgDailyValue30d": avg_value_30d,
+            "AvgDailyValue30d": avg_value_usd_30d,
             "AvgDailyValue30dUSD": avg_value_usd_30d,
             "InvestableCapacity20USD": (
                 avg_value_usd_30d * 0.20 if pd.notna(avg_value_usd_30d) else np.nan
             ),
             "TradeCount30": trade_count_30,
-            "StaleVolumeDays30d": liquidity_diag["stale_volume_days"],
-            "ClippedValueDays30d": liquidity_diag["clipped_value_days"],
-            "MedianTradedValueUSD": liquidity_diag["median_traded_value_usd"],
-            "TradedValueCapUSD": liquidity_diag["traded_value_cap_usd"],
+            "StaleVolumeDays30d": np.nan,
+            "ClippedValueDays30d": np.nan,
+            "MedianTradedValueUSD": np.nan,
+            "TradedValueCapUSD": np.nan,
         })
 
     if not records:
         continue
 
     universe = pd.DataFrame(records)
-    universe["Date"] = rebalance_date
+    universe["Date"] = implementation_date
+    universe["ObservationDate"] = selection_date
+    universe["ImplementationDate"] = implementation_date
     universe["Country"] = universe["Company"].str.extract(r"\((.*?)\)")
     universe["Regime"] = universe["Country"].map(REGIME_MAP)
     universe["Regime"] = universe["Regime"].fillna("LOW")
-    universe["RawLiquidity"] = universe["Liquidity Score"]
-    print("\n=== TRUE LIQUIDITY TOP 10 (PRE-NORMALIZATION) ===")
-    print(
-        universe[["Company", "RawLiquidity"]]
-        .sort_values("RawLiquidity", ascending=False)
-        .head(10)
-        .to_string(index=False)
-    )
-    universe = normalize_by_regime(universe)
-    print("\n=== POST-NORMALIZATION ===")
-    print(
-        universe[["Company", "NormLiquidity"]]
-        .sort_values("NormLiquidity", ascending=False)
-        .head(10)
-        .to_string(index=False)
-    )
-    universe["Liquidity Score"] = (
-        universe["RawLiquidity"] * universe["Regime"].map(REGIME_WEIGHTS)
-    )
-    unique_ratio = universe["Liquidity Score"].nunique() / len(universe)
-    print("\n=== UNIQUENESS CHECK ===")
-    print(f"Universe size: {len(universe)}")
-    print(f"Unique liquidity values: {universe['Liquidity Score'].nunique()}")
-    print(f"Ratio: {unique_ratio:.2f}")
-    assert unique_ratio > 0.8, "❌ Liquidity flattening detected"
-    print("\n=== FINAL LIQUIDITY SCORE (USED FOR RANKING) ===")
-    print(
-        universe[["Company", "Liquidity Score"]]
-        .sort_values("Liquidity Score", ascending=False)
-        .head(10)
-        .to_string(index=False)
-    )
-    universe = universe.sort_values("Liquidity Score", ascending=False)
-    universe["Rank"] = universe["Liquidity Score"].rank(ascending=False, method="first")
+    universe["RawLiquidity"] = universe["AvgDailyValue30dUSD"]
+    universe["Liquidity Score"] = universe["AvgDailyValue30dUSD"]
+    universe = universe.sort_values("AvgDailyValue30dUSD", ascending=False)
+    universe["Rank"] = universe["AvgDailyValue30dUSD"].rank(ascending=False, method="first")
     latest_universe = universe.copy()
 
     prev_constituents = set(prev_portfolio["Company"]) if prev_portfolio is not None else set()
@@ -380,26 +365,47 @@ for rebalance_date in month_ends:
         prev_portfolio is not None
         and abs(len(universe) - len(prev_constituents)) / max(len(prev_constituents), 1) > 0.30
     )
+    held_constituents = {
+        company
+        for company in prev_constituents
+        if not minimum_hold_satisfied(constituent_entry_dates.get(company), implementation_date)
+    }
 
     selected = []
+    selected_companies = set()
+
+    if held_constituents:
+        held_rows = (
+            universe[universe["Company"].isin(held_constituents)]
+            .sort_values("Rank")
+            .to_dict("records")
+        )
+        for row in held_rows:
+            selected.append(row)
+            selected_companies.add(row["Company"])
 
     for _, row in universe.sort_values("Rank").iterrows():
         company = row["Company"]
         rank = row["Rank"]
 
+        if company in selected_companies:
+            continue
+
         if company in prev_constituents:
             if rank <= EXIT_BUFFER:
                 selected.append(row)
+                selected_companies.add(company)
         else:
             if rank <= ENTRY_BUFFER:
                 selected.append(row)
+                selected_companies.add(company)
 
         if len(selected) == TARGET_N:
             break
 
     if len(selected) < TARGET_N:
-        selected_companies = [row["Company"] for row in selected]
-        remaining = universe[~universe["Company"].isin(selected_companies)]
+        selected_company_list = [row["Company"] for row in selected]
+        remaining = universe[~universe["Company"].isin(selected_company_list)]
         remaining = remaining[remaining["Rank"] <= MAX_FALLBACK_RANK].sort_values("Rank")
 
         for _, row in remaining.iterrows():
@@ -408,8 +414,8 @@ for rebalance_date in month_ends:
                 break
 
     if len(selected) < TARGET_N:
-        selected_companies = [row["Company"] for row in selected]
-        remaining = universe[~universe["Company"].isin(selected_companies)]
+        selected_company_list = [row["Company"] for row in selected]
+        remaining = universe[~universe["Company"].isin(selected_company_list)]
         remaining = remaining[remaining["Rank"] <= RELAXED_FALLBACK_RANK].sort_values("Rank")
 
         for _, row in remaining.iterrows():
@@ -428,7 +434,9 @@ for rebalance_date in month_ends:
     new_constituents = set(portfolio["Company"])
     overlap = prev_constituents & new_constituents
     turnover = 1 - len(overlap) / TARGET_N
-    print(f"{rebalance_date} turnover (pre-control): {turnover:.2%}")
+    print(
+        f"selection {selection_date:%Y-%m-%d} -> implementation {implementation_date:%Y-%m-%d} turnover (pre-control): {turnover:.2%}"
+    )
 
     skip_turnover_control = False
 
@@ -464,7 +472,9 @@ for rebalance_date in month_ends:
             turnover = 1 - len(overlap) / TARGET_N
 
         portfolio = universe[universe["Company"].isin(adjusted_constituents)].copy()
-        print(f"{rebalance_date} turnover (post-control): {turnover:.2%}")
+        print(
+            f"selection {selection_date:%Y-%m-%d} -> implementation {implementation_date:%Y-%m-%d} turnover (post-control): {turnover:.2%}"
+        )
 
     portfolio = apply_weight_constraints(portfolio)
 
@@ -474,22 +484,31 @@ for rebalance_date in month_ends:
     audit_df = universe.copy()
     selected_companies = set(portfolio["Company"])
     audit_df["Selected"] = audit_df["Company"].isin(selected_companies)
-    audit_df["RebalanceDate"] = rebalance_date
+    audit_df["ObservationDate"] = selection_date
+    audit_df["RebalanceDate"] = implementation_date
     rebalance_audit_frames.append(audit_df)
 
     portfolio = portfolio.drop_duplicates(subset=["Company"])
     portfolio["Weight"] /= portfolio["Weight"].sum()
-    portfolio["Date"] = rebalance_date
+    portfolio["ObservationDate"] = selection_date
+    portfolio["ImplementationDate"] = implementation_date
+    portfolio["Date"] = implementation_date
 
     if portfolio["Company"].duplicated().any():
-        raise ValueError(f"Duplicate companies detected on {rebalance_date}")
+        raise ValueError(f"Duplicate companies detected on {implementation_date}")
 
     if not np.isclose(portfolio["Weight"].sum(), 1.0):
-        raise ValueError(f"Weights do not sum to 1.0 on {rebalance_date}")
+        raise ValueError(f"Weights do not sum to 1.0 on {implementation_date}")
 
-    print(f"{rebalance_date} -> {len(portfolio)} companies | weight sum = {portfolio['Weight'].sum():.4f}")
+    print(
+        f"selection {selection_date:%Y-%m-%d} -> implementation {implementation_date:%Y-%m-%d} | {len(portfolio)} companies | weight sum = {portfolio['Weight'].sum():.4f}"
+    )
 
     results_all.append(portfolio)
+    current_entries = {}
+    for company in portfolio["Company"]:
+        current_entries[company] = constituent_entry_dates.get(company, implementation_date)
+    constituent_entry_dates = current_entries
     prev_portfolio = portfolio[["Company"]].copy()
 
     am200 = universe[(universe["Rank"] > 100) & (universe["Rank"] <= 200)].copy()
@@ -500,7 +519,9 @@ for rebalance_date in month_ends:
             am200_snapshot = am200.copy()
             am200_snapshot = am200_snapshot.drop_duplicates(subset=["Company"])
             am200_snapshot["Weight"] /= am200_snapshot["Weight"].sum()
-            am200_snapshot["Date"] = rebalance_date
+            am200_snapshot["ObservationDate"] = selection_date
+            am200_snapshot["ImplementationDate"] = implementation_date
+            am200_snapshot["Date"] = implementation_date
             am200_history.append(am200_snapshot)
 
             am300 = pd.concat([portfolio.copy(), am200.copy()], ignore_index=True)
@@ -511,7 +532,9 @@ for rebalance_date in month_ends:
                 am300_snapshot = am300.copy()
                 am300_snapshot = am300_snapshot.drop_duplicates(subset=["Company"])
                 am300_snapshot["Weight"] /= am300_snapshot["Weight"].sum()
-                am300_snapshot["Date"] = rebalance_date
+                am300_snapshot["ObservationDate"] = selection_date
+                am300_snapshot["ImplementationDate"] = implementation_date
+                am300_snapshot["Date"] = implementation_date
                 am300_history.append(am300_snapshot)
 
 if results_all:
@@ -530,6 +553,8 @@ if results_all:
             final_output = final_output.rename(columns={"Liquidity Score": "Liquidity"})
         preferred_cols = [
             "Date",
+            "ObservationDate",
+            "ImplementationDate",
             "Company",
             "Country",
             "Weight",
@@ -580,11 +605,16 @@ if results_all:
     if am200_history:
         am200_output = pd.concat(am200_history, ignore_index=True)
         am200_output = am200_output.drop_duplicates(subset=["Date", "Company"])
-        am200_output.to_excel(AM200_OUTPUT_FILE, index=False)
+    else:
+        am200_output = pd.DataFrame(columns=final_output.columns)
+    am200_output.to_excel(AM200_OUTPUT_FILE, index=False)
+    if not am200_output.empty:
         am200_capacity_usd = build_capacity_usd_export(am200_output)
-        write_adv_capacity_files(
-            am200_capacity_usd, AM200_ADV_USD_FILE, AM200_CAPACITY_USD_FILE
-        )
+    else:
+        am200_capacity_usd = pd.DataFrame(columns=["Date", "ADV_USD", "InvestableCapacityUSD"])
+    write_adv_capacity_files(
+        am200_capacity_usd, AM200_ADV_USD_FILE, AM200_CAPACITY_USD_FILE
+    )
     am100_capacity_usd = build_capacity_usd_export(final_output)
     write_adv_capacity_files(
         am100_capacity_usd, AM100_ADV_USD_FILE, AM100_CAPACITY_USD_FILE
@@ -592,12 +622,17 @@ if results_all:
     if am300_history:
         am300_output = pd.concat(am300_history, ignore_index=True)
         am300_output = am300_output.drop_duplicates(subset=["Date", "Company"])
-        am300_output.to_excel(AM300_OUTPUT_FILE, index=False)
+    else:
+        am300_output = pd.DataFrame(columns=final_output.columns)
+    am300_output.to_excel(AM300_OUTPUT_FILE, index=False)
+    if not am300_output.empty:
         am300_capacity = build_capacity_usd_export(am300_output)
-        am300_capacity.to_csv(AM300_CAPACITY_FILE, index=False)
-        write_adv_capacity_files(
-            am300_capacity, AM300_ADV_USD_FILE, AM300_CAPACITY_USD_FILE
-        )
+    else:
+        am300_capacity = pd.DataFrame(columns=["Date", "ADV_USD", "InvestableCapacityUSD"])
+    am300_capacity.to_csv(AM300_CAPACITY_FILE, index=False)
+    write_adv_capacity_files(
+        am300_capacity, AM300_ADV_USD_FILE, AM300_CAPACITY_USD_FILE
+    )
     country_exposure = (
         final_output.groupby(["Date", "Country"])["Weight"].sum().reset_index()
     )

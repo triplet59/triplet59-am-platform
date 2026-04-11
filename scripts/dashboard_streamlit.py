@@ -1448,9 +1448,18 @@ def load_capacity_usd_file(path, _version=None):
     return pd.read_csv(path, parse_dates=["Date"]).sort_values("Date")
 
 
+@st.cache_data
+def load_investability_map(_version=None):
+    path = "output/investability_map.csv"
+    if not os.path.exists(path):
+        return None
+    return pd.read_csv(path)
+
+
 am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
+investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
 
 am100_s, am100_r = prep(am100_df)
 am200_s, am200_r = prep(am200_df)
@@ -2147,61 +2156,81 @@ with overview_tab:
         fig.tight_layout()
         st.pyplot(fig, use_container_width=True)
 
-    st.markdown("### Country Exposure")
+    st.markdown("### Africa Investability Map")
 
-    heatmap_view = st.toggle("AM100 vs AM200", value=False)
+    if investability_map is not None and not investability_map.empty:
+        iso_map = {
+            "SOUTH AFRICA": "ZAF",
+            "EGYPT": "EGY",
+            "MOROCCO": "MAR",
+            "NIGERIA": "NGA",
+            "KENYA": "KEN",
+            "NAMIBIA": "NAM",
+            "ZIMBABWE": "ZWE",
+            "SENEGAL": "SEN",
+            "MAURITIUS": "MUS",
+            "UGANDA": "UGA",
+            "GHANA": "GHA",
+            "TANZANIA": "TZA",
+            "MALAWI": "MWI",
+            "ZAMBIA": "ZMB",
+            "NIGER": "NER",
+            "TOGO": "TGO",
+            "RWANDA": "RWA",
+            "TUNISIA": "TUN",
+        }
 
-    if heatmap_view:
-        country_df = am200_country.rename_axis("Country").reset_index(name="Weight")
+        map_df = investability_map.copy()
+        map_df["Country"] = map_df["Country"].astype(str).str.upper()
+        map_df["ISO"] = map_df["Country"].map(iso_map)
+        map_df = map_df.dropna(subset=["ISO"]).copy()
+        map_df["StatusColor"] = map_df["Inclusion Status"].map(
+            {"Included": 1, "Excluded": 0}
+        )
+        map_df["Tooltip"] = (
+            "Country: "
+            + map_df["Country"].str.title()
+            + "<br>Avg ADV: $"
+            + map_df["AvgADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
+            + "<br>Median ADV: $"
+            + map_df["MedianADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
+            + "<br>Avg Trading Days: "
+            + map_df["AvgTradingDays90d"].fillna(0).round(1).astype(str)
+            + "<br>Selected: "
+            + map_df["SelectedCount"].fillna(0).astype(int).astype(str)
+            + "<br>Status: "
+            + map_df["Inclusion Status"].astype(str)
+        )
+
+        fig = px.choropleth(
+            map_df,
+            locations="ISO",
+            color="StatusColor",
+            hover_name="Country",
+            hover_data={"StatusColor": False, "ISO": False},
+            color_continuous_scale=["#d62728", "#2ca02c"],
+            range_color=(0, 1),
+        )
+
+        fig.update_traces(hovertemplate=map_df["Tooltip"])
+        fig.update_layout(
+            coloraxis_showscale=False,
+            geo=dict(
+                scope="africa",
+                projection_type="natural earth",
+                showland=True,
+                landcolor="#0E1117",
+                bgcolor="#0E1117",
+            ),
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10),
+            margin=dict(l=0, r=0, t=0, b=0),
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
     else:
-        country_df = am100_country.rename_axis("Country").reset_index(name="Weight")
-
-    country_name_map = {
-        "NIGERIA": "Nigeria",
-        "SOUTH AFRICA": "South Africa",
-        "EGYPT": "Egypt",
-        "KENYA": "Kenya",
-        "NAMIBIA": "Namibia",
-        "MOROCCO": "Morocco",
-        "MAURITIUS": "Mauritius",
-        "GHANA": "Ghana",
-        "RWANDA": "Rwanda",
-        "SENEGAL": "Senegal",
-        "TOGO": "Togo",
-        "TANZANIA": "Tanzania",
-        "TUNISIA": "Tunisia",
-        "UGANDA": "Uganda",
-        "NIGER": "Niger",
-        "ZIMBABWE": "Zimbabwe",
-    }
-
-    country_df["Country"] = country_df["Country"].map(country_name_map).fillna(
-        country_df["Country"].str.title()
-    )
-
-    fig = px.choropleth(
-        country_df,
-        locations="Country",
-        locationmode="country names",
-        color="Weight",
-        color_continuous_scale="Viridis",
-    )
-
-    fig.update_layout(
-        geo=dict(
-            scope="africa",
-            projection_type="natural earth",
-            showland=True,
-            landcolor="#0E1117",
-            bgcolor="#0E1117",
-        ),
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10),
-        margin=dict(l=0, r=0, t=0, b=0),
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+        st.info("Investability map will appear once output/investability_map.csv is available.")
 
     st.markdown("---")
 

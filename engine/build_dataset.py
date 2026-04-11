@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.data_validation import build_master_validation_report, validate_company_frame
+from engine.fx_convert import convert_local_to_usd, get_currency_code
 
 BASE_DIR = "data"
 BASE_FILE = "output/master.xlsx"
@@ -50,7 +51,7 @@ COLUMN_MAP = {
     "price": ["Close", "Price", "Last", "Last Price", "Closing Price"],
     "volume": ["Volume", "Shares", "Shares Traded", "Qty"],
 }
-NAME_MAP = {
+ALIASES = {
     "BAT": "BRITISH AMERICAN TOBACCO",
     "ZANACO": "ZAMBIA NATIONAL COMMERCIAL BANK",
     "STANCHART": "STANDARD CHARTERED BANK",
@@ -58,6 +59,21 @@ NAME_MAP = {
     "IM BANK RWANDA": "I&M BANK",
     "MTN RWANDACELL RWANDA": "MTN RWANDACELL",
     "MTN RWANDACELL": "MTN RWANDA",
+    "MARIDIVE OIL SERVICES": "MARIDIVE OIL SERVICE EGYPT (EGYPT)",
+    "MARIDIVE OIL SERVICE": "MARIDIVE OIL SERVICE EGYPT (EGYPT)",
+    "HELIOPOLIS CO FOR HOUSING DEVELOPMENT": "HELIOPOLIS CO. FOR HOUSING & DEVELOPMENT (EGYPT)",
+    "NEDBANK GROUP LIMITED": "NEDBANK GROUP LTD (SOUTH AFRICA)",
+    "NETCARE LIMITED": "NETCARE LTD (SOUTH AFRICA)",
+    "FORTRESS REAL ESTATE INVESTMENTS LIMITED": "FORTRESS REIT LTD (SOUTH AFRICA)",
+    "HYPROP INVESTMENTS": "HYPROP INVESTMENTS LTD (SOUTH AFRICA)",
+    "KAP LIMITED": "KAP LTD (SOUTH AFRICA)",
+    "MOTUS HOLDINGS LTD": "MOTUS HOLDINGS LTD (SOUTH AFRICA)",
+    "OMNIA HOLDINGS": "OMNIA HOLDINGS LTD (SOUTH AFRICA)",
+    "SUN INTERNATIONAL": "SUN INTERNATIONAL LTD (SOUTH AFRICA)",
+    "PEPKOR HOLDINGS": "PEPKOR HOLDINGS LTD (SOUTH AFRICA)",
+    "PEPKOR HOLDINGS LTD": "PEPKOR HOLDINGS LTD (SOUTH AFRICA)",
+    "PICK N ALAHLI": "EL AHLI INVESTMENT AND DEVELOPMENT (EGYPT)",
+    "EL AHLI INVESTMENT AND DEVELOPMENT": "EL AHLI INVESTMENT AND DEVELOPMENT (EGYPT)",
 }
 
 def load_or_create_master():
@@ -76,6 +92,60 @@ def clean_company_name(name, country):
     name = name.upper().strip()
     name = " ".join(name.split())
     return f"{name} ({country.upper()})"
+
+
+def normalize(name):
+    name = str(name).upper().strip()
+    name = re.sub(r"[^A-Z0-9 ]", "", name)
+    name = re.sub(r"\s+", " ", name)
+    return name
+
+
+def canonicalize(name):
+    name = normalize(name)
+    return ALIASES.get(name, name)
+
+
+def convert_prices_to_usd_frame(data, country_name, company_name=""):
+    working = data.copy()
+    working["Date"] = pd.to_datetime(working["Date"], errors="coerce")
+    working["Price"] = pd.to_numeric(working["Price"], errors="coerce")
+
+    country_label = str(country_name).replace("_", " ").upper()
+    currency_code = get_currency_code(country_label)
+
+    if currency_code is None:
+        print(f"FAILED TO INGEST: {company_name or country_label}")
+        print(f"      Reason: missing FX mapping for {country_label}")
+        working["Price_USD"] = np.nan
+        return working
+
+    priced = (
+        working[["Date", "Price"]]
+        .dropna(subset=["Date"])
+        .sort_values("Date")
+        .drop_duplicates(subset="Date", keep="last")
+        .set_index("Date")
+    )
+
+    if priced.empty:
+        working["Price_USD"] = np.nan
+        return working
+
+    try:
+        usd_price = convert_local_to_usd(priced["Price"], currency_code)
+    except Exception as exc:
+        print(f"FAILED TO INGEST: {company_name or country_label}")
+        print(f"      Reason: FX conversion failed for {country_label}: {exc}")
+        working["Price_USD"] = np.nan
+        return working
+
+    if "Price_USD" in working.columns:
+        working = working.drop(columns=["Price_USD"])
+    usd_frame = usd_price.rename("Price_USD").reset_index()
+    working = working.merge(usd_frame, on="Date", how="left")
+    working["Price_USD"] = pd.to_numeric(working["Price_USD"], errors="coerce")
+    return working
 
 
 def clean_sa_name(raw_name):
@@ -228,41 +298,74 @@ def load_excel_standard(filepath):
     return data[["Date", "Price", "Price_USD", "Volume"]]
 
 
-def load_sa_csv(filepath):
-    data = pd.read_csv(filepath)
-    print(f"      📊 Rows loaded: {len(data)}")
-
-    # --- Clean Date ---
-    data["Date"] = pd.to_datetime(data["Date"], format="%m/%d/%Y", errors="coerce")
-
-    # --- Clean Price ---
-    data["Price"] = (
-        data["Price"]
+def parse_vendor_csv(df):
+    df = df.copy()
+    df["Date"] = pd.to_datetime(df["Date"], dayfirst=True, errors="coerce")
+    df["Price"] = (
+        df["Price"]
         .astype(str)
         .str.replace(",", "", regex=False)
         .str.strip()
+        .replace(["-", "—", "NA", "N/A", ""], None)
     )
-    data["Price"] = pd.to_numeric(data["Price"], errors="coerce")
+    df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
+    volume_col = "Vol." if "Vol." in df.columns else "Volume"
+    if volume_col in df.columns:
+        df["Volume"] = (
+            df[volume_col]
+            .astype(str)
+            .str.replace(",", "", regex=False)
+            .str.replace("K", "e3", regex=False)
+            .str.replace("M", "e6", regex=False)
+            .str.strip()
+            .replace(["-", "—", "NA", "N/A", ""], None)
+        )
+        df["Volume"] = pd.to_numeric(df["Volume"], errors="coerce")
+    else:
+        df["Volume"] = None
+    return df[["Date", "Price", "Volume"]].dropna(subset=["Date"])
 
-    # --- Detect & fix scale (VERY IMPORTANT) ---
+
+def load_price_file(filepath):
+    try:
+        df = pd.read_csv(filepath)
+        cols = [str(c).lower().strip() for c in df.columns]
+
+        if "price" in cols and "vol." in cols:
+            df.columns = [str(c).strip() for c in df.columns]
+            df = parse_vendor_csv(df)
+            df["Price_USD"] = df["Price"]
+            return df[["Date", "Price", "Price_USD", "Volume"]]
+
+        if "close" in cols:
+            df.columns = [str(c).strip() for c in df.columns]
+            if "Date" in df.columns:
+                df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+            df.rename(columns={"Close": "Price"}, inplace=True)
+            df["Price"] = pd.to_numeric(df["Price"], errors="coerce")
+            if "Volume" not in df.columns:
+                df["Volume"] = None
+            df["Price_USD"] = df["Price"]
+            return df[["Date", "Price", "Price_USD", "Volume"]].dropna(subset=["Date", "Price"])
+
+        print(f"UNSUPPORTED FORMAT: {filepath}")
+        return None
+    except Exception as exc:
+        print(f"FAILED TO LOAD: {filepath} | ERROR: {exc}")
+        return None
+
+
+def load_sa_csv(filepath):
+    data = load_price_file(filepath)
+    if data is None:
+        return pd.DataFrame(columns=["Date", "Price", "Price_USD", "Volume"])
+    print(f"      📊 Rows loaded: {len(data)}")
     if data["Price"].dropna().median() > 1000:
         data["Price"] = data["Price"] / 100
-
-    # --- Clean Volume ---
-    volume_col = "Vol." if "Vol." in data.columns else "Volume"
-    if volume_col in data.columns:
-        data["Volume"] = data[volume_col].apply(parse_volume_string)
-    else:
-        data["Volume"] = None
-
-    # --- Keep only required fields ---
+        data["Price_USD"] = data["Price"]
     data["Price_USD"] = data["Price"]
     data = data[["Date", "Price", "Price_USD", "Volume"]]
-
-    # --- Drop bad rows ---
     data = data.dropna(subset=["Date"])
-
-    # --- Sort ascending ---
     data = data.sort_values("Date")
     return data
 
@@ -283,10 +386,7 @@ def load_company_data(filepath, country_name):
 def process_company(file_path, name, master_dates, country_name):
     data = load_company_data(file_path, country_name)
     data, validation = validate_company_frame(data, name)
-    data["Price_USD"] = pd.to_numeric(
-        data["Price_USD"] if "Price_USD" in data.columns else data["Price"],
-        errors="coerce",
-    )
+    data = convert_prices_to_usd_frame(data, country_name, name)
 
     valid_ratio = data["Volume"].notna().mean()
     print(f"      {name} volume coverage: {valid_ratio:.2%}")
@@ -363,8 +463,9 @@ def has_recent_trading_activity(
 
 def has_valid_recent_prices(file_path, country_name, window_days=RECENT_WINDOW_DAYS):
     data = load_company_data(file_path, country_name).copy()
+    data = convert_prices_to_usd_frame(data, country_name, os.path.splitext(os.path.basename(file_path))[0])
     data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
-    price_col = "Price_USD" if "Price_USD" in data.columns else "Price"
+    price_col = "Price_USD"
     data["Price"] = pd.to_numeric(data[price_col], errors="coerce")
     data = data.dropna(subset=["Date"])
 
@@ -390,8 +491,9 @@ def append_country(master_dates, folder_path, country_name):
             country_clean = country_name.replace("_", " ").upper()
             if country_name in {"SOUTH_AFRICA", "NAMIBIA"}:
                 raw_name = clean_sa_name(raw_name)
+            raw_name = canonicalize(raw_name)
             clean_name = clean_company_name(raw_name, country_clean)
-            standard_name = NAME_MAP.get(clean_name.replace(f" ({country_clean})", ""), clean_name)
+            standard_name = canonicalize(clean_name.replace(f" ({country_clean})", ""))
             company_name = (
                 standard_name
                 if standard_name.endswith(f" ({country_clean})")
@@ -447,7 +549,20 @@ def append_country(master_dates, folder_path, country_name):
             print(f"   recent price check: {round(time.time() - step_start, 2)}s")
 
             step_start = time.time()
-            comp = process_company(file_path, company_name, master_dates, country_name)
+            try:
+                comp = process_company(file_path, company_name, master_dates, country_name)
+            except Exception as exc:
+                print(f"FAILED TO INGEST: {company_name}")
+                print(f"      Reason: {exc}")
+                audit_log.append({
+                    "company": company_name,
+                    "country": country_name,
+                    "status": "EXCLUDED",
+                    "reason": f"ingest error: {exc}",
+                    "flag_low_history": flag_low_history,
+                    "flag_illiquid": flag_illiquid,
+                })
+                continue
             print(f"   process company: {round(time.time() - step_start, 2)}s")
             print(f"   total file time: {round(time.time() - file_start, 2)}s")
             if comp is not None:
@@ -462,6 +577,8 @@ def append_country(master_dates, folder_path, country_name):
                     "flag_outlier_return": validation["HasOutlierReturnFlag"] if "validation" in locals() else False,
                 })
                 company_dfs.append(comp)
+            else:
+                print(f"FAILED TO INGEST: {company_name}")
 
     print("\n🚧 STARTING FINAL JOIN STAGE")
     date_df = master_dates.copy()

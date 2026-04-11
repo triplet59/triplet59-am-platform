@@ -10,6 +10,7 @@ CURRENCY_MAP = {
     "EGYPT": "EGP",
     "GHANA": "GHS",
     "KENYA": "KES",
+    "MALAWI": "MWK",
     "MAURITIUS": "MUR",
     "MOROCCO": "MAD",
     "NAMIBIA": "NAD",
@@ -22,6 +23,7 @@ CURRENCY_MAP = {
     "TOGO": "XOF",
     "TUNISIA": "TND",
     "UGANDA": "UGX",
+    "ZAMBIA": "ZMW",
     "ZIMBABWE": "ZWG",
 }
 
