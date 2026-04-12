@@ -945,13 +945,34 @@ if IS_INTERNAL and all(
 
     st.markdown("### AM INDEX COMPARISON")
     with st.container():
+        latest_available = am100_snapshot_insights.get("latest_date")
+        latest_label = (
+            pd.Timestamp(latest_available).strftime("%d %b %Y")
+            if latest_available is not None
+            else "Latest Available"
+        )
         st.markdown(
             """
             **The AM index family provides a tiered view of African equity markets,
             from institutional core exposure to broader frontier opportunity sets.**
             """
         )
+        st.markdown(
+            f"""
+            **Performance Period:**  
+            01 Jan 2016 -> {latest_label}
+
+            All metrics (CAGR, Volatility, Sharpe Ratio, Drawdown, Turnover) are calculated over this period unless otherwise stated.
+            """
+        )
         st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
+        st.caption(
+            """
+            Metrics are calculated using USD total return methodology.
+            Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full period.
+            Turnover is shown as the average across rebalance events.
+            """
+        )
         st.divider()
 
         col1, col2, col3 = st.columns(3)
