@@ -764,7 +764,7 @@ def render_allocator_view():
         The AM Index family provides a tiered framework:
         - AM100: Institutional Core
         - AM200: Expanded Investable Universe
-        - AM300: Frontier Opportunity Set
+        - AM300: Frontier Opportunity Set with controlled trading-frequency relaxation
         """
     )
 
@@ -1127,7 +1127,7 @@ if IS_INTERNAL and all(
 
             • AM100 = Institutional core (highest liquidity)  
             • AM200 = Expanded investable universe  
-            • AM300 = Broader frontier exposure  
+            • AM300 = Broader frontier exposure with still-observable trading activity  
 
             Performance dispersion reflects liquidity constraints, not methodology changes.
             """
@@ -1154,8 +1154,8 @@ The indices are constructed to reflect **real-world investability**, prioritisin
 * **AM200 (Expansion Index)**
   A broader index capturing the **next 100 securities**, offering exposure to emerging, frontier, and mid-cap opportunities.
 
-* **AM300 (All Share)**
-  A flagship **all-share total return index** combining the core and expansion sleeves into a unified benchmark.
+* **AM300 (Opportunity Set)**
+  A broader total return index that includes securities with lower but still observable trading frequency, subject to minimum thresholds of both historical and recent trading activity.
 
 ---
 
@@ -1207,6 +1207,8 @@ To qualify for inclusion, securities must:
 * Meet minimum liquidity thresholds
 * Have reliable and continuous price data
 * Be accessible to institutional investors
+
+AM300 applies a controlled extension of these rules by allowing lower, but still observable, trading frequency while retaining minimum thresholds for both historical positive trading coverage and recent non-zero trading activity.
 
 ---
 
