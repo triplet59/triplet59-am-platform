@@ -54,6 +54,34 @@ def render_metric_card(label, value, help_copy=None):
     )
 
 
+def render_global_header():
+    col1, col2 = st.columns([0.8, 9])
+
+    with col1:
+        st.image(logo_path, width=60)
+
+    with col2:
+        st.markdown(
+            """
+            <div style="line-height: 1.2;">
+                <span style="font-size:16px; font-weight:600;">African Market Indices</span><br>
+                <span style="font-size:12px; color:#9AA4AF;">
+                AM100 / AM200 / AM300 Total Return Indices
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.caption(f"Build: {BUILD_VERSION}")
+
+    header_spacer, header_logout = st.columns([8, 1])
+    with header_logout:
+        if st.button("Logout", key="global_logout"):
+            st.session_state.auth_mode = None
+            st.rerun()
+
+
 def safe_display(value, fallback="N/A"):
     return value if value is not None else fallback
 
@@ -567,6 +595,7 @@ if st.session_state.auth_mode is None:
 MODE = st.session_state.auth_mode
 IS_INVESTOR = MODE == "investor"
 IS_INTERNAL = MODE == "internal"
+allocator_mode = st.toggle("Allocator Presentation Mode", value=False)
 
 intro_text = """
 **AM100 is a rules-based, institutional-grade equity index designed to reflect the investable African equity universe.**
@@ -606,6 +635,187 @@ index_overlap_metrics = load_index_overlap_metrics(
     "output/AM300_history.xlsx",
     BUILD_VERSION,
 )
+
+render_global_header()
+
+
+def render_allocator_view():
+    def pct_metric(metrics, key):
+        return f"{metrics.get(key, 0) * 100:.2f}%"
+
+    def num_metric(metrics, key):
+        return f"{metrics.get(key, 0):.2f}"
+
+    def turnover_metric(snapshot):
+        value = snapshot.get("avg_turnover")
+        return f"{value * 100:.1f}%" if value is not None else "N/A"
+
+    st.markdown(
+        """
+        # AM African Index Suite
+
+        ### Institutional Access to Investable African Equities
+        """
+    )
+
+    st.markdown(
+        """
+        AM100 represents the investable African equity universe under strict institutional liquidity and trading constraints.
+
+        The AM Index family provides a tiered framework:
+        - AM100: Institutional Core
+        - AM200: Expanded Investable Universe
+        - AM300: Frontier Opportunity Set
+        """
+    )
+
+    st.markdown("### Performance Snapshot")
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("AM100 CAGR", pct_metric(am100_metrics, "CAGR"))
+    col1.metric("Sharpe", num_metric(am100_metrics, "Sharpe"))
+
+    col2.metric("AM200 CAGR", pct_metric(am200_metrics, "CAGR"))
+    col2.metric("Sharpe", num_metric(am200_metrics, "Sharpe"))
+
+    col3.metric("AM300 CAGR", pct_metric(am300_metrics, "CAGR"))
+    col3.metric("Sharpe", num_metric(am300_metrics, "Sharpe"))
+
+    st.markdown(
+        """
+        ### Index Structure
+
+        AM100 ⊂ AM200 ⊂ AM300  
+        (All tiers are fully nested and methodology-consistent)
+        """
+    )
+
+    st.markdown(
+        """
+        ### What Makes This Different
+
+        • Investability-driven (not market-cap driven)  
+        • USD liquidity enforced  
+        • Trading consistency required  
+        • Fully rules-based and auditable
+        """
+    )
+
+    comparison_df = pd.DataFrame(
+        {
+            "Metric": [
+                "CAGR",
+                "Volatility",
+                "Sharpe Ratio",
+                "Max Drawdown",
+                "Constituents",
+                "Turnover",
+            ],
+            "AM100": [
+                pct_metric(am100_metrics, "CAGR"),
+                pct_metric(am100_metrics, "Volatility"),
+                num_metric(am100_metrics, "Sharpe"),
+                pct_metric(am100_metrics, "Max Drawdown"),
+                am100_snapshot_insights.get("constituents"),
+                turnover_metric(am100_snapshot_insights),
+            ],
+            "AM200": [
+                pct_metric(am200_metrics, "CAGR"),
+                pct_metric(am200_metrics, "Volatility"),
+                num_metric(am200_metrics, "Sharpe"),
+                pct_metric(am200_metrics, "Max Drawdown"),
+                am200_snapshot_insights.get("constituents"),
+                turnover_metric(am200_snapshot_insights),
+            ],
+            "AM300": [
+                pct_metric(am300_metrics, "CAGR"),
+                pct_metric(am300_metrics, "Volatility"),
+                num_metric(am300_metrics, "Sharpe"),
+                pct_metric(am300_metrics, "Max Drawdown"),
+                am300_snapshot_insights.get("constituents"),
+                turnover_metric(am300_snapshot_insights),
+            ],
+        }
+    )
+    st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
+
+    st.markdown(
+        """
+        ### Interpretation
+
+        AM100 defines where institutional capital can be deployed today.
+
+        AM200 and AM300 expand the opportunity set as liquidity conditions allow.
+
+        Performance dispersion reflects real market depth, not model variation.
+        """
+    )
+
+    if investability_map is not None and not investability_map.empty:
+        st.markdown("### Africa Investability Map")
+        iso_map = {
+            "SOUTH AFRICA": "ZAF",
+            "EGYPT": "EGY",
+            "MOROCCO": "MAR",
+            "NIGERIA": "NGA",
+            "KENYA": "KEN",
+            "NAMIBIA": "NAM",
+            "ZIMBABWE": "ZWE",
+            "SENEGAL": "SEN",
+            "MAURITIUS": "MUS",
+            "UGANDA": "UGA",
+            "GHANA": "GHA",
+            "TANZANIA": "TZA",
+            "MALAWI": "MWI",
+            "ZAMBIA": "ZMB",
+            "NIGER": "NER",
+            "TOGO": "TGO",
+            "RWANDA": "RWA",
+            "TUNISIA": "TUN",
+        }
+        map_df = investability_map.copy()
+        map_df["Country"] = map_df["Country"].astype(str).str.upper()
+        map_df["ISO"] = map_df["Country"].map(iso_map)
+        map_df = map_df.dropna(subset=["ISO"]).copy()
+        map_df["StatusColor"] = map_df["Inclusion Status"].map({"Included": 1, "Excluded": 0})
+        fig = px.choropleth(
+            map_df,
+            locations="ISO",
+            color="StatusColor",
+            hover_name="Country",
+            hover_data={"StatusColor": False, "ISO": False},
+            color_continuous_scale=["#d62728", "#2ca02c"],
+            range_color=(0, 1),
+        )
+        fig.update_layout(
+            coloraxis_showscale=False,
+            geo=dict(
+                scope="africa",
+                projection_type="natural earth",
+                showland=True,
+                landcolor="#0E1117",
+                bgcolor="#0E1117",
+            ),
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10),
+            margin=dict(l=0, r=0, t=0, b=0),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown(
+        """
+        ### Use Case
+
+        Suitable for:
+        - Pension fund allocations
+        - Sovereign capital deployment
+        - Institutional portfolio construction
+        """
+    )
+
+    with st.expander("📘 Methodology & Overview", expanded=False):
+        st.markdown(methodology_text)
 
 if IS_INVESTOR:
     st.title("AM100 - African Institutional Equity Index")
@@ -686,13 +896,6 @@ if IS_INTERNAL and all(
         am300_snapshot_insights,
     ]
 ):
-    st.markdown(
-        """
-        **The AM index family provides a tiered view of African equity markets,
-        from institutional core exposure to broader frontier opportunity sets.**
-        """
-    )
-
     def pct_metric(metrics, key):
         return f"{metrics.get(key, 0) * 100:.2f}%"
 
@@ -703,7 +906,6 @@ if IS_INTERNAL and all(
         value = snapshot.get("avg_turnover")
         return f"{value * 100:.1f}%" if value is not None else "N/A"
 
-    st.subheader("AM Index Comparison")
     comparison_df = pd.DataFrame(
         {
             "Metric": [
@@ -740,51 +942,77 @@ if IS_INTERNAL and all(
             ],
         }
     )
-    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
-    st.subheader("Performance Snapshot")
-    row1 = st.columns(3)
-    row1[0].metric("AM100 CAGR", pct_metric(am100_metrics, "CAGR"))
-    row1[1].metric("AM200 CAGR", pct_metric(am200_metrics, "CAGR"))
-    row1[2].metric("AM300 CAGR", pct_metric(am300_metrics, "CAGR"))
-    row2 = st.columns(3)
-    row2[0].metric("AM100 Sharpe", num_metric(am100_metrics, "Sharpe"))
-    row2[1].metric("AM200 Sharpe", num_metric(am200_metrics, "Sharpe"))
-    row2[2].metric("AM300 Sharpe", num_metric(am300_metrics, "Sharpe"))
+    st.markdown("### AM INDEX COMPARISON")
+    with st.container():
+        st.markdown(
+            """
+            **The AM index family provides a tiered view of African equity markets,
+            from institutional core exposure to broader frontier opportunity sets.**
+            """
+        )
+        st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
+        st.divider()
 
-    if index_overlap_metrics:
-        st.subheader("Index Structure")
         col1, col2, col3 = st.columns(3)
-        col1.metric(
-            "AM100 ⊂ AM200",
-            f"{index_overlap_metrics.get('AM100_in_AM200', 0) * 100:.0f}%",
-        )
-        col2.metric(
-            "AM100 ⊂ AM300",
-            f"{index_overlap_metrics.get('AM100_in_AM300', 0) * 100:.0f}%",
-        )
-        col3.metric(
-            "AM200 ⊂ AM300",
-            f"{index_overlap_metrics.get('AM200_in_AM300', 0) * 100:.0f}%",
-        )
-        st.caption(
-            """
-            The AM index family is constructed as a strictly nested system.
-            Each tier expands the investable universe while maintaining a consistent methodology.
+        col1.markdown(
+            f"""
+            **AM100**  
+            CAGR: {pct_metric(am100_metrics, "CAGR")}  
+            Sharpe: {num_metric(am100_metrics, "Sharpe")}  
+            Cons: {am100_snapshot_insights.get("constituents")}  
+            Turnover: {turnover_metric(am100_snapshot_insights)}
             """
         )
+        col2.markdown(
+            f"""
+            **AM200**  
+            CAGR: {pct_metric(am200_metrics, "CAGR")}  
+            Sharpe: {num_metric(am200_metrics, "Sharpe")}  
+            Cons: {am200_snapshot_insights.get("constituents")}  
+            Turnover: {turnover_metric(am200_snapshot_insights)}
+            """
+        )
+        col3.markdown(
+            f"""
+            **AM300**  
+            CAGR: {pct_metric(am300_metrics, "CAGR")}  
+            Sharpe: {num_metric(am300_metrics, "Sharpe")}  
+            Cons: {am300_snapshot_insights.get("constituents")}  
+            Turnover: {turnover_metric(am300_snapshot_insights)}
+            """
+        )
+        st.divider()
 
-    st.subheader("Interpretation")
-    st.markdown(
-        """
-        - **AM100** represents the highest-liquidity institutional core
-        - **AM200** expands the universe while maintaining investability
-        - **AM300** captures broader frontier opportunities
+        if index_overlap_metrics:
+            st.markdown(
+                f"""
+                **STRUCTURE**
 
-        Performance dispersion reflects **liquidity constraints and market depth**,
-        not changes in methodology.
-        """
-    )
+                AM100 ⊂ AM200: {index_overlap_metrics.get('AM100_in_AM200', 0) * 100:.0f}%  
+                AM100 ⊂ AM300: {index_overlap_metrics.get('AM100_in_AM300', 0) * 100:.0f}%  
+                AM200 ⊂ AM300: {index_overlap_metrics.get('AM200_in_AM300', 0) * 100:.0f}%
+                """
+            )
+            st.caption(
+                """
+                Each index is a strict superset of the previous tier, ensuring consistency,
+                transparency, and comparability across the AM index family.
+                """
+            )
+        st.divider()
+
+        st.markdown(
+            """
+            **INTERPRETATION**
+
+            • AM100 = Institutional core (highest liquidity)  
+            • AM200 = Expanded investable universe  
+            • AM300 = Broader frontier exposure  
+
+            Performance dispersion reflects liquidity constraints, not methodology changes.
+            """
+        )
 
 st.markdown("---")
 
@@ -943,29 +1171,6 @@ if DEBUG:
 
 with st.expander("📘 Methodology & Overview", expanded=False):
     st.markdown(methodology_text)
-
-col1, col2 = st.columns([0.8, 9])
-
-with col1:
-    st.image(logo_path, width=60)
-
-with col2:
-    st.markdown("""
-    <div style="line-height: 1.2;">
-        <span style="font-size:16px; font-weight:600;">African Market Indices</span><br>
-        <span style="font-size:12px; color:#9AA4AF;">
-        AM100 / AM200 / AM300 Total Return Indices
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.caption(f"Build: {BUILD_VERSION}")
-
-header_spacer, header_logout = st.columns([8, 1])
-with header_logout:
-    if st.button("Logout", key="global_logout"):
-        st.session_state.auth_mode = None
-        st.rerun()
 
 st.markdown("""
 <style>
@@ -1833,6 +2038,20 @@ am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
+
+if allocator_mode and all(
+    x is not None
+    for x in [
+        am100_metrics,
+        am200_metrics,
+        am300_metrics,
+        am100_snapshot_insights,
+        am200_snapshot_insights,
+        am300_snapshot_insights,
+    ]
+):
+    render_allocator_view()
+    st.stop()
 
 am100_s, am100_r = prep(am100_df)
 am200_s, am200_r = prep(am200_df)
