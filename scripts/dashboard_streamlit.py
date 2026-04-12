@@ -786,21 +786,6 @@ if IS_INTERNAL and all(
         """
     )
 
-    fig, ax = plt.subplots()
-    ax.bar(
-        ["AM100", "AM200", "AM300"],
-        [
-            am100_metrics.get("CAGR", 0) * 100,
-            am200_metrics.get("CAGR", 0) * 100,
-            am300_metrics.get("CAGR", 0) * 100,
-        ],
-        color=[AM100_COLOR, AM200_COLOR, AM300_COLOR],
-    )
-    ax.set_title("CAGR Comparison")
-    ax.set_ylabel("Return (%)")
-    fig.tight_layout()
-    st.pyplot(fig, use_container_width=True)
-
 st.markdown("---")
 
 methodology_text = """
