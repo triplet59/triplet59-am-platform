@@ -1538,6 +1538,7 @@ price_panel = load_price_panel(
 )
 MIN_POSITIVE_COVERAGE = 0.80
 volume_audit_df = audit_volume_quality(price_panel)
+no_volume_df = volume_audit_df[volume_audit_df["Positive Days"] == 0].copy()
 missing_volume_df = volume_audit_df[volume_audit_df["Missing Days"] == volume_audit_df["Total Days"]].copy()
 zero_only_volume_df = volume_audit_df[
     (volume_audit_df["Missing Days"] == 0)
@@ -1550,6 +1551,10 @@ low_volume_coverage_df = volume_audit_df[
 eligible_volume_df = volume_audit_df[
     volume_audit_df["Positive Coverage %"] >= MIN_POSITIVE_COVERAGE * 100
 ].copy()
+NO_VOLUME_EXPORT_FILE = "output/missing_volume_companies.csv"
+LOW_COVERAGE_EXPORT_FILE = "output/low_coverage_companies.csv"
+no_volume_df.to_csv(NO_VOLUME_EXPORT_FILE, index=False)
+low_volume_coverage_df.to_csv(LOW_COVERAGE_EXPORT_FILE, index=False)
 latest_date = am100_hist["Date"].max()
 
 am100_latest = am100_hist[am100_hist["Date"] == latest_date]
@@ -2526,9 +2531,9 @@ with risk_tab:
         cov_col2.metric("Eligible (>=80%)", f"{len(eligible_volume_df)}")
         cov_col3.metric("Ineligible", f"{len(low_volume_coverage_df)}")
 
-        if not missing_volume_df.empty:
-            st.error("Securities with NO volume data")
-            st.write(sorted(missing_volume_df["Security"].tolist()))
+        if not no_volume_df.empty:
+            st.error("Companies with NO Volume Data")
+            st.write(sorted(no_volume_df["Security"].tolist()))
 
         if not zero_only_volume_df.empty:
             st.warning("Securities with ZERO volume on all observed days")
@@ -2536,9 +2541,12 @@ with risk_tab:
 
         if not low_volume_coverage_df.empty:
             st.warning(
-                f"Securities failing positive trading-day coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
+                f"Companies with LOW Trading Coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
             )
             st.write(sorted(low_volume_coverage_df["Security"].tolist()))
+        st.caption(
+            f"Exports written to `{NO_VOLUME_EXPORT_FILE}` and `{LOW_COVERAGE_EXPORT_FILE}`."
+        )
     else:
         st.info("No volume columns were found in the master panel.")
 
@@ -2942,11 +2950,9 @@ with overview_tab:
         else:
             st.info(
                 """
-                AM200 (Expanded Investable Africa)
+                AM200 — Expanding coverage through validated data integration (Phase 2)
 
-                This index is currently in development and will extend the AM100 universe to include additional investable equities under slightly relaxed liquidity constraints.
-
-                Expected release: Phase 2
+                This tier is being expanded through validated data integration while preserving liquidity integrity, positive trading coverage requirements, and execution realism.
                 """
             )
 
