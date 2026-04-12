@@ -28,6 +28,7 @@ MAX_COUNTRY_WEIGHT = 0.25
 MAX_PER_COUNTRY = int(100 * MAX_COUNTRY_WEIGHT)
 MIN_DOLLAR_LIQUIDITY = 1_000_000
 MIN_TRADING_DAYS_90D = 81
+MIN_POSITIVE_COVERAGE = 0.80
 TARGET_N = 100
 ENTRY_BUFFER = 100
 EXIT_BUFFER = 120
@@ -298,15 +299,23 @@ for selection_date, implementation_date in rebalance_schedule:
             continue
 
         price_series = pd.to_numeric(df_cut[price_col], errors="coerce").where(lambda s: s.gt(0))
-        volume_series = pd.to_numeric(df_cut[volume_col], errors="coerce").where(lambda s: s.gt(0))
-        valid_obs = price_series.notna() & volume_series.notna()
+        volume_raw = pd.to_numeric(df_cut[volume_col], errors="coerce")
+        volume_series = volume_raw.where(lambda s: s.gt(0))
+        positive_obs = price_series.notna() & volume_series.notna()
+        observed_price_days = int(price_series.notna().sum())
+        positive_coverage_pct = (
+            float(positive_obs.sum() / observed_price_days) if observed_price_days else np.nan
+        )
 
-        if valid_obs.sum() < 150:
+        if pd.isna(positive_coverage_pct) or positive_coverage_pct < MIN_POSITIVE_COVERAGE:
+            continue
+
+        if positive_obs.sum() < 150:
             continue
 
         recent_window_start = pd.Timestamp(selection_date) - pd.offsets.BDay(89)
         recent_mask = (df_cut["Date"] >= recent_window_start) & (df_cut["Date"] <= selection_date)
-        recent_valid_obs = valid_obs[recent_mask]
+        recent_valid_obs = positive_obs[recent_mask]
         trading_days = int(recent_valid_obs.sum())
 
         if trading_days < MIN_TRADING_DAYS_90D:

@@ -110,6 +110,52 @@ def get_country_weights(df):
     return df.groupby("Country")["Weight"].sum().sort_values(ascending=False)
 
 
+def audit_volume_quality(df):
+    results = []
+    for col in df.columns:
+        if not str(col).endswith(" Volume"):
+            continue
+        security = str(col).replace(" Volume", "")
+        price_col = f"{security} Price USD" if f"{security} Price USD" in df.columns else f"{security} Price"
+        series = df[col]
+        if price_col in df.columns:
+            observed_mask = pd.to_numeric(df[price_col], errors="coerce").gt(0)
+        else:
+            observed_mask = pd.Series(True, index=df.index)
+        observed_series = pd.to_numeric(series.where(observed_mask), errors="coerce")
+        total_days = int(observed_mask.sum())
+        missing_days = int(observed_series.isna().sum())
+        zero_days = int(observed_series.fillna(0).eq(0).sum() - observed_series.isna().sum())
+        positive_days = int(observed_series.gt(0).sum())
+        positive_coverage = positive_days / total_days if total_days else 0
+        results.append(
+            {
+                "Security": security,
+                "Total Days": total_days,
+                "Missing Days": missing_days,
+                "Zero Days": zero_days,
+                "Positive Days": positive_days,
+                "Positive Coverage %": round(positive_coverage * 100, 2),
+            }
+        )
+
+    if not results:
+        return pd.DataFrame(
+            columns=[
+                "Security",
+                "Total Days",
+                "Missing Days",
+                "Zero Days",
+                "Positive Days",
+                "Positive Coverage %",
+            ]
+        )
+
+    return pd.DataFrame(results).sort_values(
+        ["Positive Coverage %", "Positive Days", "Security"], ascending=[True, True, True]
+    ).reset_index(drop=True)
+
+
 def prepare_constituent_table(df, include_rank=False, limit=None, search=None):
     if df is None or df.empty:
         cols = ["Company", "Country", "Weight"]
@@ -332,10 +378,61 @@ def get_periods(price_df, constituents, index_series):
         "rolling_3y": {"type": "rolling", "years": 3, "tolerance_days": 30, **rolling_3y},
         "rolling_1y": {"type": "rolling", "years": 1, "tolerance_days": 30, **rolling_1y},
         "fixed_10y": {"type": "fixed", "start": start_2016, "end": end_2025},
-        "fixed_5y": {"type": "fixed", "start": start_2016, "end": end_2020},
+        "fixed_5y": {"type": "fixed", "start": pd.Timestamp("2021-01-01"), "end": end_2025},
         "since_2016": {"type": "fixed", "start": start_2016, "end": latest},
         "latest_valid": latest,
     }
+
+
+def get_common_analysis_window(index_map, requested_start=pd.Timestamp("2016-01-01")):
+    valid_series = {
+        name: series.dropna().sort_index()
+        for name, series in index_map.items()
+        if series is not None and len(series.dropna()) >= 2
+    }
+    if not valid_series:
+        return {"start": None, "end": None, "label": "No common period", "series": {}}
+
+    common_dates = None
+    for series in valid_series.values():
+        common_dates = series.index if common_dates is None else common_dates.intersection(series.index)
+
+    if common_dates is None or len(common_dates) < 2:
+        return {"start": None, "end": None, "label": "No common period", "series": {}}
+
+    common_dates = common_dates.sort_values()
+    common_start = common_dates.min()
+    common_end = common_dates.max()
+    start = max(requested_start, common_start)
+
+    aligned = {}
+    for name, series in valid_series.items():
+        aligned_series = series.loc[start:common_end].dropna()
+        if len(aligned_series) >= 2:
+            aligned[name] = aligned_series
+
+    label = f"{start.strftime('%d %b %Y')} -> {common_end.strftime('%d %b %Y')}"
+    return {"start": start, "end": common_end, "label": label, "series": aligned}
+
+
+def compute_window_metrics(series):
+    clean = series.dropna().sort_index()
+    if len(clean) < 2:
+        return {"CAGR": np.nan, "Volatility": np.nan, "Sharpe": np.nan, "Max Drawdown": np.nan}
+
+    returns = clean.pct_change().dropna()
+    if returns.empty:
+        return {"CAGR": np.nan, "Volatility": np.nan, "Sharpe": np.nan, "Max Drawdown": np.nan}
+
+    years = (clean.index[-1] - clean.index[0]).days / 365.25
+    cagr = np.nan
+    if years > 0 and pd.notna(clean.iloc[0]) and pd.notna(clean.iloc[-1]) and clean.iloc[0] != 0:
+        cagr = (clean.iloc[-1] / clean.iloc[0]) ** (1 / years) - 1
+    vol = returns.std() * np.sqrt(252)
+    annual_return = returns.mean() * 252
+    sharpe = (annual_return - 0.02) / vol if pd.notna(vol) and vol != 0 else np.nan
+    max_dd = calculate_drawdown(clean).min()
+    return {"CAGR": cagr, "Volatility": vol, "Sharpe": sharpe, "Max Drawdown": max_dd}
 
 
 def calculate_drawdown(series):
@@ -641,10 +738,12 @@ render_global_header()
 
 def render_allocator_view():
     def pct_metric(metrics, key):
-        return f"{metrics.get(key, 0) * 100:.2f}%"
+        value = metrics.get(key) if metrics else None
+        return f"{value * 100:.2f}%" if value is not None and pd.notna(value) else "N/A"
 
     def num_metric(metrics, key):
-        return f"{metrics.get(key, 0):.2f}"
+        value = metrics.get(key) if metrics else None
+        return f"{value:.2f}" if value is not None and pd.notna(value) else "N/A"
 
     def turnover_metric(snapshot):
         value = snapshot.get("avg_turnover")
@@ -672,14 +771,14 @@ def render_allocator_view():
     st.markdown("### Performance Snapshot")
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("AM100 CAGR", pct_metric(am100_metrics, "CAGR"))
-    col1.metric("Sharpe", num_metric(am100_metrics, "Sharpe"))
+    col1.metric("AM100 CAGR", pct_metric(comparison_metrics.get("AM100"), "CAGR"))
+    col1.metric("Sharpe", num_metric(comparison_metrics.get("AM100"), "Sharpe"))
 
-    col2.metric("AM200 CAGR", pct_metric(am200_metrics, "CAGR"))
-    col2.metric("Sharpe", num_metric(am200_metrics, "Sharpe"))
+    col2.metric("AM200 CAGR", pct_metric(comparison_metrics.get("AM200"), "CAGR"))
+    col2.metric("Sharpe", num_metric(comparison_metrics.get("AM200"), "Sharpe"))
 
-    col3.metric("AM300 CAGR", pct_metric(am300_metrics, "CAGR"))
-    col3.metric("Sharpe", num_metric(am300_metrics, "Sharpe"))
+    col3.metric("AM300 CAGR", pct_metric(comparison_metrics.get("AM300"), "CAGR"))
+    col3.metric("Sharpe", num_metric(comparison_metrics.get("AM300"), "Sharpe"))
 
     st.markdown(
         """
@@ -712,32 +811,39 @@ def render_allocator_view():
                 "Turnover",
             ],
             "AM100": [
-                pct_metric(am100_metrics, "CAGR"),
-                pct_metric(am100_metrics, "Volatility"),
-                num_metric(am100_metrics, "Sharpe"),
-                pct_metric(am100_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM100"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM100"), "Volatility"),
+                num_metric(comparison_metrics.get("AM100"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM100"), "Max Drawdown"),
                 am100_snapshot_insights.get("constituents"),
                 turnover_metric(am100_snapshot_insights),
             ],
             "AM200": [
-                pct_metric(am200_metrics, "CAGR"),
-                pct_metric(am200_metrics, "Volatility"),
-                num_metric(am200_metrics, "Sharpe"),
-                pct_metric(am200_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM200"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM200"), "Volatility"),
+                num_metric(comparison_metrics.get("AM200"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM200"), "Max Drawdown"),
                 am200_snapshot_insights.get("constituents"),
                 turnover_metric(am200_snapshot_insights),
             ],
             "AM300": [
-                pct_metric(am300_metrics, "CAGR"),
-                pct_metric(am300_metrics, "Volatility"),
-                num_metric(am300_metrics, "Sharpe"),
-                pct_metric(am300_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM300"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM300"), "Volatility"),
+                num_metric(comparison_metrics.get("AM300"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM300"), "Max Drawdown"),
                 am300_snapshot_insights.get("constituents"),
                 turnover_metric(am300_snapshot_insights),
             ],
         }
     )
+    st.markdown(f"**Performance Period:** {common_period_label}")
+    st.caption(
+        "All comparison metrics are calculated over the shared AM100 / AM200 / AM300 window. Turnover remains the average across rebalance events."
+    )
     st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
+    st.caption(
+        "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period."
+    )
 
     st.markdown(
         """
@@ -897,10 +1003,12 @@ if IS_INTERNAL and all(
     ]
 ):
     def pct_metric(metrics, key):
-        return f"{metrics.get(key, 0) * 100:.2f}%"
+        value = metrics.get(key) if metrics else None
+        return f"{value * 100:.2f}%" if value is not None and pd.notna(value) else "N/A"
 
     def num_metric(metrics, key):
-        return f"{metrics.get(key, 0):.2f}"
+        value = metrics.get(key) if metrics else None
+        return f"{value:.2f}" if value is not None and pd.notna(value) else "N/A"
 
     def turnover_metric(snapshot):
         value = snapshot.get("avg_turnover")
@@ -917,26 +1025,26 @@ if IS_INTERNAL and all(
                 "Turnover",
             ],
             "AM100": [
-                pct_metric(am100_metrics, "CAGR"),
-                pct_metric(am100_metrics, "Volatility"),
-                num_metric(am100_metrics, "Sharpe"),
-                pct_metric(am100_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM100"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM100"), "Volatility"),
+                num_metric(comparison_metrics.get("AM100"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM100"), "Max Drawdown"),
                 am100_snapshot_insights.get("constituents"),
                 turnover_metric(am100_snapshot_insights),
             ],
             "AM200": [
-                pct_metric(am200_metrics, "CAGR"),
-                pct_metric(am200_metrics, "Volatility"),
-                num_metric(am200_metrics, "Sharpe"),
-                pct_metric(am200_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM200"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM200"), "Volatility"),
+                num_metric(comparison_metrics.get("AM200"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM200"), "Max Drawdown"),
                 am200_snapshot_insights.get("constituents"),
                 turnover_metric(am200_snapshot_insights),
             ],
             "AM300": [
-                pct_metric(am300_metrics, "CAGR"),
-                pct_metric(am300_metrics, "Volatility"),
-                num_metric(am300_metrics, "Sharpe"),
-                pct_metric(am300_metrics, "Max Drawdown"),
+                pct_metric(comparison_metrics.get("AM300"), "CAGR"),
+                pct_metric(comparison_metrics.get("AM300"), "Volatility"),
+                num_metric(comparison_metrics.get("AM300"), "Sharpe"),
+                pct_metric(comparison_metrics.get("AM300"), "Max Drawdown"),
                 am300_snapshot_insights.get("constituents"),
                 turnover_metric(am300_snapshot_insights),
             ],
@@ -945,12 +1053,6 @@ if IS_INTERNAL and all(
 
     st.markdown("### AM INDEX COMPARISON")
     with st.container():
-        latest_available = am100_snapshot_insights.get("latest_date")
-        latest_label = (
-            pd.Timestamp(latest_available).strftime("%d %b %Y")
-            if latest_available is not None
-            else "Latest Available"
-        )
         st.markdown(
             """
             **The AM index family provides a tiered view of African equity markets,
@@ -960,18 +1062,14 @@ if IS_INTERNAL and all(
         st.markdown(
             f"""
             **Performance Period:**  
-            01 Jan 2016 -> {latest_label}
+            {common_period_label}
 
-            All metrics (CAGR, Volatility, Sharpe Ratio, Drawdown, Turnover) are calculated over this period unless otherwise stated.
+            All comparison metrics (CAGR, Volatility, Sharpe Ratio, Drawdown) are calculated over this shared period.
             """
         )
         st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
         st.caption(
-            """
-            Metrics are calculated using USD total return methodology.
-            Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full period.
-            Turnover is shown as the average across rebalance events.
-            """
+            "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period. Turnover is shown as the average across rebalance events."
         )
         st.divider()
 
@@ -979,8 +1077,8 @@ if IS_INTERNAL and all(
         col1.markdown(
             f"""
             **AM100**  
-            CAGR: {pct_metric(am100_metrics, "CAGR")}  
-            Sharpe: {num_metric(am100_metrics, "Sharpe")}  
+            CAGR: {pct_metric(comparison_metrics.get("AM100"), "CAGR")}  
+            Sharpe: {num_metric(comparison_metrics.get("AM100"), "Sharpe")}  
             Cons: {am100_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am100_snapshot_insights)}
             """
@@ -988,8 +1086,8 @@ if IS_INTERNAL and all(
         col2.markdown(
             f"""
             **AM200**  
-            CAGR: {pct_metric(am200_metrics, "CAGR")}  
-            Sharpe: {num_metric(am200_metrics, "Sharpe")}  
+            CAGR: {pct_metric(comparison_metrics.get("AM200"), "CAGR")}  
+            Sharpe: {num_metric(comparison_metrics.get("AM200"), "Sharpe")}  
             Cons: {am200_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am200_snapshot_insights)}
             """
@@ -997,8 +1095,8 @@ if IS_INTERNAL and all(
         col3.markdown(
             f"""
             **AM300**  
-            CAGR: {pct_metric(am300_metrics, "CAGR")}  
-            Sharpe: {num_metric(am300_metrics, "Sharpe")}  
+            CAGR: {pct_metric(comparison_metrics.get("AM300"), "CAGR")}  
+            Sharpe: {num_metric(comparison_metrics.get("AM300"), "Sharpe")}  
             Cons: {am300_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am300_snapshot_insights)}
             """
@@ -1399,6 +1497,13 @@ def load_data():
 
 am100, am200, am300 = load_data()
 
+common_analysis = get_common_analysis_window({"AM100": am100, "AM200": am200, "AM300": am300})
+common_start = common_analysis["start"]
+common_end = common_analysis["end"]
+common_period_label = common_analysis["label"]
+comparison_series = common_analysis["series"]
+comparison_metrics = {name: compute_window_metrics(series) for name, series in comparison_series.items()}
+
 st.write("Data Last Updated:", am100.index.max())
 
 
@@ -1431,6 +1536,20 @@ price_panel = load_price_panel(
     if os.path.exists("output/master.csv")
     else get_file_version("output/master.xlsx")
 )
+MIN_POSITIVE_COVERAGE = 0.80
+volume_audit_df = audit_volume_quality(price_panel)
+missing_volume_df = volume_audit_df[volume_audit_df["Missing Days"] == volume_audit_df["Total Days"]].copy()
+zero_only_volume_df = volume_audit_df[
+    (volume_audit_df["Missing Days"] == 0)
+    & (volume_audit_df["Positive Days"] == 0)
+    & (volume_audit_df["Zero Days"] > 0)
+].copy()
+low_volume_coverage_df = volume_audit_df[
+    volume_audit_df["Positive Coverage %"] < MIN_POSITIVE_COVERAGE * 100
+].copy()
+eligible_volume_df = volume_audit_df[
+    volume_audit_df["Positive Coverage %"] >= MIN_POSITIVE_COVERAGE * 100
+].copy()
 latest_date = am100_hist["Date"].max()
 
 am100_latest = am100_hist[am100_hist["Date"] == latest_date]
@@ -1718,6 +1837,8 @@ st.caption("Performance Summary")
 
 st.markdown("### CAGR by Period")
 
+st.caption(f"Shared comparison window across AM100 / AM200 / AM300: {common_period_label}")
+
 latest_valid_dates = {
     "AM100": am100_periods["latest_valid"],
     "AM200": am200_periods["latest_valid"],
@@ -1744,7 +1865,7 @@ with st.expander("Data Coverage Details"):
             "10Y Rolling:",
             f"{actual_rolling_start.strftime('%d %b %Y')} -> {rolling_end.strftime('%d %b %Y')}",
         )
-    st.write("Since 2016 start:", pd.Timestamp("2016-01-01"))
+    st.write("Shared comparison start:", common_start)
     if actual_rolling_start is not None:
         window_length = (rolling_end - actual_rolling_start).days / 365
         st.write("Rolling window length (years):", round(window_length, 3))
@@ -1786,19 +1907,26 @@ rolling_results = {
     },
 }
 
+comparison_period_result = {
+    name: compute_performance(series, "fixed", start_date=common_start, end_date=common_end)
+    if common_start is not None and common_end is not None and name in comparison_series
+    else {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
+    for name, series in {"AM100": am100, "AM200": am200, "AM300": am300}.items()
+}
+
 fixed_results = {
     "AM100": {
-        "since_2016": am100_cagrs["since_2016"],
+        "common_period": comparison_period_result["AM100"],
         "fixed_10y": am100_cagrs["fixed_10y"],
         "fixed_5y": am100_cagrs["fixed_5y"],
     },
     "AM200": {
-        "since_2016": am200_cagrs["since_2016"],
+        "common_period": comparison_period_result["AM200"],
         "fixed_10y": am200_cagrs["fixed_10y"],
         "fixed_5y": am200_cagrs["fixed_5y"],
     },
     "AM300": {
-        "since_2016": am300_cagrs["since_2016"],
+        "common_period": comparison_period_result["AM300"],
         "fixed_10y": am300_cagrs["fixed_10y"],
         "fixed_5y": am300_cagrs["fixed_5y"],
     },
@@ -1827,12 +1955,12 @@ st.subheader("Headline Performance")
 for index_name, results in fixed_results.items():
     st.markdown(f"**{index_name}**")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Since 2016", safe_metric(results["since_2016"]))
+    col1.metric("Common Window", safe_metric(results["common_period"]))
     col2.metric("10Y (Fixed)", safe_metric(results["fixed_10y"]))
     col3.metric("5Y (Fixed)", safe_metric(results["fixed_5y"]))
     st.markdown(
         f"<div class='small-note'>"
-        f"Since 2016: {safe_period_range(results['since_2016'])} | "
+        f"Common Window: {safe_period_range(results['common_period'])} | "
         f"10Y (Fixed): {safe_period_range(results['fixed_10y'])} | "
         f"5Y (Fixed): {safe_period_range(results['fixed_5y'])}"
         f"</div>",
@@ -1904,7 +2032,7 @@ def metric_help_text(metric_name, period_label):
     return ""
 
 
-headline_period_label = safe_period_range(fixed_results["AM100"]["since_2016"])
+headline_period_label = common_period_label
 
 col1, col2, col3 = st.columns(3)
 
@@ -2384,6 +2512,36 @@ with risk_tab:
     else:
         st.info("Benchmark comparison unavailable. Run scripts/benchmark_compare.py to populate this section.")
 
+    st.markdown("## Volume Data Quality Audit")
+    st.caption(
+        f"Minimum internal threshold: {MIN_POSITIVE_COVERAGE:.0%} positive trading days. Missing volume indicates data failure, zero volume indicates no trading, and only positive volume days count toward liquidity eligibility."
+    )
+
+    if not volume_audit_df.empty:
+        st.dataframe(volume_audit_df, use_container_width=True, hide_index=True, height=280)
+
+        full_coverage = int((volume_audit_df["Positive Coverage %"] == 100).sum())
+        cov_col1, cov_col2, cov_col3 = st.columns(3)
+        cov_col1.metric("Full Positive Coverage", f"{full_coverage}")
+        cov_col2.metric("Eligible (>=80%)", f"{len(eligible_volume_df)}")
+        cov_col3.metric("Ineligible", f"{len(low_volume_coverage_df)}")
+
+        if not missing_volume_df.empty:
+            st.error("Securities with NO volume data")
+            st.write(sorted(missing_volume_df["Security"].tolist()))
+
+        if not zero_only_volume_df.empty:
+            st.warning("Securities with ZERO volume on all observed days")
+            st.write(sorted(zero_only_volume_df["Security"].tolist()))
+
+        if not low_volume_coverage_df.empty:
+            st.warning(
+                f"Securities failing positive trading-day coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
+            )
+            st.write(sorted(low_volume_coverage_df["Security"].tolist()))
+    else:
+        st.info("No volume columns were found in the master panel.")
+
     st.markdown("## Return Decomposition")
     st.caption("Portion of total return generated from dividends rather than price appreciation.")
     price_only_path = "output/AM100_PRICE_ONLY_total_return.csv"
@@ -2560,14 +2718,16 @@ with allocator_tab:
         key="allocator_model_select",
     )
     cagr, vol, sharpe, dd = portfolio_metrics(model_levels[selected_model])
-    st.write(
-        {
-            "CAGR": cagr,
-            "Volatility": vol,
-            "Sharpe": sharpe,
-            "Drawdown": dd,
-        }
-    )
+    with st.container():
+        st.markdown(f"### PORTFOLIO: {selected_model.upper()}")
+        st.markdown(
+            f"""
+            **CAGR**: {cagr * 100:.2f}%  
+            **Volatility**: {vol * 100:.2f}%  
+            **Sharpe**: {sharpe:.2f}  
+            **Max Drawdown**: {dd * 100:.2f}%
+            """
+        )
 
     st.markdown("### MPS Portfolio Builder")
     model = st.selectbox(
@@ -2576,20 +2736,30 @@ with allocator_tab:
         key="mps_model_select",
     )
     weights = MODEL_WEIGHTS[model]
-    st.write("Weights:", weights)
-
     port_returns = build_portfolio(allocator_returns, weights)
     port_index = build_index(port_returns)
     cagr, vol, sharpe, dd = portfolio_metrics(port_index)
 
-    st.write(
-        {
-            "CAGR": cagr,
-            "Volatility": vol,
-            "Sharpe": sharpe,
-            "Drawdown": dd,
-        }
-    )
+    with st.container():
+        st.markdown(f"### PORTFOLIO: {model.upper()}")
+        st.markdown(
+            f"""
+            **CAGR**: {cagr * 100:.2f}%  
+            **Volatility**: {vol * 100:.2f}%  
+            **Sharpe**: {sharpe:.2f}  
+            **Max Drawdown**: {dd * 100:.2f}%
+            """
+        )
+        st.markdown("---")
+        st.markdown(
+            f"""
+            **ALLOCATION**
+
+            AM100 ⟶ {weights.get('AM100', 0) * 100:.0f}%  
+            AM200 ⟶ {weights.get('AM200', 0) * 100:.0f}%  
+            AM300 ⟶ {weights.get('AM300', 0) * 100:.0f}%
+            """
+        )
 
     fig = go.Figure()
     fig.add_trace(

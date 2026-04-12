@@ -14,6 +14,7 @@ BUFFER_MULTIPLIER = 1.2
 MIN_ADV_USD = 200_000
 MIN_TRADING_DAYS_90D = 60
 MIN_NONZERO_DAYS_90D = 50
+MIN_POSITIVE_COVERAGE = 0.80
 MIN_HISTORY_YEARS = 2
 
 MAX_STOCK_WEIGHT = 0.05
@@ -308,6 +309,7 @@ for selection_date, implementation_date in rebalance_schedule:
             "PassedTradingDays": False,
             "PassedADV": False,
             "PassedCoverage": False,
+            "PassedPositiveCoverage": False,
             "PassedNonZeroDays": False,
             "RankAtSelection": np.nan,
             "RankAtImplementation": np.nan,
@@ -329,21 +331,41 @@ for selection_date, implementation_date in rebalance_schedule:
         decision["PassedDividendGate"] = True
 
         price_series = pd.to_numeric(df_cut[price_col], errors="coerce").where(lambda s: s.gt(0))
-        volume_series = pd.to_numeric(df_cut[volume_col], errors="coerce").where(lambda s: s.gt(0))
-        valid_obs = price_series.notna() & volume_series.notna()
-        coverage_pct = float(valid_obs.mean()) if len(valid_obs) else np.nan
-        decision["CoveragePct"] = coverage_pct
-        decision["PassedCoverage"] = bool(pd.notna(coverage_pct) and coverage_pct >= 0.95)
-        decision["ValidObservationCount"] = int(valid_obs.sum())
+        volume_raw = pd.to_numeric(df_cut[volume_col], errors="coerce")
+        volume_series = volume_raw.where(lambda s: s.gt(0))
+        positive_obs = price_series.notna() & volume_series.notna()
+        observed_price_days = int(price_series.notna().sum())
+        positive_coverage_pct = (
+            float(positive_obs.sum() / observed_price_days) if observed_price_days else np.nan
+        )
+        decision["PositiveCoveragePct"] = positive_coverage_pct
+        decision["CoveragePct"] = positive_coverage_pct
+        observed_volume = volume_raw.where(price_series.notna())
+        decision["ObservedPriceDays"] = observed_price_days
+        decision["MissingVolumeDays"] = int(observed_volume.isna().sum())
+        decision["ZeroVolumeDays"] = int(
+            observed_volume.fillna(0).eq(0).sum() - observed_volume.isna().sum()
+        )
+        decision["PositiveVolumeDays"] = int(observed_volume.gt(0).sum())
+        decision["PassedPositiveCoverage"] = bool(
+            pd.notna(positive_coverage_pct) and positive_coverage_pct >= MIN_POSITIVE_COVERAGE
+        )
+        decision["PassedCoverage"] = decision["PassedPositiveCoverage"]
+        decision["ValidObservationCount"] = int(positive_obs.sum())
 
-        if valid_obs.sum() < MIN_VALID_OBSERVATIONS:
+        if not decision["PassedPositiveCoverage"]:
+            decision["RejectReason"] = "FAILED_POSITIVE_VOLUME_COVERAGE"
+            decision_rows.append(decision)
+            continue
+
+        if positive_obs.sum() < MIN_VALID_OBSERVATIONS:
             decision["RejectReason"] = "INSUFFICIENT_VALID_HISTORY"
             decision_rows.append(decision)
             continue
 
         recent_window_start = pd.Timestamp(selection_date) - pd.offsets.BDay(89)
         recent_mask = (df_cut["Date"] >= recent_window_start) & (df_cut["Date"] <= selection_date)
-        recent_valid_obs = valid_obs[recent_mask]
+        recent_valid_obs = positive_obs[recent_mask]
         trading_days = int(recent_valid_obs.sum())
         decision["TradingDays90d"] = trading_days
 
