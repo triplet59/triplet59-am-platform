@@ -957,7 +957,7 @@ AM100_COLOR = "#4DA3FF"
 AM200_COLOR = "#FF9F1C"
 AM300_COLOR = "#22C55E"
 BUILD_VERSION = "21aa1d7"
-SHOW_AM200 = False
+SHOW_AM200 = True
 SHOW_AM300 = False
 
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
@@ -2634,22 +2634,22 @@ if dd200 < dd100:
     obs.append("AM200 has experienced deeper drawdowns, highlighting higher risk.")
 
 top_country_am100 = get_top_country(am100_latest)
-top_country_am200 = get_top_country(am200_latest) if SHOW_AM200 else None
+top_country_am200 = get_top_country(am200_latest)
 top_country_am300 = get_top_country(am300_latest) if SHOW_AM300 else None
 am100_country = get_country_weights(am100_latest)
-am200_country = get_country_weights(am200_latest) if SHOW_AM200 else pd.Series(dtype=float)
+am200_country = get_country_weights(am200_latest)
 am300_country = get_country_weights(am300_latest) if SHOW_AM300 else pd.Series(dtype=float)
 am100_country_df = compute_country_weights(am100_latest)
-am200_country_df = compute_country_weights(am200_latest) if SHOW_AM200 else pd.DataFrame(columns=["Country", "Weight"])
+am200_country_df = compute_country_weights(am200_latest)
 latest_am100 = am100.iloc[-1]
-latest_am200 = am200.iloc[-1] if SHOW_AM200 and len(am200) else None
+latest_am200 = am200.iloc[-1] if len(am200) else None
 latest_am300 = am300.iloc[-1] if SHOW_AM300 and len(am300) else None
 
 ticker_parts = [
     f"AM100: {latest_am100:.2f} ({ret100:.2%})",
     f"Top Country AM100: {safe_display(top_country_am100)}",
 ]
-if SHOW_AM200 and latest_am200 is not None:
+if latest_am200 is not None:
     ticker_parts.append(f"AM200: {latest_am200:.2f} ({ret200:.2%})")
     ticker_parts.append(f"Top Country AM200: {safe_display(top_country_am200)}")
 if SHOW_AM300 and latest_am300 is not None:
@@ -2659,7 +2659,7 @@ ticker_text = " •\n".join(ticker_parts)
 
 if top_country_am100:
     obs.append(f"AM100 is most exposed to {top_country_am100}.")
-if SHOW_AM200 and top_country_am200:
+if top_country_am200:
     obs.append(f"AM200 shows strongest exposure to {top_country_am200}.")
 if SHOW_AM300 and top_country_am300:
     obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
