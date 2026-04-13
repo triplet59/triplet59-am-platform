@@ -54,46 +54,46 @@ def render_metric_card(label, value, help_copy=None):
     )
 
 
-def render_global_header():
-    col1, col2 = st.columns([6, 1])
+def render_static_header():
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    logo_path = os.path.join(base_dir, "assets", "veri_logo.png")
+    col1, col2, col3 = st.columns([1, 6, 1])
 
     with col1:
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=120)
+
+    with col2:
         st.markdown(
             """
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div style="font-size:28px; font-weight:600;">
-                    Veri African Indices
-                </div>
+            ### Veri African Indices
+            AM100 / AM200 / AM300 Total Return Indices
+            """,
+        )
+        st.markdown(
+            """
+            <div style="font-size:15px; font-weight:500; margin-bottom:6px;">
+            AM100 is the institutional core of the Veri African Indices suite.
             </div>
-            <div style="font-size:13px; color:#9aa0a6; margin-top:4px;">
-                AM100 / AM200 / AM300 Total Return Indices
+
+            <div style="font-size:13px; color:#c9c9c9; max-width:900px;">
+            The framework applies strict USD liquidity, trading consistency, and total return standards to define the
+            investable African equity universe. AM200 and AM300 extend this framework through controlled expansion
+            of the investable universe, while preserving liquidity integrity and execution realism.
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    with col2:
+    with col3:
         if st.button("Logout", key="global_logout"):
             st.session_state.auth_mode = None
             st.rerun()
 
     st.markdown("<hr style='margin: 16px 0; opacity: 0.2;'>", unsafe_allow_html=True)
 
-    st.markdown(
-        """
-        <div style="font-size:15px; font-weight:500; margin-bottom:6px;">
-        AM100 is the institutional core of the Veri African Indices suite.
-        </div>
 
-        <div style="font-size:13px; color:#c9c9c9; max-width:900px;">
-        The framework applies strict USD liquidity, trading consistency, and total return standards to define the
-        investable African equity universe. AM200 and AM300 extend this framework through controlled expansion
-        of the investable universe, while preserving liquidity integrity and execution realism.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
+def render_data_header(validated, eligible):
     st.markdown(
         f"""
         <div style="
@@ -107,7 +107,7 @@ def render_global_header():
                 Market Coverage
             </div>
             <div style="font-size:20px; font-weight:600;">
-                {validated_securities_count} Validated Equities | {eligible_securities_count} Eligible (&ge;80% Trading Coverage)
+                {validated} Validated Equities | {eligible} Eligible (&ge;80% Trading Coverage)
             </div>
         </div>
         """,
@@ -1065,6 +1065,7 @@ validated_securities_count = 0
 eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
+render_static_header()
 
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
@@ -1111,21 +1112,9 @@ def render_allocator_view():
         - AM300: Frontier Opportunity Set with controlled trading-frequency relaxation
         """
     )
-
-    st.markdown("### Performance Snapshot")
-    col1, col2, col3 = st.columns(3)
     am100_compare = comparison_metric("AM100")
     am200_compare = comparison_metric("AM200")
     am300_compare = comparison_metric("AM300")
-
-    col1.metric("AM100 CAGR", pct_metric(am100_compare, "CAGR"))
-    col1.metric("Sharpe", num_metric(am100_compare, "Sharpe"))
-
-    col2.metric("AM200 CAGR", pct_metric(am200_compare, "CAGR"))
-    col2.metric("Sharpe", num_metric(am200_compare, "Sharpe"))
-
-    col3.metric("AM300 CAGR", pct_metric(am300_compare, "CAGR"))
-    col3.metric("Sharpe", num_metric(am300_compare, "Sharpe"))
 
     st.markdown(
         """
@@ -1183,9 +1172,16 @@ def render_allocator_view():
             ],
         }
     )
-    st.markdown(f"**Performance Period:** {common_period_label}")
+    start_date = common_start.strftime("%d %b %Y") if common_start is not None else "N/A"
+    end_date = common_end.strftime("%d %b %Y") if common_end is not None else "N/A"
+    st.markdown(
+        f"""
+        **Performance Period**  
+        {start_date} → {end_date}
+        """
+    )
     st.caption(
-        "All comparison metrics are calculated over the shared AM100 / AM200 / AM300 window. Turnover remains the average across rebalance events."
+        "All performance metrics are calculated over the shared period where all index series are concurrently available. Turnover remains the average across rebalance events."
     )
     st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
     st.caption(
@@ -1196,11 +1192,15 @@ def render_allocator_view():
         """
         ### Interpretation
 
-        AM100 defines where institutional capital can be deployed today.
+        • **AM100** represents the institutional core, comprising the most liquid and consistently traded equities.
 
-        AM200 and AM300 expand the opportunity set as liquidity conditions allow.
+        • **AM200** extends into mid-cap and frontier segments, delivering higher returns over the shared period, with:
+          - increased volatility
+          - deeper drawdowns
 
-        Performance dispersion reflects real market depth, not model variation.
+        • **AM300** provides broader frontier exposure, where trading activity is observable but less consistent.
+
+        Performance dispersion across indices reflects liquidity constraints and investability, not differences in methodology.
         """
     )
 
@@ -1945,9 +1945,7 @@ full_trading_coverage_count = int((volume_audit_df["Positive Coverage %"] == 100
 ineligible_securities_count = len(low_volume_coverage_df)
 assert validated_securities_count > 0, "Validated count is zero — pipeline failure"
 assert eligible_securities_count > 0, "Eligible count is zero — filter failure"
-render_global_header()
-st.write("Working dir:", os.getcwd())
-st.write("Master file shape:", price_panel.shape)
+render_data_header(validated_securities_count, eligible_securities_count)
 NO_VOLUME_EXPORT_FILE = "output/missing_volume_companies.csv"
 LOW_COVERAGE_EXPORT_FILE = "output/low_coverage_companies.csv"
 no_volume_df.to_csv(NO_VOLUME_EXPORT_FILE, index=False)
@@ -2239,7 +2237,22 @@ st.caption("Performance Summary")
 
 st.markdown("### CAGR by Period")
 
-st.caption(f"Shared comparison window across AM100 / AM200 / AM300: {common_period_label}")
+common_window_display = common_period_label
+fixed_10y_display = safe_period_range(am100_cagrs["fixed_10y"])
+fixed_5y_display = safe_period_range(am100_cagrs["fixed_5y"])
+
+st.markdown(
+    f"""
+    ### Performance Windows
+
+    **Common Window (Comparable Across Indices)**  
+    {common_window_display}  
+
+    **Fixed Windows (Index-Specific History)**  
+    • 10 Year: {fixed_10y_display}  
+    • 5 Year: {fixed_5y_display}
+    """
+)
 
 latest_valid_dates = {
     "AM100": am100_periods["latest_valid"],
@@ -2352,22 +2365,6 @@ def safe_period_range(result):
         return "Insufficient data"
     return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
 
-
-st.subheader("Headline Performance")
-for index_name, results in fixed_results.items():
-    st.markdown(f"**{index_name}**")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Common Window", safe_metric(results["common_period"]))
-    col2.metric("10Y (Fixed)", safe_metric(results["fixed_10y"]))
-    col3.metric("5Y (Fixed)", safe_metric(results["fixed_5y"]))
-    st.markdown(
-        f"<div class='small-note'>"
-        f"Common Window: {safe_period_range(results['common_period'])} | "
-        f"10Y (Fixed): {safe_period_range(results['fixed_10y'])} | "
-        f"5Y (Fixed): {safe_period_range(results['fixed_5y'])}"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
 
 with st.expander("Rolling Performance Analysis"):
     for index_name, results in rolling_results.items():
@@ -3524,6 +3521,7 @@ with overview_tab:
         ax.set_yscale("log")
         fig.tight_layout()
         st.pyplot(fig, use_container_width=True)
+        st.caption("Series begin at first eligible inclusion date per index.")
 
     st.caption("Index composition shift due to liquidity-driven rebalance")
 
@@ -3553,7 +3551,9 @@ with overview_tab:
             fig.tight_layout()
             st.pyplot(fig, use_container_width=True)
         else:
-            st.info("AM200 country allocation not yet available")
+            st.info(
+                "AM200 country allocation is being standardised under the updated liquidity framework and will be included in the next release."
+            )
 
     st.markdown(
         """
