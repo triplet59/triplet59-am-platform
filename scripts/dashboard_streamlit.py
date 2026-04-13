@@ -906,6 +906,10 @@ render_global_header()
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
 comparison_metrics = {}
+common_start = None
+common_end = None
+common_period_label = "N/A"
+comparison_series = {}
 
 
 def render_allocator_view():
