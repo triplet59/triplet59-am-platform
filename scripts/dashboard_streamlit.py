@@ -807,15 +807,42 @@ def render_annual_returns_section(download_key):
         annual_returns = pd.read_csv(file_path)
         st.success("Annual returns data loaded successfully")
 
-        st.dataframe(annual_returns, use_container_width=True)
+        col1, col2 = st.columns([1, 2])
 
-        fig, ax = plt.subplots(figsize=(12, 6))
-        annual_returns.set_index("Year").plot(kind="bar", ax=ax)
-        ax.set_title("Annual Calendar Returns (%)")
-        ax.set_ylabel("Return (%)")
-        ax.axhline(0, color="black", linewidth=0.8)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+        with col1:
+            st.markdown("### Annual Returns (%)")
+            display_table = annual_returns.copy().round(1)
+            display_table.columns = ["Year", "AM100", "AM200", "AM300"]
+            display_table = display_table.set_index("Year")
+            st.dataframe(display_table, use_container_width=True, height=400)
+
+        with col2:
+            st.markdown("### Annual Performance Chart")
+            years = annual_returns["Year"].astype(str)
+            x = np.arange(len(years))
+            width = 0.22
+
+            fig, ax = plt.subplots(figsize=(10, 5))
+            colors = {
+                "AM100": "#4A90E2",
+                "AM200": "#50E3C2",
+                "AM300": "#F5A623",
+            }
+
+            ax.bar(x - width, annual_returns["AM100"], width, label="AM100", color=colors["AM100"])
+            ax.bar(x, annual_returns["AM200"], width, label="AM200", color=colors["AM200"])
+            ax.bar(x + width, annual_returns["AM300"], width, label="AM300", color=colors["AM300"])
+
+            ax.set_xticks(x)
+            ax.set_xticklabels(years, rotation=0)
+            ax.set_ylabel("Return (%)")
+            ax.axhline(0, color="black", linewidth=1)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.legend()
+
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
         csv = annual_returns.to_csv(index=False).encode("utf-8")
