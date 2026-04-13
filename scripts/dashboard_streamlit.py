@@ -821,24 +821,18 @@ def render_annual_returns_section(download_key):
             x = np.arange(len(years))
             width = 0.22
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            colors = {
-                "AM100": "#4A90E2",
-                "AM200": "#50E3C2",
-                "AM300": "#F5A623",
-            }
+            fig, ax = plt.subplots(figsize=(10, 5), facecolor="#0E1117")
 
-            ax.bar(x - width, annual_returns["AM100"], width, label="AM100", color=colors["AM100"])
-            ax.bar(x, annual_returns["AM200"], width, label="AM200", color=colors["AM200"])
-            ax.bar(x + width, annual_returns["AM300"], width, label="AM300", color=colors["AM300"])
+            ax.bar(x - width, annual_returns["AM100"], width, label="AM100", color=CHART_COLORS["AM100"])
+            ax.bar(x, annual_returns["AM200"], width, label="AM200", color=CHART_COLORS["AM200"])
+            ax.bar(x + width, annual_returns["AM300"], width, label="AM300", color=CHART_COLORS["AM300"])
 
             ax.set_xticks(x)
             ax.set_xticklabels(years, rotation=0)
             ax.set_ylabel("Return (%)")
-            ax.axhline(0, color="black", linewidth=1)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.legend()
+            ax.axhline(0, color="white", linewidth=1)
+            style_dark_axes(ax)
+            ax.legend(frameon=False)
 
             plt.tight_layout()
             st.pyplot(fig, use_container_width=True)
@@ -1599,7 +1593,7 @@ st.markdown("""
 
 </style>
 """, unsafe_allow_html=True)
-plt.style.use("default")
+plt.style.use("dark_background")
 plt.rcParams.update({
     "figure.figsize": (10, 4),
     "font.size": 9,
@@ -1609,7 +1603,35 @@ plt.rcParams.update({
     "ytick.labelsize": 8,
     "legend.fontsize": 8,
     "font.family": "sans-serif",
+    "figure.facecolor": "#0E1117",
+    "axes.facecolor": "#0E1117",
+    "savefig.facecolor": "#0E1117",
+    "text.color": "white",
+    "axes.labelcolor": "white",
+    "axes.titlecolor": "white",
+    "xtick.color": "white",
+    "ytick.color": "white",
 })
+
+CHART_COLORS = {
+    "AM100": "#4A90E2",
+    "AM200": "#50E3C2",
+    "AM300": "#F5A623",
+    "Conservative": "#7ED321",
+    "Balanced": "#BD10E0",
+    "Growth": "#FF6F61",
+}
+
+
+def style_dark_axes(ax):
+    ax.set_facecolor("#0E1117")
+    ax.tick_params(colors="white")
+    ax.xaxis.label.set_color("white")
+    ax.yaxis.label.set_color("white")
+    ax.title.set_color("white")
+    ax.grid(True, linestyle="--", alpha=0.2)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
 
 
 def style_chart(fig, ax):
@@ -2913,7 +2935,10 @@ with allocator_tab:
     st.dataframe(model_metrics_display, use_container_width=True, hide_index=True)
 
     if annual_returns_daily_df is not None and not annual_returns_daily_df.empty:
-        portfolio_source = annual_returns_daily_df.copy()
+        portfolio_source = annual_returns_daily_df.copy().sort_values("Date")
+        portfolio_source[["AM100", "AM200", "AM300"]] = (
+            portfolio_source[["AM100", "AM200", "AM300"]].ffill().bfill()
+        )
         portfolio_returns = []
         for name, weights in PORTFOLIOS.items():
             portfolio_source[name] = build_portfolio_index(portfolio_source, weights)
@@ -2945,26 +2970,40 @@ with allocator_tab:
         st.subheader("Rolling Returns")
         st.markdown("### Rolling 3-Year Returns (%)")
         rolling_3y_chart = rolling_3y.set_index("Date").dropna(how="all")
-        fig, ax = plt.subplots(figsize=(12, 5))
-        rolling_3y_chart.plot(ax=ax)
+        fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
+        for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
+            ax.plot(
+                rolling_3y_chart.index,
+                rolling_3y_chart[col],
+                label=col,
+                linewidth=1.8,
+                color=CHART_COLORS[col],
+            )
         ax.set_title("Rolling 3-Year Returns (%)")
         ax.set_ylabel("Return (%)")
-        ax.grid(True, linestyle="--", alpha=0.3)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.set_xlim(rolling_3y_chart.index.min(), rolling_3y_chart.index.max())
+        style_dark_axes(ax)
+        ax.legend(frameon=False, ncol=3)
         plt.tight_layout()
         st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
         st.markdown("### Rolling 5-Year Returns (%)")
         rolling_5y_chart = rolling_5y.set_index("Date").dropna(how="all")
-        fig, ax = plt.subplots(figsize=(12, 5))
-        rolling_5y_chart.plot(ax=ax)
+        fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
+        for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
+            ax.plot(
+                rolling_5y_chart.index,
+                rolling_5y_chart[col],
+                label=col,
+                linewidth=1.8,
+                color=CHART_COLORS[col],
+            )
         ax.set_title("Rolling 5-Year Returns (%)")
         ax.set_ylabel("Return (%)")
-        ax.grid(True, linestyle="--", alpha=0.3)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+        ax.set_xlim(rolling_5y_chart.index.min(), rolling_5y_chart.index.max())
+        style_dark_axes(ax)
+        ax.legend(frameon=False, ncol=3)
         plt.tight_layout()
         st.pyplot(fig, use_container_width=True)
         plt.close(fig)
