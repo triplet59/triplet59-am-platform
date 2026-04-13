@@ -906,10 +906,12 @@ render_global_header()
 
 def render_allocator_view():
     def comparison_metric(index_name):
+        global comparison_metrics
+
         if not isinstance(comparison_metrics, dict):
-            return {}
+            return None
         metric_row = comparison_metrics.get(index_name)
-        return metric_row if isinstance(metric_row, dict) else {}
+        return metric_row if isinstance(metric_row, dict) else None
 
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
@@ -1180,10 +1182,12 @@ if IS_INTERNAL and all(
     ]
 ):
     def comparison_metric(index_name):
+        global comparison_metrics
+
         if not isinstance(comparison_metrics, dict):
-            return {}
+            return None
         metric_row = comparison_metrics.get(index_name)
-        return metric_row if isinstance(metric_row, dict) else {}
+        return metric_row if isinstance(metric_row, dict) else None
 
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
@@ -1714,12 +1718,25 @@ def load_data():
 
 am100, am200, am300 = load_data()
 
+
+def normalize_comparison_metrics(raw_metrics):
+    if isinstance(raw_metrics, dict):
+        return {
+            str(index_name): metric_row
+            for index_name, metric_row in raw_metrics.items()
+            if isinstance(metric_row, dict)
+        }
+    if isinstance(raw_metrics, pd.DataFrame) and "Index" in raw_metrics.columns:
+        return raw_metrics.set_index("Index").to_dict(orient="index")
+    return {}
+
+
 common_analysis = get_common_analysis_window({"AM100": am100, "AM200": am200, "AM300": am300})
 common_start = common_analysis["start"]
 common_end = common_analysis["end"]
 common_period_label = common_analysis["label"]
 comparison_series = common_analysis["series"]
-comparison_metrics = (
+comparison_metrics = normalize_comparison_metrics(
     {name: compute_window_metrics(series) for name, series in comparison_series.items()}
     if isinstance(comparison_series, dict)
     else {}
