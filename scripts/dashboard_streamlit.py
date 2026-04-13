@@ -2253,8 +2253,19 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
-fixed_10y_display = safe_period_range(cagr_outputs["AM100"]["fixed_10y"])
-fixed_5y_display = safe_period_range(cagr_outputs["AM100"]["fixed_5y"])
+am100_cagr = cagr_outputs.get("AM100", {})
+
+if "fixed_10y" not in am100_cagr or am100_cagr["fixed_10y"] is None:
+    raise ValueError(
+        f"AM100 fixed_10y missing or None. Available keys: {list(am100_cagr.keys())}"
+    )
+if "fixed_5y" not in am100_cagr or am100_cagr["fixed_5y"] is None:
+    raise ValueError(
+        f"AM100 fixed_5y missing or None. Available keys: {list(am100_cagr.keys())}"
+    )
+
+fixed_10y_display = safe_period_range(am100_cagr["fixed_10y"])
+fixed_5y_display = safe_period_range(am100_cagr["fixed_5y"])
 
 st.markdown(
     f"""
@@ -2372,13 +2383,21 @@ def safe_metric(result):
 
 
 def safe_period_range(result):
-    if not isinstance(result, dict) or result.get("status") != "OK":
-        return "Insufficient data"
-    start = result.get("start")
-    end = result.get("end")
-    if start is None or end is None:
-        return "Insufficient data"
-    return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
+    if not result:
+        return "N/A"
+    if isinstance(result, dict):
+        if result.get("status") != "OK":
+            return "N/A"
+        start = result.get("start")
+        end = result.get("end")
+        if start is None or end is None:
+            return "N/A"
+        return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
+    try:
+        start, end = result
+        return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
+    except Exception:
+        return "N/A"
 
 
 with st.expander("Rolling Performance Analysis"):
