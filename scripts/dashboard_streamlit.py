@@ -542,6 +542,14 @@ def load_csv_file(path, _version=None):
 
 
 @st.cache_data
+def load_annual_returns(path, _version=None):
+    df = pd.read_csv(path)
+    if "Year" in df.columns:
+        df["Year"] = df["Year"].astype(int)
+    return df
+
+
+@st.cache_data
 def load_benchmark_series(path, _version=None):
     df = load_benchmark(path)
     df["Date"] = pd.to_datetime(df["Date"])
@@ -717,6 +725,7 @@ The result is a transparent, investable benchmark aligned with real-world constr
 am100_metrics = load_metrics_csv("output/AM100_metrics.csv", BUILD_VERSION)
 am200_metrics = load_metrics_csv("output/AM200_metrics.csv", BUILD_VERSION)
 am300_metrics = load_metrics_csv("output/AM300_metrics.csv", BUILD_VERSION)
+annual_returns_df = load_annual_returns("output/AM_annual_returns.csv", BUILD_VERSION)
 am100_snapshot_insights = load_constituent_snapshot_insights(
     "output/AM100_history.xlsx", BUILD_VERSION
 )
@@ -732,6 +741,47 @@ index_overlap_metrics = load_index_overlap_metrics(
     "output/AM300_history.xlsx",
     BUILD_VERSION,
 )
+
+
+def render_annual_returns_chart(df, title="Annual Calendar Returns (%)"):
+    if df is None or df.empty:
+        st.info("Annual calendar return data is not available yet.")
+        return
+
+    chart_df = df.copy().sort_values("Year").set_index("Year")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    chart_df.plot(kind="bar", ax=ax)
+    ax.set_title(title)
+    ax.set_ylabel("Return (%)")
+    ax.set_xlabel("Year")
+    ax.axhline(0, color="black", linewidth=0.8)
+    plt.tight_layout()
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
+
+
+def render_annual_returns_summary(df):
+    if df is None or df.empty:
+        return
+
+    st.markdown("### Performance Summary")
+
+    summary = {}
+    for col in ["AM100", "AM200", "AM300"]:
+        if col not in df.columns:
+            continue
+        series = df[col].dropna()
+        if series.empty:
+            continue
+        summary[col] = {
+            "Best Year (%)": round(series.max(), 2),
+            "Worst Year (%)": round(series.min(), 2),
+            "Positive Years (%)": round((series > 0).mean() * 100, 1),
+        }
+
+    if summary:
+        summary_df = pd.DataFrame(summary).T
+        st.dataframe(summary_df, use_container_width=True)
 
 render_global_header()
 
@@ -844,6 +894,21 @@ def render_allocator_view():
     st.caption(
         "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period."
     )
+
+    if annual_returns_df is not None and not annual_returns_df.empty:
+        st.markdown("## Annual Calendar Returns (%)")
+        st.markdown("Performance shown as calendar year returns based on total return index values.")
+        render_annual_returns_chart(annual_returns_df)
+        st.dataframe(annual_returns_df, use_container_width=True, hide_index=True)
+        render_annual_returns_summary(annual_returns_df)
+        annual_returns_csv = annual_returns_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download Annual Returns CSV",
+            data=annual_returns_csv,
+            file_name="AM_annual_returns.csv",
+            mime="text/csv",
+            key="download_annual_returns_allocator",
+        )
 
     st.markdown(
         """
@@ -1071,6 +1136,21 @@ if IS_INTERNAL and all(
         st.caption(
             "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period. Turnover is shown as the average across rebalance events."
         )
+        if annual_returns_df is not None and not annual_returns_df.empty:
+            st.divider()
+            st.markdown("## Annual Calendar Returns (%)")
+            st.markdown("Performance shown as calendar year returns based on total return index values.")
+            render_annual_returns_chart(annual_returns_df, "Annual Calendar Returns (%)")
+            st.dataframe(annual_returns_df, use_container_width=True, hide_index=True, height=260)
+            render_annual_returns_summary(annual_returns_df)
+            annual_returns_csv = annual_returns_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="Download Annual Returns CSV",
+                data=annual_returns_csv,
+                file_name="AM_annual_returns.csv",
+                mime="text/csv",
+                key="download_annual_returns_internal",
+            )
         st.divider()
 
         col1, col2, col3 = st.columns(3)
