@@ -498,9 +498,29 @@ def compute_performance(series, window_type, name=None, **kwargs):
                 f"{name or 'compute_performance'}: index is not datetime-compatible"
             ) from exc
 
-    index = series.dropna().index.sort_values()
+    series = series.dropna()
+    if series.empty:
+        return {
+            "status": "NO_DATA",
+            "cagr": None,
+            "vol": None,
+            "sharpe": None,
+            "drawdown": None,
+            "start": None,
+            "end": None,
+        }
+
+    index = series.index.sort_values()
     if len(index) < 2:
-        return {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
+        return {
+            "status": "NO_DATA",
+            "cagr": None,
+            "vol": None,
+            "sharpe": None,
+            "drawdown": None,
+            "start": index.min() if len(index) else None,
+            "end": index.max() if len(index) else None,
+        }
 
     if window_type == "rolling":
         start, end, status = get_rolling_window(
@@ -630,6 +650,28 @@ def get_periods(price_df, constituents, index_series):
     }
 
 
+def get_common_window(series_dict):
+    valid_ranges = []
+
+    for series in series_dict.values():
+        if series is None:
+            continue
+        clean = series.dropna()
+        if not clean.empty:
+            valid_ranges.append((clean.index.min(), clean.index.max()))
+
+    if not valid_ranges:
+        return None, None
+
+    start = max(r[0] for r in valid_ranges)
+    end = min(r[1] for r in valid_ranges)
+
+    if start >= end:
+        return None, None
+
+    return start, end
+
+
 def get_common_analysis_window(index_map, requested_start=pd.Timestamp("2016-01-01")):
     valid_series = {
         name: series.dropna().sort_index()
@@ -639,23 +681,22 @@ def get_common_analysis_window(index_map, requested_start=pd.Timestamp("2016-01-
     if not valid_series:
         return {"start": None, "end": None, "label": "No common period", "series": {}}
 
-    common_dates = None
-    for series in valid_series.values():
-        common_dates = series.index if common_dates is None else common_dates.intersection(series.index)
-
-    if common_dates is None or len(common_dates) < 2:
+    common_start, common_end = get_common_window(valid_series)
+    if common_start is None or common_end is None:
         return {"start": None, "end": None, "label": "No common period", "series": {}}
 
-    common_dates = common_dates.sort_values()
-    common_start = common_dates.min()
-    common_end = common_dates.max()
     start = max(requested_start, common_start)
+    if start >= common_end:
+        return {"start": None, "end": None, "label": "No common period", "series": {}}
 
     aligned = {}
     for name, series in valid_series.items():
         aligned_series = series.loc[start:common_end].dropna()
         if len(aligned_series) >= 2:
             aligned[name] = aligned_series
+
+    if not aligned:
+        return {"start": None, "end": None, "label": "No common period", "series": {}}
 
     label = f"{start.strftime('%d %b %Y')} -> {common_end.strftime('%d %b %Y')}"
     return {"start": start, "end": common_end, "label": label, "series": aligned}
