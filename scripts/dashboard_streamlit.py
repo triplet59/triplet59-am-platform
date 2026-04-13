@@ -468,12 +468,6 @@ def calculate_cagr_window(series, start_date, end_date):
 
 
 def compute_performance(series, window_type, name=None, **kwargs):
-    st.write(f"{name} TYPE: {str(type(series))}")
-    try:
-        st.write(series.head())
-    except Exception:
-        st.write(str(series))
-
     if series is None:
         raise ValueError(f"{name or 'compute_performance'}: series is None")
 
@@ -1985,6 +1979,9 @@ def load_data():
 
 
 am100, am200, am300 = load_data()
+am100_series = am100.copy()
+am200_series = am200.copy()
+am300_series = am300.copy()
 
 
 def normalize_comparison_metrics(raw_metrics):
@@ -1999,7 +1996,9 @@ def normalize_comparison_metrics(raw_metrics):
     return {}
 
 
-common_analysis = get_common_analysis_window({"AM100": am100, "AM200": am200, "AM300": am300})
+common_analysis = get_common_analysis_window(
+    {"AM100": am100_series, "AM200": am200_series, "AM300": am300_series}
+)
 common_start = common_analysis["start"]
 common_end = common_analysis["end"]
 common_period_label = common_analysis["label"]
@@ -2213,21 +2212,21 @@ def generate_pdf(cagr100, cagr200):
 # ----------------------------
 st.sidebar.title("Controls")
 
-start_date = st.sidebar.date_input("Start Date", am100.index.min())
-end_date = st.sidebar.date_input("End Date", am100.index.max())
+start_date = st.sidebar.date_input("Start Date", am100_series.index.min())
+end_date = st.sidebar.date_input("End Date", am100_series.index.max())
 
 # Filter data
-am100 = am100[
-    (am100.index >= pd.to_datetime(start_date))
-    & (am100.index <= pd.to_datetime(end_date))
+am100 = am100_series[
+    (am100_series.index >= pd.to_datetime(start_date))
+    & (am100_series.index <= pd.to_datetime(end_date))
 ]
-am200 = am200[
-    (am200.index >= pd.to_datetime(start_date))
-    & (am200.index <= pd.to_datetime(end_date))
+am200 = am200_series[
+    (am200_series.index >= pd.to_datetime(start_date))
+    & (am200_series.index <= pd.to_datetime(end_date))
 ]
-am300 = am300[
-    (am300.index >= pd.to_datetime(start_date))
-    & (am300.index <= pd.to_datetime(end_date))
+am300 = am300_series[
+    (am300_series.index >= pd.to_datetime(start_date))
+    & (am300_series.index <= pd.to_datetime(end_date))
 ]
 
 am100_df = am100.rename("Index Level").reset_index()
@@ -2341,18 +2340,18 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
-am100 = cagr_outputs.get("AM100", {})
+am100_outputs = cagr_outputs.get("AM100", {})
 
-fixed_10y = am100.get("fixed_10y")
+fixed_10y = am100_outputs.get("fixed_10y")
 if fixed_10y is None:
     raise ValueError(
-        f"AM100 fixed_10y missing. Available keys: {list(am100.keys())}"
+        f"AM100 fixed_10y missing. Available keys: {list(am100_outputs.keys())}"
     )
 
-fixed_5y = am100.get("fixed_5y")
+fixed_5y = am100_outputs.get("fixed_5y")
 if fixed_5y is None:
     raise ValueError(
-        f"AM100 fixed_5y missing. Available keys: {list(am100.keys())}"
+        f"AM100 fixed_5y missing. Available keys: {list(am100_outputs.keys())}"
     )
 
 fixed_10y_display = safe_period_range(fixed_10y)
@@ -2440,9 +2439,9 @@ rolling_results = {
 }
 
 index_series_map = {
-    "AM100": am100,
-    "AM200": am200,
-    "AM300": am300,
+    "AM100": am100_series,
+    "AM200": am200_series,
+    "AM300": am300_series,
 }
 
 comparison_period_result = {
