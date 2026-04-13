@@ -119,6 +119,121 @@ def safe_display(value, fallback="N/A"):
     return value if value is not None else fallback
 
 
+def validate_df(df, name, required_columns=None):
+    if df is None:
+        raise ValueError(f"{name} is None")
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError(f"{name} is not a DataFrame")
+    if df.empty:
+        raise ValueError(f"{name} is empty")
+    if required_columns:
+        missing = [col for col in required_columns if col not in df.columns]
+        if missing:
+            raise ValueError(f"{name} is missing required columns: {', '.join(missing)}")
+    return df
+
+
+def validate_series(series, name):
+    if series is None:
+        raise ValueError(f"{name} is None")
+    if not isinstance(series, pd.Series):
+        raise ValueError(f"{name} is not a Series")
+    if series.empty:
+        raise ValueError(f"{name} is empty")
+    return series.sort_index()
+
+
+def standardize_index_level_df(df, index_name):
+    frame = validate_df(df.copy(), f"{index_name} performance_df", ["Date", "Index Level"])
+    frame["Date"] = pd.to_datetime(frame["Date"])
+    frame["Index_Level"] = pd.to_numeric(frame["Index Level"], errors="coerce")
+    frame = frame[["Date", "Index_Level"]].dropna().copy()
+    frame["Index"] = index_name
+    return validate_df(
+        frame,
+        f"{index_name} performance_df standardized",
+        ["Date", "Index", "Index_Level"],
+    )
+
+
+def series_metric_frame(series, index_name, metric_name):
+    frame = pd.DataFrame({"Date": series.index, "Value": pd.to_numeric(series, errors="coerce")})
+    frame["Index"] = index_name
+    frame["Metric"] = metric_name
+    frame = frame.dropna(subset=["Date", "Value"])
+    return validate_df(frame, f"{index_name} {metric_name}", ["Date", "Index", "Metric", "Value"])
+
+
+def build_dashboard_outputs(
+    am100_df,
+    am200_df,
+    am300_df,
+    rolling_perf_1y_100,
+    rolling_perf_1y_200,
+    rolling_perf_1y_300,
+    rolling_vol_100,
+    rolling_vol_200,
+    rolling_vol_300,
+    drawdown_100,
+    drawdown_200,
+    drawdown_300,
+    am100_latest,
+    am200_latest,
+    am300_latest,
+    stats_dict,
+):
+    performance_df = pd.concat(
+        [
+            standardize_index_level_df(am100_df, "AM100"),
+            standardize_index_level_df(am200_df, "AM200"),
+            standardize_index_level_df(am300_df, "AM300"),
+        ],
+        ignore_index=True,
+    )
+    rolling_df = pd.concat(
+        [
+            series_metric_frame(rolling_perf_1y_100, "AM100", "Rolling_1Y"),
+            series_metric_frame(rolling_perf_1y_200, "AM200", "Rolling_1Y"),
+            series_metric_frame(rolling_perf_1y_300, "AM300", "Rolling_1Y"),
+            series_metric_frame(rolling_vol_100, "AM100", "Rolling_30D_Volatility"),
+            series_metric_frame(rolling_vol_200, "AM200", "Rolling_30D_Volatility"),
+            series_metric_frame(rolling_vol_300, "AM300", "Rolling_30D_Volatility"),
+        ],
+        ignore_index=True,
+    )
+    drawdown_df = pd.concat(
+        [
+            series_metric_frame(drawdown_100, "AM100", "Drawdown"),
+            series_metric_frame(drawdown_200, "AM200", "Drawdown"),
+            series_metric_frame(drawdown_300, "AM300", "Drawdown"),
+        ],
+        ignore_index=True,
+    )
+    constituents_df = pd.concat(
+        [
+            validate_df(am100_latest.copy(), "AM100 constituents", ["Company", "Country", "Weight"]).assign(Index="AM100"),
+            validate_df(am200_latest.copy(), "AM200 constituents", ["Company", "Country", "Weight"]).assign(Index="AM200"),
+            validate_df(am300_latest.copy(), "AM300 constituents", ["Company", "Country", "Weight"]).assign(Index="AM300"),
+        ],
+        ignore_index=True,
+    )
+    return {
+        "performance": validate_df(
+            performance_df, "performance_df", ["Date", "Index", "Index_Level"]
+        ),
+        "rolling": validate_df(
+            rolling_df, "rolling_df", ["Date", "Index", "Metric", "Value"]
+        ),
+        "drawdown": validate_df(
+            drawdown_df, "drawdown_df", ["Date", "Index", "Metric", "Value"]
+        ),
+        "constituents": validate_df(
+            constituents_df, "constituents_df", ["Index", "Company", "Country", "Weight"]
+        ),
+        "stats": stats_dict,
+    }
+
+
 def validate_final_weights(df, label="Index"):
     if df is None or df.empty or "Weight" not in df.columns:
         return
@@ -199,6 +314,17 @@ def audit_volume_quality(df):
     return pd.DataFrame(results).sort_values(
         ["Positive Coverage %", "Positive Days", "Security"], ascending=[True, True, True]
     ).reset_index(drop=True)
+
+
+def get_volume_audit(df):
+    audit = audit_volume_quality(df)
+    validated = len(audit)
+    eligible = int((audit["Positive Coverage %"] >= 80).sum())
+
+    assert validated > 0, "No validated securities"
+    assert eligible > 0, "No eligible securities"
+
+    return audit, validated, eligible
 
 
 def prepare_constituent_table(df, include_rank=False, limit=None, search=None):
@@ -893,6 +1019,7 @@ def render_annual_returns_section(download_key):
         )
     except Exception as e:
         st.error(f"Error loading annual returns: {e}")
+        raise
 
 
 def compute_annual_returns(df, column):
@@ -938,7 +1065,6 @@ validated_securities_count = 0
 eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
-render_global_header()
 
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
@@ -1723,15 +1849,12 @@ def style_chart(fig, ax):
 def load_total_return(name, _version=None):
     path = f"output/{name}_total_return.csv"
     if not os.path.exists(path):
-        st.error(f"No data file found for {name}: {path}")
-        return None
+        raise ValueError(f"No data file found for {name}: {path}")
 
     df = load_index(name)
-    if "Index Level" not in df.columns:
-        st.error(f"{name} file is missing required column: Index Level")
-        return None
+    validate_df(df, f"{name} total return file", ["Date", "Index Level"])
 
-    return df.set_index("Date")["Index Level"]
+    return validate_series(df.set_index("Date")["Index Level"], f"{name} total return series")
 
 
 def load_data():
@@ -1741,9 +1864,6 @@ def load_data():
     am100 = load_total_return("AM100", get_file_version(am100_path))
     am200 = load_total_return("AM200", get_file_version(am200_path))
     am300 = load_total_return("AM300", get_file_version(am300_path))
-
-    if am100 is None or am200 is None or am300 is None:
-        st.stop()
 
     return am100, am200, am300
 
@@ -1807,7 +1927,7 @@ price_panel = load_price_panel(
     else get_file_version("output/master.xlsx")
 )
 MIN_POSITIVE_COVERAGE = 0.80
-volume_audit_df = audit_volume_quality(price_panel)
+volume_audit_df, validated_securities_count, eligible_securities_count = get_volume_audit(price_panel)
 no_volume_df = volume_audit_df[volume_audit_df["Positive Days"] == 0].copy()
 missing_volume_df = volume_audit_df[volume_audit_df["Missing Days"] == volume_audit_df["Total Days"]].copy()
 zero_only_volume_df = volume_audit_df[
@@ -1821,10 +1941,13 @@ low_volume_coverage_df = volume_audit_df[
 eligible_volume_df = volume_audit_df[
     volume_audit_df["Positive Coverage %"] >= MIN_POSITIVE_COVERAGE * 100
 ].copy()
-validated_securities_count = len(volume_audit_df)
-eligible_securities_count = len(eligible_volume_df)
 full_trading_coverage_count = int((volume_audit_df["Positive Coverage %"] == 100).sum())
 ineligible_securities_count = len(low_volume_coverage_df)
+assert validated_securities_count > 0, "Validated count is zero — pipeline failure"
+assert eligible_securities_count > 0, "Eligible count is zero — filter failure"
+render_global_header()
+st.write("Working dir:", os.getcwd())
+st.write("Master file shape:", price_panel.shape)
 NO_VOLUME_EXPORT_FILE = "output/missing_volume_companies.csv"
 LOW_COVERAGE_EXPORT_FILE = "output/low_coverage_companies.csv"
 no_volume_df.to_csv(NO_VOLUME_EXPORT_FILE, index=False)
@@ -2511,6 +2634,43 @@ rolling_perf_1y_300 = am300_s.pct_change(252).dropna()
 drawdown_100 = calculate_drawdown(am100_s)
 drawdown_200 = calculate_drawdown(am200_s)
 drawdown_300 = calculate_drawdown(am300_s)
+
+dashboard_outputs = build_dashboard_outputs(
+    am100_df=am100_df,
+    am200_df=am200_df,
+    am300_df=am300_df,
+    rolling_perf_1y_100=rolling_perf_1y_100,
+    rolling_perf_1y_200=rolling_perf_1y_200,
+    rolling_perf_1y_300=rolling_perf_1y_300,
+    rolling_vol_100=rolling_vol_100,
+    rolling_vol_200=rolling_vol_200,
+    rolling_vol_300=rolling_vol_300,
+    drawdown_100=drawdown_100,
+    drawdown_200=drawdown_200,
+    drawdown_300=drawdown_300,
+    am100_latest=am100_latest,
+    am200_latest=am200_latest,
+    am300_latest=am300_latest,
+    stats_dict={
+        "AM100": {"CAGR": cagr100, "Volatility": vol100, "Sharpe": sharpe100, "Max_Drawdown": dd100},
+        "AM200": {"CAGR": cagr200, "Volatility": vol200, "Sharpe": sharpe200, "Max_Drawdown": dd200},
+        "AM300": {"CAGR": cagr300, "Volatility": vol300, "Sharpe": sharpe300, "Max_Drawdown": dd300},
+    },
+)
+perf = validate_df(
+    dashboard_outputs["performance"], "performance", ["Date", "Index", "Index_Level"]
+)
+roll = validate_df(
+    dashboard_outputs["rolling"], "rolling", ["Date", "Index", "Metric", "Value"]
+)
+dd = validate_df(
+    dashboard_outputs["drawdown"], "drawdown", ["Date", "Index", "Metric", "Value"]
+)
+constituents = validate_df(
+    dashboard_outputs["constituents"],
+    "constituents",
+    ["Index", "Company", "Country", "Weight"],
+)
 
 for o in obs:
     st.write(f"• {o}")
