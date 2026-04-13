@@ -934,6 +934,10 @@ def build_portfolio_index(df, weights):
         + df["AM300"] * weights["AM300"]
     )
 
+validated_securities_count = 0
+eligible_securities_count = 0
+full_trading_coverage_count = 0
+ineligible_securities_count = 0
 render_global_header()
 
 # Initialized early so any pre-load UI block can fail safely to N/A
