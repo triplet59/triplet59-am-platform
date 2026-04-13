@@ -550,6 +550,12 @@ def load_annual_returns(path, _version=None):
 
 
 @st.cache_data
+def load_daily_panel(path, _version=None):
+    df = pd.read_csv(path, parse_dates=["Date"])
+    return df.sort_values("Date")
+
+
+@st.cache_data
 def load_benchmark_series(path, _version=None):
     df = load_benchmark(path)
     df["Date"] = pd.to_datetime(df["Date"])
@@ -726,6 +732,9 @@ am100_metrics = load_metrics_csv("output/AM100_metrics.csv", BUILD_VERSION)
 am200_metrics = load_metrics_csv("output/AM200_metrics.csv", BUILD_VERSION)
 am300_metrics = load_metrics_csv("output/AM300_metrics.csv", BUILD_VERSION)
 annual_returns_df = load_annual_returns("output/AM_annual_returns.csv", BUILD_VERSION)
+annual_returns_daily_df = load_daily_panel(
+    "output/annual_calendar_returns_daily_panel.csv", BUILD_VERSION
+)
 am100_snapshot_insights = load_constituent_snapshot_insights(
     "output/AM100_history.xlsx", BUILD_VERSION
 )
@@ -782,6 +791,81 @@ def render_annual_returns_summary(df):
     if summary:
         summary_df = pd.DataFrame(summary).T
         st.dataframe(summary_df, use_container_width=True)
+
+
+def render_annual_returns_section(download_key):
+    st.markdown("## Annual Calendar Returns (%)")
+    st.markdown("Performance shown as calendar year returns based on total return index values.")
+
+    file_path = "output/AM_annual_returns.csv"
+
+    if not os.path.exists(file_path):
+        st.error(f"File not found: {file_path}")
+        return
+
+    try:
+        annual_returns = pd.read_csv(file_path)
+        st.success("Annual returns data loaded successfully")
+
+        st.dataframe(annual_returns, use_container_width=True)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        annual_returns.set_index("Year").plot(kind="bar", ax=ax)
+        ax.set_title("Annual Calendar Returns (%)")
+        ax.set_ylabel("Return (%)")
+        ax.axhline(0, color="black", linewidth=0.8)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+        csv = annual_returns.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download Annual Returns",
+            csv,
+            "AM_annual_returns.csv",
+            "text/csv",
+            key=download_key,
+        )
+    except Exception as e:
+        st.error(f"Error loading annual returns: {e}")
+
+
+def compute_annual_returns(df, column):
+    yearly = df[["Date", column]].dropna().copy()
+    yearly["Year"] = yearly["Date"].dt.year
+
+    results = []
+    for year, group in yearly.groupby("Year"):
+        if len(group) < 2:
+            continue
+        start_value = group.iloc[0][column]
+        end_value = group.iloc[-1][column]
+        annual_return = (end_value / start_value) - 1
+        results.append({"Year": year, column: annual_return * 100})
+
+    return pd.DataFrame(results)
+
+
+def compute_rolling_returns(df, column, years):
+    days = years * 252
+    rolling = df[["Date", column]].dropna().copy()
+    rolling[f"{years}Y"] = ((rolling[column] / rolling[column].shift(days)) ** (1 / years) - 1) * 100
+    return rolling[["Date", f"{years}Y"]]
+
+
+PORTFOLIOS = {
+    "Conservative": {"AM100": 0.7, "AM200": 0.2, "AM300": 0.1},
+    "Balanced": {"AM100": 0.4, "AM200": 0.4, "AM300": 0.2},
+    "Growth": {"AM100": 0.2, "AM200": 0.3, "AM300": 0.5},
+}
+
+
+def build_portfolio_index(df, weights):
+    return (
+        df["AM100"] * weights["AM100"]
+        + df["AM200"] * weights["AM200"]
+        + df["AM300"] * weights["AM300"]
+    )
 
 render_global_header()
 
@@ -894,21 +978,6 @@ def render_allocator_view():
     st.caption(
         "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period."
     )
-
-    if annual_returns_df is not None and not annual_returns_df.empty:
-        st.markdown("## Annual Calendar Returns (%)")
-        st.markdown("Performance shown as calendar year returns based on total return index values.")
-        render_annual_returns_chart(annual_returns_df)
-        st.dataframe(annual_returns_df, use_container_width=True, hide_index=True)
-        render_annual_returns_summary(annual_returns_df)
-        annual_returns_csv = annual_returns_df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="Download Annual Returns CSV",
-            data=annual_returns_csv,
-            file_name="AM_annual_returns.csv",
-            mime="text/csv",
-            key="download_annual_returns_allocator",
-        )
 
     st.markdown(
         """
@@ -1136,21 +1205,6 @@ if IS_INTERNAL and all(
         st.caption(
             "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period. Turnover is shown as the average across rebalance events."
         )
-        if annual_returns_df is not None and not annual_returns_df.empty:
-            st.divider()
-            st.markdown("## Annual Calendar Returns (%)")
-            st.markdown("Performance shown as calendar year returns based on total return index values.")
-            render_annual_returns_chart(annual_returns_df, "Annual Calendar Returns (%)")
-            st.dataframe(annual_returns_df, use_container_width=True, hide_index=True, height=260)
-            render_annual_returns_summary(annual_returns_df)
-            annual_returns_csv = annual_returns_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                label="Download Annual Returns CSV",
-                data=annual_returns_csv,
-                file_name="AM_annual_returns.csv",
-                mime="text/csv",
-                key="download_annual_returns_internal",
-            )
         st.divider()
 
         col1, col2, col3 = st.columns(3)
@@ -2763,10 +2817,39 @@ with risk_tab:
         st.info("Volatility decomposition unavailable. Run scripts/am100_analytics.py to populate this section.")
 
 with allocator_tab:
-    st.markdown("## Model Portfolio Allocator")
+    st.header("Allocator Performance")
     st.caption(
         "Client-ready model portfolio system built from AM100 (Core), AM200 (Growth), and AM300 (Broad Market) using daily total return index data."
     )
+
+    st.subheader("Performance Summary")
+    allocator_summary_df = pd.DataFrame(
+        {
+            "Metric": ["CAGR", "Volatility", "Sharpe Ratio", "Max Drawdown"],
+            "AM100": [
+                f"{am100_metrics['CAGR'] * 100:.2f}%",
+                f"{am100_metrics['Volatility'] * 100:.2f}%",
+                f"{am100_metrics['Sharpe']:.2f}",
+                f"{am100_metrics['Max Drawdown'] * 100:.2f}%",
+            ],
+            "AM200": [
+                f"{am200_metrics['CAGR'] * 100:.2f}%",
+                f"{am200_metrics['Volatility'] * 100:.2f}%",
+                f"{am200_metrics['Sharpe']:.2f}",
+                f"{am200_metrics['Max Drawdown'] * 100:.2f}%",
+            ],
+            "AM300": [
+                f"{am300_metrics['CAGR'] * 100:.2f}%",
+                f"{am300_metrics['Volatility'] * 100:.2f}%",
+                f"{am300_metrics['Sharpe']:.2f}",
+                f"{am300_metrics['Max Drawdown'] * 100:.2f}%",
+            ],
+        }
+    )
+    st.dataframe(allocator_summary_df, use_container_width=True, hide_index=True)
+
+    st.subheader("Annual Returns")
+    render_annual_returns_section("download_annual_returns_allocator_tab")
 
     allocator_descriptions = {
         "Conservative": "Lower risk portfolio with higher allocation to liquid, stable constituents.",
@@ -2800,6 +2883,87 @@ with allocator_tab:
     model_metrics_display["Latest Level"] = model_metrics_display["Latest Level"].map("{:,.2f}".format)
     model_metrics_display["Estimated Capacity"] = model_metrics_display["Estimated Capacity"].map("{:,.0f}".format)
     st.dataframe(model_metrics_display, use_container_width=True, hide_index=True)
+
+    if annual_returns_daily_df is not None and not annual_returns_daily_df.empty:
+        portfolio_source = annual_returns_daily_df.copy()
+        portfolio_returns = []
+        for name, weights in PORTFOLIOS.items():
+            portfolio_source[name] = build_portfolio_index(portfolio_source, weights)
+            ret = compute_annual_returns(portfolio_source, name)
+            portfolio_returns.append(ret)
+
+        portfolio_annual = portfolio_returns[0]
+        for p in portfolio_returns[1:]:
+            portfolio_annual = portfolio_annual.merge(p, on="Year", how="outer")
+
+        portfolio_annual = portfolio_annual.sort_values("Year").round(2)
+
+        st.subheader("Portfolio Returns")
+        st.markdown("### Portfolio Annual Returns (%)")
+        st.dataframe(portfolio_annual, use_container_width=True, hide_index=True)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        portfolio_annual.set_index("Year").plot(kind="bar", ax=ax)
+        ax.set_title("Portfolio Annual Returns (%)")
+        ax.set_ylabel("Return (%)")
+        ax.axhline(0, color="black", linewidth=0.8)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+        rolling_3y = compute_rolling_returns(portfolio_source, "AM100", 3).rename(columns={"3Y": "AM100"})
+        rolling_3y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 3)["3Y"]
+        rolling_3y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 3)["3Y"]
+        for name in PORTFOLIOS.keys():
+            rolling_3y[name] = compute_rolling_returns(portfolio_source, name, 3)["3Y"]
+
+        rolling_5y = compute_rolling_returns(portfolio_source, "AM100", 5).rename(columns={"5Y": "AM100"})
+        rolling_5y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 5)["5Y"]
+        rolling_5y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 5)["5Y"]
+        for name in PORTFOLIOS.keys():
+            rolling_5y[name] = compute_rolling_returns(portfolio_source, name, 5)["5Y"]
+
+        st.subheader("Rolling Returns")
+        st.markdown("### Rolling 3-Year Returns (%)")
+        st.line_chart(rolling_3y.set_index("Date").dropna())
+
+        st.markdown("### Rolling 5-Year Returns (%)")
+        st.line_chart(rolling_5y.set_index("Date").dropna())
+
+        rolling_3y_stats = rolling_3y.drop(columns=["Date"]).describe(percentiles=[0.1, 0.25, 0.5, 0.75, 0.9]).round(2)
+        st.dataframe(rolling_3y_stats, use_container_width=True)
+
+        st.markdown("### Performance Characteristics")
+        st.markdown(
+            """
+            Returns are driven by:
+            - Structural growth across African markets
+            - Dividend contribution through total return methodology
+            - Concentration in the most liquid qualifying securities
+
+            Risk is driven by:
+            - Market structure and liquidity constraints
+            - Country concentration
+            - USD-normalised currency exposure
+            """
+        )
+
+        st.markdown("### Key Observations")
+        st.markdown(
+            """
+            - Strong long-term performance is achieved through compounding
+            - Year-to-year returns show real volatility and recovery cycles
+            - Rolling returns demonstrate how consistency evolves over time
+            - Portfolio blends provide different risk / return profiles for allocators
+            """
+        )
+
+        st.markdown("### Key Takeaway")
+        st.markdown(
+            """
+            The AM Index framework delivers investable, execution-aware performance, reflecting where capital can actually be deployed and grown over time.
+            """
+        )
 
     st.markdown("### Output Table")
     selected_model = st.selectbox(
