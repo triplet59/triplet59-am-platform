@@ -1700,7 +1700,11 @@ common_start = common_analysis["start"]
 common_end = common_analysis["end"]
 common_period_label = common_analysis["label"]
 comparison_series = common_analysis["series"]
-comparison_metrics = {name: compute_window_metrics(series) for name, series in comparison_series.items()}
+comparison_metrics = (
+    {name: compute_window_metrics(series) for name, series in comparison_series.items()}
+    if isinstance(comparison_series, dict)
+    else {}
+)
 
 st.write("Data Last Updated:", am100.index.max())
 
@@ -1749,6 +1753,10 @@ low_volume_coverage_df = volume_audit_df[
 eligible_volume_df = volume_audit_df[
     volume_audit_df["Positive Coverage %"] >= MIN_POSITIVE_COVERAGE * 100
 ].copy()
+validated_securities_count = len(volume_audit_df)
+eligible_securities_count = len(eligible_volume_df)
+full_trading_coverage_count = int((volume_audit_df["Positive Coverage %"] == 100).sum())
+ineligible_securities_count = len(low_volume_coverage_df)
 NO_VOLUME_EXPORT_FILE = "output/missing_volume_companies.csv"
 LOW_COVERAGE_EXPORT_FILE = "output/low_coverage_companies.csv"
 no_volume_df.to_csv(NO_VOLUME_EXPORT_FILE, index=False)
@@ -3260,6 +3268,21 @@ with allocator_tab:
 
     st.caption(
         "Estimated capacity is shown as investable capacity in USD, calculated as 20% of average daily traded value to reflect prudent institutional execution."
+    )
+
+with overview_tab:
+    st.markdown("### Universe Coverage")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Market Universe", "~700+")
+    col2.metric("Validated Securities", f"{validated_securities_count}")
+    col3.metric("Eligible (>=80% Trading)", f"{eligible_securities_count}")
+    col4, col5 = st.columns(2)
+    col4.metric("Full Trading Coverage", f"{full_trading_coverage_count}")
+    col5.metric("Ineligible Securities", f"{ineligible_securities_count}")
+    st.caption(
+        "The AM Index framework is constructed from a broad universe of African equities. "
+        f"From ~700+ listed securities, {validated_securities_count} meet data validation standards, "
+        f"with {eligible_securities_count} currently meeting liquidity and trading consistency rules."
     )
 
 with overview_tab:
