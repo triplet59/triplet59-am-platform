@@ -1,6 +1,5 @@
 import os
 import sys
-import inspect
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -1067,8 +1066,6 @@ eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
 render_static_header()
-st.markdown("### 🚨 VERSION: CLEAN-CAGR-STRUCTURE-V1")
-st.write(inspect.getfile(safe_period_range))
 
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
