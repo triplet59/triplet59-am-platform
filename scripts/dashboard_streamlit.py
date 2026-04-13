@@ -2729,7 +2729,18 @@ with risk_tab:
             st.warning(
                 f"Companies with LOW Trading Coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
             )
-            st.write(sorted(low_volume_coverage_df["Security"].tolist()))
+            df_low = pd.DataFrame(
+                sorted(low_volume_coverage_df["Security"].tolist()),
+                columns=["Company"],
+            )
+            df_low["Country"] = df_low["Company"].str.extract(r"\((.*?)\)")
+            df_low = df_low.sort_values(["Country", "Company"], na_position="last")
+            st.dataframe(
+                df_low,
+                use_container_width=True,
+                hide_index=True,
+                height=400,
+            )
         st.caption(
             f"Exports written to `{NO_VOLUME_EXPORT_FILE}` and `{LOW_COVERAGE_EXPORT_FILE}`."
         )
@@ -3410,10 +3421,19 @@ with overview_tab:
 
         with investor_col2:
             st.markdown("**AM200 Top 10**")
-            investor_am200 = prepare_constituent_table(am200_latest, limit=10)[
-                ["Company", "Country", "Weight"]
-            ]
-            st.dataframe(display_with_row_numbers(investor_am200), use_container_width=True)
+            if am200_latest is None or am200_latest.empty:
+                st.info("AM200 not yet populated")
+            else:
+                top10_am200 = (
+                    am200_latest.sort_values("Weight", ascending=False)
+                    .head(10)[["Company", "Country", "Weight"]]
+                    .copy()
+                )
+                top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
+                st.dataframe(
+                    display_with_row_numbers(top10_am200),
+                    use_container_width=True,
+                )
 
         with investor_col3:
             st.markdown("**AM300 Top 10**")
@@ -3447,8 +3467,19 @@ with overview_tab:
 
         with col2:
             st.caption("AM200 Top 10")
-            am200_top = prepare_constituent_table(am200_latest, limit=10)
-            st.dataframe(display_with_row_numbers(am200_top), use_container_width=True)
+            if am200_latest is None or am200_latest.empty:
+                st.info("AM200 not yet populated")
+            else:
+                top10_am200 = (
+                    am200_latest.sort_values("Weight", ascending=False)
+                    .head(10)[["Company", "Country", "Weight"]]
+                    .copy()
+                )
+                top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
+                st.dataframe(
+                    display_with_row_numbers(top10_am200),
+                    use_container_width=True,
+                )
 
         with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
             search = st.text_input("Search AM100", key="am100_search")
