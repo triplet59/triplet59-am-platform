@@ -805,7 +805,6 @@ def render_annual_returns_section(download_key):
 
     try:
         annual_returns = pd.read_csv(file_path)
-        st.success("Annual returns data loaded successfully")
 
         col1, col2 = st.columns([1, 2])
 
