@@ -467,7 +467,31 @@ def calculate_cagr_window(series, start_date, end_date):
     return (end_val / start_val) ** (1 / years) - 1
 
 
-def compute_performance(series, window_type, **kwargs):
+def compute_performance(series, window_type, name=None, **kwargs):
+    if series is None:
+        raise ValueError(f"{name or 'compute_performance'}: series is None")
+
+    if isinstance(series, pd.DataFrame):
+        if series.shape[1] == 1:
+            series = series.iloc[:, 0]
+        else:
+            raise ValueError(
+                f"{name or 'compute_performance'}: expected 1 column, got {series.shape[1]}"
+            )
+
+    if not isinstance(series, pd.Series):
+        raise TypeError(
+            f"{name or 'compute_performance'}: expected pd.Series, got {type(series)}"
+        )
+
+    if not isinstance(series.index, pd.DatetimeIndex):
+        try:
+            series.index = pd.to_datetime(series.index)
+        except Exception as exc:
+            raise ValueError(
+                f"{name or 'compute_performance'}: index is not datetime-compatible"
+            ) from exc
+
     index = series.dropna().index.sort_values()
     if len(index) < 2:
         return {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
@@ -513,6 +537,7 @@ def compute_cagr_for_periods(index_series, periods):
             results[name] = compute_performance(
                 index_series,
                 "rolling",
+                name=name,
                 years=period["years"],
                 tolerance_days=period.get("tolerance_days", 30),
             )
@@ -520,6 +545,7 @@ def compute_cagr_for_periods(index_series, periods):
             results[name] = compute_performance(
                 index_series,
                 "fixed",
+                name=name,
                 start_date=period["start"],
                 end_date=period["end"],
             )
@@ -2367,7 +2393,13 @@ rolling_results = {
 }
 
 comparison_period_result = {
-    name: compute_performance(series, "fixed", start_date=common_start, end_date=common_end)
+    name: compute_performance(
+        series,
+        "fixed",
+        name=name,
+        start_date=common_start,
+        end_date=common_end,
+    )
     if common_start is not None and common_end is not None and name in comparison_series
     else {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
     for name, series in {"AM100": am100, "AM200": am200, "AM300": am300}.items()
