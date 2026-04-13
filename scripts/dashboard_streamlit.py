@@ -1067,7 +1067,7 @@ eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
 render_static_header()
-st.write("DEPLOY CHECK — CLEAN VERSION ACTIVE")
+st.markdown("### 🚨 VERSION: CLEAN-CAGR-STRUCTURE-V1")
 st.write(inspect.getfile(safe_period_range))
 
 # Initialized early so any pre-load UI block can fail safely to N/A
