@@ -873,10 +873,12 @@ def compute_annual_returns(df, column):
 
 
 def compute_rolling_returns(df, column, years):
-    days = years * 252
     rolling = df[["Date", column]].dropna().copy()
-    rolling[f"{years}Y"] = ((rolling[column] / rolling[column].shift(days)) ** (1 / years) - 1) * 100
-    return rolling[["Date", f"{years}Y"]]
+    rolling["Date"] = pd.to_datetime(rolling["Date"])
+    rolling = rolling.set_index("Date")
+    monthly = rolling[column].resample("ME").last()
+    rolling_series = ((monthly / monthly.shift(years * 12)) ** (1 / years) - 1) * 100
+    return rolling_series.to_frame(name=f"{years}Y").reset_index()
 
 
 PORTFOLIOS = {
@@ -2928,15 +2930,6 @@ with allocator_tab:
         st.markdown("### Portfolio Annual Returns (%)")
         st.dataframe(portfolio_annual, use_container_width=True, hide_index=True)
 
-        fig, ax = plt.subplots(figsize=(12, 6))
-        portfolio_annual.set_index("Year").plot(kind="bar", ax=ax)
-        ax.set_title("Portfolio Annual Returns (%)")
-        ax.set_ylabel("Return (%)")
-        ax.axhline(0, color="black", linewidth=0.8)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=True)
-        plt.close(fig)
-
         rolling_3y = compute_rolling_returns(portfolio_source, "AM100", 3).rename(columns={"3Y": "AM100"})
         rolling_3y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 3)["3Y"]
         rolling_3y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 3)["3Y"]
@@ -2951,12 +2944,51 @@ with allocator_tab:
 
         st.subheader("Rolling Returns")
         st.markdown("### Rolling 3-Year Returns (%)")
-        st.line_chart(rolling_3y.set_index("Date").dropna())
+        rolling_3y_chart = rolling_3y.set_index("Date").dropna(how="all")
+        fig, ax = plt.subplots(figsize=(12, 5))
+        rolling_3y_chart.plot(ax=ax)
+        ax.set_title("Rolling 3-Year Returns (%)")
+        ax.set_ylabel("Return (%)")
+        ax.grid(True, linestyle="--", alpha=0.3)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
 
         st.markdown("### Rolling 5-Year Returns (%)")
-        st.line_chart(rolling_5y.set_index("Date").dropna())
+        rolling_5y_chart = rolling_5y.set_index("Date").dropna(how="all")
+        fig, ax = plt.subplots(figsize=(12, 5))
+        rolling_5y_chart.plot(ax=ax)
+        ax.set_title("Rolling 5-Year Returns (%)")
+        ax.set_ylabel("Return (%)")
+        ax.grid(True, linestyle="--", alpha=0.3)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        plt.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
 
         rolling_3y_stats = rolling_3y.drop(columns=["Date"]).describe(percentiles=[0.1, 0.25, 0.5, 0.75, 0.9]).round(2)
+        st.markdown("### Rolling Return Statistics - Interpretation")
+        st.markdown(
+            """
+            The table below summarises the distribution of rolling returns over time.
+
+            Count: Number of observations used in the calculation  
+            Mean: Average rolling return across all periods  
+            Std (Standard Deviation): Measure of variability in returns  
+            Min: Lowest observed rolling return (worst-case period)  
+            10% / 25% / 50% / 75% / 90%: Percentile distribution of outcomes  
+            Example: 10% = worst 10% of periods  
+            Max: Highest observed rolling return
+
+            These statistics provide insight into:
+            - Return consistency
+            - Downside risk
+            - Distribution of outcomes over time
+            """
+        )
         st.dataframe(rolling_3y_stats, use_container_width=True)
 
         st.markdown("### Performance Characteristics")
