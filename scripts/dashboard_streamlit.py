@@ -119,6 +119,39 @@ def safe_display(value, fallback="N/A"):
     return value if value is not None else fallback
 
 
+def safe_metric(result):
+    if isinstance(result, dict):
+        value = result.get("cagr")
+    else:
+        value = result
+    return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
+
+
+def safe_period_range(period):
+    if not period:
+        return "N/A"
+
+    try:
+        # Case 1: dict payload (current structure)
+        if isinstance(period, dict):
+            start = period.get("start")
+            end = period.get("end")
+            if start is None or end is None:
+                return "N/A"
+
+        # Case 2: tuple payload (legacy support)
+        elif isinstance(period, tuple) and len(period) == 2:
+            start, end = period
+        else:
+            return "N/A"
+
+        start = pd.to_datetime(start)
+        end = pd.to_datetime(end)
+        return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
+    except Exception:
+        return "N/A"
+
+
 def validate_df(df, name, required_columns=None):
     if df is None:
         raise ValueError(f"{name} is None")
@@ -461,7 +494,17 @@ def compute_performance(series, window_type, **kwargs):
 
 
 def compute_cagr_for_periods(index_series, periods):
-    results = {}
+    empty_result = {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
+    results = {
+        "common": None,
+        "fixed_10y": None,
+        "fixed_5y": None,
+        "since_2016": None,
+        "rolling_10y": empty_result.copy(),
+        "rolling_5y": empty_result.copy(),
+        "rolling_3y": empty_result.copy(),
+        "rolling_1y": empty_result.copy(),
+    }
 
     for name, period in periods.items():
         if name == "latest_valid" or not isinstance(period, dict):
@@ -2330,54 +2373,27 @@ comparison_period_result = {
     for name, series in {"AM100": am100, "AM200": am200, "AM300": am300}.items()
 }
 
+for index_name, common_result in comparison_period_result.items():
+    if index_name in cagr_outputs:
+        cagr_outputs[index_name]["common"] = common_result
+
 fixed_results = {
     "AM100": {
-        "common_period": comparison_period_result["AM100"],
+        "common_period": cagr_outputs["AM100"]["common"],
         "fixed_10y": cagr_outputs["AM100"]["fixed_10y"],
         "fixed_5y": cagr_outputs["AM100"]["fixed_5y"],
     },
     "AM200": {
-        "common_period": comparison_period_result["AM200"],
+        "common_period": cagr_outputs["AM200"]["common"],
         "fixed_10y": cagr_outputs["AM200"]["fixed_10y"],
         "fixed_5y": cagr_outputs["AM200"]["fixed_5y"],
     },
     "AM300": {
-        "common_period": comparison_period_result["AM300"],
+        "common_period": cagr_outputs["AM300"]["common"],
         "fixed_10y": cagr_outputs["AM300"]["fixed_10y"],
         "fixed_5y": cagr_outputs["AM300"]["fixed_5y"],
     },
 }
-
-
-def safe_metric(result):
-    if isinstance(result, dict):
-        value = result.get("cagr")
-    else:
-        value = result
-    return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
-
-
-def safe_period_range(period):
-    if not period:
-        return "N/A"
-
-    try:
-        if isinstance(period, dict):
-            start = period.get("start")
-            end = period.get("end")
-
-            if not start or not end:
-                return "N/A"
-        elif isinstance(period, tuple):
-            start, end = period
-        else:
-            return "N/A"
-
-        return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
-    except Exception:
-        return "N/A"
-
-
 with st.expander("Rolling Performance Analysis"):
     for index_name, results in rolling_results.items():
         st.markdown(f"**{index_name}**")
