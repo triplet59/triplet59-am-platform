@@ -303,6 +303,25 @@ def compute_country_weights(df):
     )
 
 
+def external_capacity_metrics(snapshot):
+    if "AvgDailyValue30dUSD" in snapshot.columns:
+        adv_usd = float(snapshot["AvgDailyValue30dUSD"].fillna(snapshot["AvgDailyValue30d"]).sum())
+    else:
+        adv_usd = float(snapshot["AvgDailyValue30d"].sum())
+
+    if "InvestableCapacity20USD" in snapshot.columns:
+        investable_usd = float(
+            snapshot["InvestableCapacity20USD"]
+            .fillna(snapshot.get("AvgDailyValue30dUSD", pd.Series(index=snapshot.index, dtype=float)) * 0.20)
+            .fillna(snapshot["AvgDailyValue30d"] * 0.20)
+            .sum()
+        )
+    else:
+        investable_usd = adv_usd * 0.20
+
+    return adv_usd, investable_usd
+
+
 def audit_volume_quality(df):
     results = []
     for col in df.columns:
@@ -1793,10 +1812,25 @@ comparison_series = {}
 
 
 def render_allocator_view():
+    local_common = get_common_analysis_window(
+        {"AM100": am100_series, "AM200": am200_series, "AM300": am300_series}
+    )
+    local_common_start = local_common["start"]
+    local_common_end = local_common["end"]
+    local_comparison_series = local_common["series"]
+    local_comparison_metrics = normalize_comparison_metrics(
+        {
+            name: compute_window_metrics(series)
+            for name, series in local_comparison_series.items()
+        }
+        if isinstance(local_comparison_series, dict)
+        else {}
+    )
+
     def comparison_metric(index_name):
-        if not isinstance(comparison_metrics, dict):
+        if not isinstance(local_comparison_metrics, dict):
             return {}
-        return comparison_metrics.get(index_name, {})
+        return local_comparison_metrics.get(index_name, {})
 
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
@@ -1888,8 +1922,8 @@ def render_allocator_view():
             ],
         }
     )
-    start_date = common_start.strftime("%d %b %Y") if common_start is not None else "N/A"
-    end_date = common_end.strftime("%d %b %Y") if common_end is not None else "N/A"
+    start_date = local_common_start.strftime("%d %b %Y") if local_common_start is not None else "N/A"
+    end_date = local_common_end.strftime("%d %b %Y") if local_common_end is not None else "N/A"
     st.markdown(
         f"""
         **Performance Period**  
@@ -2677,6 +2711,28 @@ am100_latest = am100_hist[am100_hist["Date"] == latest_date]
 am200_latest = am200_hist[am200_hist["Date"] == latest_date]
 am300_latest = am300_hist[am300_hist["Date"] == latest_date]
 
+am100_country_df = compute_country_weights(am100_latest)
+am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
+am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
+am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
+
+st.markdown("### Series Navigation")
+series_family = st.radio(
+    "Series Family",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="series_family",
+)
+
+if series_family == "EAC Series":
+    render_eac_dashboard()
+    st.stop()
+
+if series_family == "Comparison":
+    render_am_eac_comparison()
+    st.stop()
+
 am100_constituents = am100_latest["Company"].tolist()
 am200_constituents = am200_latest["Company"].tolist()
 am300_constituents = am300_latest["Company"].tolist()
@@ -3270,25 +3326,6 @@ if top_country_am200:
 if SHOW_AM300 and top_country_am300:
     obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
 
-def external_capacity_metrics(snapshot):
-    if "AvgDailyValue30dUSD" in snapshot.columns:
-        adv_usd = float(snapshot["AvgDailyValue30dUSD"].fillna(snapshot["AvgDailyValue30d"]).sum())
-    else:
-        adv_usd = float(snapshot["AvgDailyValue30d"].sum())
-
-    if "InvestableCapacity20USD" in snapshot.columns:
-        investable_usd = float(
-            snapshot["InvestableCapacity20USD"]
-            .fillna(snapshot.get("AvgDailyValue30dUSD", pd.Series(index=snapshot.index, dtype=float)) * 0.20)
-            .fillna(snapshot["AvgDailyValue30d"] * 0.20)
-            .sum()
-        )
-    else:
-        investable_usd = adv_usd * 0.20
-
-    return adv_usd, investable_usd
-
-
 @st.cache_data
 def load_capacity_usd_file(path, _version=None):
     return pd.read_csv(path, parse_dates=["Date"]).sort_values("Date")
@@ -3302,27 +3339,7 @@ def load_investability_map(_version=None):
     return pd.read_csv(path)
 
 
-am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
-am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
-am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
-
-st.markdown("### Series Navigation")
-series_family = st.radio(
-    "Series Family",
-    ["AM Series", "EAC Series", "Comparison"],
-    horizontal=True,
-    label_visibility="collapsed",
-    key="series_family",
-)
-
-if series_family == "EAC Series":
-    render_eac_dashboard()
-    st.stop()
-
-if series_family == "Comparison":
-    render_am_eac_comparison()
-    st.stop()
 
 if allocator_mode and all(
     x is not None
