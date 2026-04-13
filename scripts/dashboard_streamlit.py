@@ -1171,6 +1171,612 @@ def build_portfolio_index(df, weights):
         + df["AM300"] * weights["AM300"]
     )
 
+
+@st.cache_data
+def load_total_return_series_from_path(path, _version=None):
+    if not os.path.exists(path):
+        return None
+    df = pd.read_csv(path, parse_dates=["Date"])
+    validate_df(df, os.path.basename(path), ["Date", "Index Level"])
+    return validate_series(df.set_index("Date")["Index Level"], os.path.basename(path))
+
+
+@st.cache_data
+def load_eac_portfolio_file(path, _version=None):
+    if not os.path.exists(path):
+        return None
+    return pd.read_csv(path)
+
+
+def format_pct(value, decimals=2):
+    if value is None or pd.isna(value):
+        return "N/A"
+    return f"{value:.{decimals}%}"
+
+
+def format_num(value, decimals=2):
+    if value is None or pd.isna(value):
+        return "N/A"
+    return f"{value:.{decimals}f}"
+
+
+def render_eac_banner():
+    st.warning(
+        "Historical performance reflects limited market depth and periods of high concentration, "
+        "including single-constituent exposure. Data is presented for research transparency and "
+        "does not represent an institutional benchmark track record."
+    )
+
+
+def render_eac_dashboard():
+    eac25_series = load_total_return_series_from_path(
+        "output/EAC25_total_return.csv",
+        get_file_version("output/EAC25_total_return.csv"),
+    )
+    eac_ext_series = load_total_return_series_from_path(
+        "output/EAC_EXT_total_return.csv",
+        get_file_version("output/EAC_EXT_total_return.csv"),
+    )
+    eac25_metrics = load_metrics_csv(
+        "output/EAC25_metrics.csv",
+        get_file_version("output/EAC25_metrics.csv"),
+    )
+    eac_ext_metrics = load_metrics_csv(
+        "output/EAC_EXT_metrics.csv",
+        get_file_version("output/EAC_EXT_metrics.csv"),
+    )
+    eac25_portfolio = load_eac_portfolio_file(
+        "output/EAC25_v2_core_portfolio.csv",
+        get_file_version("output/EAC25_v2_core_portfolio.csv"),
+    )
+    eac_ext_portfolio = load_eac_portfolio_file(
+        "output/EAC_extended_35_portfolio.csv",
+        get_file_version("output/EAC_extended_35_portfolio.csv"),
+    )
+    eac25_summary = load_eac_portfolio_file(
+        "output/EAC25_v2_core_summary.csv",
+        get_file_version("output/EAC25_v2_core_summary.csv"),
+    )
+    eac_ext_summary = load_eac_portfolio_file(
+        "output/EAC_extended_35_summary.csv",
+        get_file_version("output/EAC_extended_35_summary.csv"),
+    )
+
+    required = [eac25_series, eac_ext_series, eac25_metrics, eac_ext_metrics, eac25_portfolio, eac_ext_portfolio]
+    if any(item is None for item in required):
+        st.error("EAC Series files are not fully available yet. Rebuild the EAC outputs before opening this section.")
+        return
+
+    eac_tabs = st.tabs(["Overview", "Risk", "Allocator"])
+    eac25_country = compute_country_weights(eac25_portfolio)
+    eac_ext_country = compute_country_weights(eac_ext_portfolio)
+    eac25_drawdown = calculate_drawdown(eac25_series)
+    eac_ext_drawdown = calculate_drawdown(eac_ext_series)
+    eac25_vol_1y = rolling_volatility(eac25_series.pct_change().dropna()).dropna()
+    eac_ext_vol_1y = rolling_volatility(eac_ext_series.pct_change().dropna()).dropna()
+
+    eac25_current_top3 = float(eac25_portfolio["Weight"].nlargest(3).sum())
+    eac_ext_current_top3 = float(eac_ext_portfolio["Weight"].nlargest(3).sum())
+    eac25_effective_n = float(1 / np.square(eac25_portfolio["Weight"]).sum())
+    eac_ext_effective_n = float(1 / np.square(eac_ext_portfolio["Weight"]).sum())
+
+    with eac_tabs[0]:
+        st.markdown("## EAC SERIES — EAST AFRICA DEPLOYABLE EQUITY PORTFOLIOS")
+        st.caption("EAC25 Core | EAC Extended (35)")
+        st.markdown(
+            "The EAC Series provides a rules-based, liquidity-screened representation of deployable "
+            "East African equity markets. Portfolios are constructed using observed trading activity "
+            "and execution-aware constraints."
+        )
+        render_eac_banner()
+        st.info(
+            "No period within the available history meets institutional maturity thresholds "
+            "(>=15 constituents and effective diversification).\n\n"
+            "Accordingly, the EAC Series is presented as a current deployable portfolio framework, "
+            "with historical data provided for transparency only."
+        )
+
+        left_col, right_col = st.columns([1, 1])
+        with left_col:
+            st.markdown("### Portfolio Snapshot")
+            snapshot_df = pd.DataFrame(
+                {
+                    "Metric": ["Constituents", "Countries", "Max Stock Weight", "Max Country Weight", "Rebalance"],
+                    "EAC25 Core": [
+                        int(len(eac25_portfolio)),
+                        int(eac25_portfolio["Country"].nunique()),
+                        "10%",
+                        "40%",
+                        "Quarterly",
+                    ],
+                    "EAC Extended": [
+                        int(len(eac_ext_portfolio)),
+                        int(eac_ext_portfolio["Country"].nunique()),
+                        "10%",
+                        "40%",
+                        "Quarterly",
+                    ],
+                }
+            )
+            st.dataframe(snapshot_df, use_container_width=True, hide_index=True)
+
+        with right_col:
+            st.markdown("### Investment Summary")
+            st.markdown(
+                """
+                **EAC25 Core** represents the concentrated, institutionally investable segment of East African equities.
+
+                **EAC Extended** captures the full set of validated and liquid securities, providing broader regional exposure while maintaining execution feasibility.
+                """
+            )
+
+        st.markdown("### Research Index Series (USD Total Return)")
+        st.caption("Not representative of an investable benchmark track record.")
+        fig, ax = plt.subplots(figsize=(10, 4), facecolor="#0E1117")
+        style_chart(fig, ax)
+        ax.plot(eac25_series.index, eac25_series, label="EAC25 Core", color="#4DA3FF", linewidth=2)
+        ax.plot(eac_ext_series.index, eac_ext_series, label="EAC Extended", color="#22C55E", linewidth=2)
+        ax.legend(frameon=False, fontsize=10)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+        st.markdown("#### Research Performance Summary (Non-Benchmark)")
+        perf_df = pd.DataFrame(
+            {
+                "Metric": ["CAGR", "Volatility", "Sharpe", "Max Drawdown"],
+                "EAC25": [
+                    format_pct(eac25_metrics.get("CAGR")),
+                    format_pct(eac25_metrics.get("Volatility")),
+                    format_num(eac25_metrics.get("Sharpe")),
+                    format_pct(eac25_metrics.get("Max Drawdown")),
+                ],
+                "EAC EXT": [
+                    format_pct(eac_ext_metrics.get("CAGR")),
+                    format_pct(eac_ext_metrics.get("Volatility")),
+                    format_num(eac_ext_metrics.get("Sharpe")),
+                    format_pct(eac_ext_metrics.get("Max Drawdown")),
+                ],
+            }
+        )
+        st.dataframe(perf_df, use_container_width=True, hide_index=True)
+        st.caption("Metrics reflect full historical series including early periods of high concentration and limited breadth.")
+
+        st.markdown("### Structural Insight")
+        st.markdown(
+            "The East African public equity market currently supports approximately 30-40 securities that meet "
+            "minimum liquidity and trading consistency thresholds.\n\n"
+            "This structural constraint drives concentration and impacts both portfolio construction and historical performance characteristics."
+        )
+
+    with eac_tabs[1]:
+        st.markdown("## EAC SERIES — RISK CHARACTERISTICS")
+        st.caption("Risk metrics are influenced by early-period concentration and should be interpreted with caution.")
+        render_eac_banner()
+
+        st.markdown("### Drawdown (Full History — Research Context)")
+        fig, ax = plt.subplots(figsize=(10, 4), facecolor="#0E1117")
+        style_chart(fig, ax)
+        ax.plot(eac25_drawdown.index, eac25_drawdown, label="EAC25 Core", color="#4DA3FF", linewidth=2)
+        ax.plot(eac_ext_drawdown.index, eac_ext_drawdown, label="EAC Extended", color="#22C55E", linewidth=2)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+        vol_col, conc_col = st.columns([1, 1])
+        with vol_col:
+            st.markdown("### Volatility")
+            vol_df = pd.DataFrame(
+                {
+                    "Metric": ["Annualised Volatility"],
+                    "EAC25": [format_pct(eac25_metrics.get("Volatility"))],
+                    "EAC EXT": [format_pct(eac_ext_metrics.get("Volatility"))],
+                }
+            )
+            st.dataframe(vol_df, use_container_width=True, hide_index=True)
+
+        with conc_col:
+            st.markdown("### Concentration Risk")
+            conc_df = pd.DataFrame(
+                {
+                    "Metric": ["Top 1 Weight", "Top 3 Weight", "Max Stock Cap", "Country Cap", "Effective N (current)"],
+                    "EAC25": [f"{eac25_portfolio['Weight'].max():.2%}", f"{eac25_current_top3:.2%}", "10%", "40%", f"{eac25_effective_n:.2f}"],
+                    "EAC EXT": [f"{eac_ext_portfolio['Weight'].max():.2%}", f"{eac_ext_current_top3:.2%}", "10%", "40%", f"{eac_ext_effective_n:.2f}"],
+                }
+            )
+            st.dataframe(conc_df, use_container_width=True, hide_index=True)
+
+        st.markdown("### Rolling Volatility")
+        fig, ax = plt.subplots(figsize=(10, 4), facecolor="#0E1117")
+        style_chart(fig, ax)
+        ax.plot(eac25_vol_1y.index, eac25_vol_1y, label="EAC25 Core", color="#4DA3FF", linewidth=2)
+        ax.plot(eac_ext_vol_1y.index, eac_ext_vol_1y, label="EAC Extended", color="#22C55E", linewidth=2)
+        ax.legend(frameon=False)
+        fig.tight_layout()
+        st.pyplot(fig, use_container_width=True)
+        plt.close(fig)
+
+        st.markdown(
+            "Portfolio risk is primarily driven by concentration and liquidity constraints rather than broad market diversification."
+        )
+
+    with eac_tabs[2]:
+        st.markdown("## EAC SERIES — ALLOCATION & DEPLOYMENT")
+
+        st.markdown("### Country Allocation (Post-Constraint Weights)")
+        alloc_col1, alloc_col2 = st.columns(2)
+        with alloc_col1:
+            fig, ax = plt.subplots(figsize=(6, 3.2), facecolor="#0E1117")
+            style_chart(fig, ax)
+            ax.bar(eac25_country["Country"], eac25_country["Weight"], color="#4DA3FF")
+            ax.set_title("EAC25 Core", color="#CCCCCC")
+            ax.tick_params(axis="x", rotation=45)
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+        with alloc_col2:
+            fig, ax = plt.subplots(figsize=(6, 3.2), facecolor="#0E1117")
+            style_chart(fig, ax)
+            ax.bar(eac_ext_country["Country"], eac_ext_country["Weight"], color="#22C55E")
+            ax.set_title("EAC Extended (35)", color="#CCCCCC")
+            ax.tick_params(axis="x", rotation=45)
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+
+        top_col1, top_col2 = st.columns(2)
+        with top_col1:
+            st.markdown("### Top 10 Holdings — EAC25 Core")
+            top25 = eac25_portfolio.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
+            top25.insert(0, "Rank", range(1, len(top25) + 1))
+            top25["Weight"] = top25["Weight"].map("{:.2%}".format)
+            st.dataframe(top25[["Rank", "Company", "Country", "Weight"]], use_container_width=True, hide_index=True)
+        with top_col2:
+            st.markdown("### Top 10 Holdings — EAC Extended")
+            top_ext = eac_ext_portfolio.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
+            top_ext.insert(0, "Rank", range(1, len(top_ext) + 1))
+            top_ext["Weight"] = top_ext["Weight"].map("{:.2%}".format)
+            st.dataframe(top_ext[["Rank", "Company", "Country", "Weight"]], use_container_width=True, hide_index=True)
+
+        st.markdown("### Liquidity Profile")
+        fig = px.histogram(
+            eac25_portfolio,
+            x="LiquidityUSD",
+            nbins=30,
+            title="EAC25 Liquidity Distribution",
+            template="plotly_dark",
+        )
+        fig.update_layout(
+            xaxis_title="Liquidity (USD)",
+            yaxis_title="Count",
+            hovermode="x unified",
+            margin=dict(l=20, r=20, t=60, b=20),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Liquidity is concentrated in a limited number of securities, with a long tail of lower-trading names.")
+
+        st.markdown("### Minimum Deployment Size")
+        deploy_df = pd.DataFrame(
+            {
+                "Metric": ["Theoretical Minimum (1 share per constituent)", "Practical Minimum", "Recommended Institutional Ticket"],
+                "EAC25": [
+                    f"${float(eac25_summary.iloc[0]['StrictMinDeploymentUSD']):,.0f}" if eac25_summary is not None else "N/A",
+                    "$50k-$100k",
+                    "$250k-$500k",
+                ],
+                "EAC EXT": [
+                    f"${float(eac_ext_summary.iloc[0]['StrictMinDeploymentUSD']):,.0f}" if eac_ext_summary is not None else "N/A",
+                    "$75k-$150k",
+                    "$300k-$600k",
+                ],
+            }
+        )
+        st.dataframe(deploy_df, use_container_width=True, hide_index=True)
+        st.caption(
+            "While theoretical minimum investment levels are low, practical deployment requires significantly higher capital "
+            "to achieve diversification and execution efficiency."
+        )
+
+        st.markdown("### Interpretation")
+        st.markdown(
+            "The EAC Series should be viewed as a deployable regional allocation sleeve rather than a broad market benchmark.\n\n"
+            "Capital deployment is constrained by:\n"
+            "- Limited market depth\n"
+            "- Concentrated liquidity\n"
+            "- Execution considerations\n\n"
+            "The framework provides transparency into these constraints rather than masking them."
+        )
+
+
+def render_am_eac_comparison():
+    eac25_series = load_total_return_series_from_path(
+        "output/EAC25_total_return.csv",
+        get_file_version("output/EAC25_total_return.csv"),
+    )
+    eac25_metrics = load_metrics_csv(
+        "output/EAC25_metrics.csv",
+        get_file_version("output/EAC25_metrics.csv"),
+    )
+    eac25_portfolio = load_eac_portfolio_file(
+        "output/EAC25_v2_core_portfolio.csv",
+        get_file_version("output/EAC25_v2_core_portfolio.csv"),
+    )
+    eac25_summary = load_eac_portfolio_file(
+        "output/EAC25_v2_core_summary.csv",
+        get_file_version("output/EAC25_v2_core_summary.csv"),
+    )
+
+    if any(item is None for item in [eac25_series, eac25_metrics, eac25_portfolio, eac25_summary, am100_metrics]):
+        st.error("Comparison view is not fully available yet. Build the EAC and AM outputs before opening this section.")
+        return
+
+    am100_snapshot = am100_latest.copy()
+    am100_top1 = float(am100_snapshot["Weight"].max())
+    am100_top3 = float(am100_snapshot["Weight"].nlargest(3).sum())
+    am100_effective_n = float(1 / np.square(am100_snapshot["Weight"]).sum())
+    am100_country_count = int(am100_snapshot["Country"].nunique())
+    am100_theoretical_min = float((am100_snapshot["Price"] / am100_snapshot["Weight"]).replace([np.inf, -np.inf], np.nan).max())
+
+    eac25_top1 = float(eac25_portfolio["Weight"].max())
+    eac25_top3 = float(eac25_portfolio["Weight"].nlargest(3).sum())
+    eac25_effective_n = float(1 / np.square(eac25_portfolio["Weight"]).sum())
+    eac25_country_df = compute_country_weights(eac25_portfolio)
+    merged = pd.merge(
+        am100_series.rename("AM100").reset_index(),
+        eac25_series.rename("EAC25").reset_index(),
+        on="Date",
+        how="inner",
+    ).sort_values("Date")
+    merged = merged.set_index("Date")
+    drawdown_compare = pd.DataFrame(
+        {
+            "AM100": calculate_drawdown(merged["AM100"]),
+            "EAC25": calculate_drawdown(merged["EAC25"]),
+        }
+    )
+
+    st.markdown("## AM vs EAC — Portfolio Comparison")
+    st.caption("AM100 vs EAC25 Core")
+    st.markdown(
+        "This comparison highlights the structural, risk, and deployment differences between pan-African "
+        "index exposure and East African regional allocation."
+    )
+    st.warning(
+        "EAC historical performance is provided for research transparency only and does not represent a mature benchmark series."
+    )
+
+    snap_left, snap_right = st.columns([1.3, 1])
+    with snap_left:
+        st.markdown("### Side-by-Side Snapshot")
+        snapshot_df = pd.DataFrame(
+            {
+                "Metric": ["Constituents", "Countries", "Max Stock Weight", "Max Country Weight", "Rebalance"],
+                "AM100": [len(am100_snapshot), am100_country_count, f"{am100_top1:.2%}", "25%", "Quarterly"],
+                "EAC25 Core": [len(eac25_portfolio), int(eac25_portfolio["Country"].nunique()), "10%", "40%", "Quarterly"],
+            }
+        )
+        st.dataframe(snapshot_df, use_container_width=True, hide_index=True)
+    with snap_right:
+        st.markdown("### Allocation Insight")
+        st.markdown(
+            "EAC portfolios are significantly more concentrated, reflecting the limited depth of regional markets "
+            "compared to the broader African universe."
+        )
+
+    st.markdown("### Performance Comparison (Contextual)")
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=merged.index,
+            y=merged["AM100"],
+            mode="lines",
+            name="AM100",
+            line=dict(width=2, color=AM100_COLOR),
+            hovertemplate="%{x}<br>Value: %{y:.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=merged.index,
+            y=merged["EAC25"],
+            mode="lines",
+            name="EAC25",
+            line=dict(width=2, dash="dash", color="#22C55E"),
+            hovertemplate="%{x}<br>Value: %{y:.2f}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        title="Research Index Series (USD Total Return)",
+        xaxis_title="Date",
+        yaxis_title="Index Level",
+        template="plotly_dark",
+        hovermode="x unified",
+        legend=dict(orientation="h", y=1.05),
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    perf_df = pd.DataFrame(
+        {
+            "Metric": ["CAGR", "Volatility", "Sharpe", "Max Drawdown"],
+            "AM100": [
+                format_pct(am100_metrics.get("CAGR")),
+                format_pct(am100_metrics.get("Volatility")),
+                format_num(am100_metrics.get("Sharpe")),
+                format_pct(am100_metrics.get("Max Drawdown")),
+            ],
+            "EAC25": [
+                format_pct(eac25_metrics.get("CAGR")),
+                format_pct(eac25_metrics.get("Volatility")),
+                format_num(eac25_metrics.get("Sharpe")),
+                format_pct(eac25_metrics.get("Max Drawdown")),
+            ],
+        }
+    )
+    st.dataframe(perf_df, use_container_width=True, hide_index=True)
+    st.caption(
+        "EAC performance reflects periods of limited market depth and high concentration and is not directly comparable to AM series benchmarks."
+    )
+
+    st.markdown("### Concentration Comparison")
+    conc_col1, conc_col2 = st.columns(2)
+    with conc_col1:
+        top10_am100 = am100_snapshot.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
+        top10_eac = eac25_portfolio.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
+        top10_am100["WeightPct"] = top10_am100["Weight"] * 100
+        top10_eac["WeightPct"] = top10_eac["Weight"] * 100
+        fig = go.Figure()
+        fig.add_trace(
+            go.Bar(
+                x=top10_am100["Company"],
+                y=top10_am100["WeightPct"],
+                name="AM100",
+                marker_color=AM100_COLOR,
+            )
+        )
+        fig.add_trace(
+            go.Bar(
+                x=top10_eac["Company"],
+                y=top10_eac["WeightPct"],
+                name="EAC25",
+                marker_color="#22C55E",
+            )
+        )
+        fig.update_layout(
+            title="Top 10 Holdings (Weight Comparison)",
+            barmode="group",
+            template="plotly_dark",
+            xaxis_tickangle=-45,
+            yaxis_title="Weight (%)",
+            hovermode="x unified",
+            margin=dict(l=20, r=20, t=60, b=20),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    with conc_col2:
+        conc_df = pd.DataFrame(
+            {
+                "Metric": ["Top 1 Weight", "Top 3 Weight", "Effective N"],
+                "AM100": [f"{am100_top1:.2%}", f"{am100_top3:.2%}", f"{am100_effective_n:.2f}"],
+                "EAC25": [f"{eac25_top1:.2%}", f"{eac25_top3:.2%}", f"{eac25_effective_n:.2f}"],
+            }
+        )
+        st.dataframe(conc_df, use_container_width=True, hide_index=True)
+        st.markdown(
+            "EAC exposure concentrates risk in a small number of securities, whereas AM100 distributes risk across a broader and more diversified universe."
+        )
+
+    st.markdown("### Country Exposure Comparison")
+    am_country_plot = am100_country_df.copy()
+    eac_country_plot = eac25_country_df.copy()
+    am_country_plot.columns = ["Country", "Weight"]
+    eac_country_plot.columns = ["Country", "Weight"]
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=am_country_plot["Country"],
+            y=am_country_plot["Weight"] * 100,
+            name="AM100",
+            marker_color=AM100_COLOR,
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=eac_country_plot["Country"],
+            y=eac_country_plot["Weight"] * 100,
+            name="EAC25",
+            marker_color="#22C55E",
+        )
+    )
+    fig.update_layout(
+        title="Country Allocation Comparison",
+        barmode="group",
+        template="plotly_dark",
+        xaxis_title="Country",
+        yaxis_title="Weight (%)",
+        hovermode="x unified",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown(
+        "EAC portfolios are structurally concentrated in Kenya and Tanzania, whereas AM100 provides broader continental exposure across multiple markets."
+    )
+
+    st.markdown("### Drawdown Comparison")
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=drawdown_compare.index,
+            y=drawdown_compare["AM100"],
+            name="AM100 Drawdown",
+            mode="lines",
+            line=dict(width=2, color=AM100_COLOR),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=drawdown_compare.index,
+            y=drawdown_compare["EAC25"],
+            name="EAC25 Drawdown",
+            mode="lines",
+            line=dict(width=2, color="#22C55E"),
+        )
+    )
+    fig.update_layout(
+        title="Drawdown Comparison",
+        template="plotly_dark",
+        yaxis_title="Drawdown",
+        hovermode="x unified",
+        margin=dict(l=20, r=20, t=60, b=20),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Liquidity & Deployment")
+    liquidity_df = pd.DataFrame(
+        {
+            "Metric": ["Avg Liquidity", "Tail Liquidity Risk", "Market Depth"],
+            "AM100": [f"${am100_adv_usd:,.0f} ADV", "Low", "Broad"],
+            "EAC25": [f"${float(eac25_portfolio['LiquidityUSD'].mean()):,.0f} ADV", "High", "Limited"],
+        }
+    )
+    st.dataframe(liquidity_df, use_container_width=True, hide_index=True)
+    st.markdown(
+        "EAC deployment is constrained by market depth and liquidity concentration, requiring more careful execution and higher sensitivity to trade size."
+    )
+
+    st.markdown("### Minimum Investment Comparison")
+    min_df = pd.DataFrame(
+        {
+            "Metric": ["Theoretical Minimum", "Practical Minimum", "Institutional Ticket"],
+            "AM100": [f"${am100_theoretical_min:,.0f}", "$300k-$500k", "$500k+"],
+            "EAC25": [
+                f"${float(eac25_summary.iloc[0]['StrictMinDeploymentUSD']):,.0f}",
+                "$50k-$100k",
+                "$250k-$500k",
+            ],
+        }
+    )
+    st.dataframe(min_df, use_container_width=True, hide_index=True)
+    st.markdown(
+        "While EAC portfolios appear accessible at lower capital levels, practical deployment remains constrained by liquidity and execution considerations."
+    )
+
+    st.markdown("### Allocator Interpretation")
+    st.markdown(
+        "AM100 represents a diversified, pan-African allocation suitable for broad exposure.\n\n"
+        "EAC25 Core represents a concentrated regional sleeve, offering targeted exposure to East African markets "
+        "but with higher concentration and liquidity risk.\n\n"
+        "Allocators should consider EAC exposure as a complementary allocation rather than a substitute for pan-African strategies."
+    )
+
+    st.markdown("### Key Takeaways")
+    st.markdown(
+        "- Africa is investable, but unevenly\n"
+        "- Regional exposure introduces concentration risk\n"
+        "- Liquidity constraints define deployability\n"
+        "- EAC portfolios reflect real market structure, not theoretical coverage"
+    )
+
 validated_securities_count = 0
 eligible_securities_count = 0
 full_trading_coverage_count = 0
@@ -2700,6 +3306,23 @@ am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
+
+st.markdown("### Series Navigation")
+series_family = st.radio(
+    "Series Family",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="series_family",
+)
+
+if series_family == "EAC Series":
+    render_eac_dashboard()
+    st.stop()
+
+if series_family == "Comparison":
+    render_am_eac_comparison()
+    st.stop()
 
 if allocator_mode and all(
     x is not None
