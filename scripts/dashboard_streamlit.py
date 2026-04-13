@@ -1964,14 +1964,10 @@ am100_periods = get_periods(price_panel, am100_constituents, am100)
 am200_periods = get_periods(price_panel, am200_constituents, am200)
 am300_periods = get_periods(price_panel, am300_constituents, am300)
 
-am100_cagrs = compute_cagr_for_periods(am100, am100_periods)
-am200_cagrs = compute_cagr_for_periods(am200, am200_periods)
-am300_cagrs = compute_cagr_for_periods(am300, am300_periods)
-
 cagr_outputs = {
-    "AM100": am100_cagrs,
-    "AM200": am200_cagrs,
-    "AM300": am300_cagrs,
+    "AM100": compute_cagr_for_periods(am100, am100_periods),
+    "AM200": compute_cagr_for_periods(am200, am200_periods),
+    "AM300": compute_cagr_for_periods(am300, am300_periods),
 }
 
 if "fixed_10y" not in cagr_outputs["AM100"]:
@@ -1983,36 +1979,12 @@ if "fixed_10y" not in cagr_outputs["AM200"]:
 if "fixed_10y" not in cagr_outputs["AM300"]:
     raise ValueError("fixed_10y missing from AM300 CAGR outputs")
 
-am100_cagr_10y = am100_cagrs["rolling_10y"]["cagr"]
-am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]["cagr"]
-am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]["cagr"]
-am100_cagr_rolling_1y = am100_cagrs["rolling_1y"]["cagr"]
-am100_cagr_2016 = am100_cagrs["since_2016"]["cagr"]
-am100_cagr_fixed_10y = am100_cagrs["fixed_10y"]["cagr"]
-am100_cagr_fixed_5y = am100_cagrs["fixed_5y"]["cagr"]
-
-am200_cagr_10y = am200_cagrs["rolling_10y"]["cagr"]
-am200_cagr_rolling_5y = am200_cagrs["rolling_5y"]["cagr"]
-am200_cagr_rolling_3y = am200_cagrs["rolling_3y"]["cagr"]
-am200_cagr_rolling_1y = am200_cagrs["rolling_1y"]["cagr"]
-am200_cagr_2016 = am200_cagrs["since_2016"]["cagr"]
-am200_cagr_fixed_10y = am200_cagrs["fixed_10y"]["cagr"]
-am200_cagr_fixed_5y = am200_cagrs["fixed_5y"]["cagr"]
-
-am300_cagr_10y = am300_cagrs["rolling_10y"]["cagr"]
-am300_cagr_rolling_5y = am300_cagrs["rolling_5y"]["cagr"]
-am300_cagr_rolling_3y = am300_cagrs["rolling_3y"]["cagr"]
-am300_cagr_rolling_1y = am300_cagrs["rolling_1y"]["cagr"]
-am300_cagr_2016 = am300_cagrs["since_2016"]["cagr"]
-am300_cagr_fixed_10y = am300_cagrs["fixed_10y"]["cagr"]
-am300_cagr_fixed_5y = am300_cagrs["fixed_5y"]["cagr"]
-
 analytics_coverage_notes = []
 
 for index_name, index_series, periods, period_results in [
-    ("AM100", am100, am100_periods, am100_cagrs),
-    ("AM200", am200, am200_periods, am200_cagrs),
-    ("AM300", am300, am300_periods, am300_cagrs),
+    ("AM100", am100, am100_periods, cagr_outputs["AM100"]),
+    ("AM200", am200, am200_periods, cagr_outputs["AM200"]),
+    ("AM300", am300, am300_periods, cagr_outputs["AM300"]),
 ]:
     latest_valid = periods["latest_valid"]
     index_latest = index_series.index.max()
@@ -2253,19 +2225,19 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
-am100_cagr = cagr_outputs.get("AM100", {})
+am100_period_outputs = cagr_outputs.get("AM100", {})
 
-if "fixed_10y" not in am100_cagr or am100_cagr["fixed_10y"] is None:
+if "fixed_10y" not in am100_period_outputs or am100_period_outputs["fixed_10y"] is None:
     raise ValueError(
-        f"AM100 fixed_10y missing or None. Available keys: {list(am100_cagr.keys())}"
+        f"AM100 fixed_10y missing or None. Available keys: {list(am100_period_outputs.keys())}"
     )
-if "fixed_5y" not in am100_cagr or am100_cagr["fixed_5y"] is None:
+if "fixed_5y" not in am100_period_outputs or am100_period_outputs["fixed_5y"] is None:
     raise ValueError(
-        f"AM100 fixed_5y missing or None. Available keys: {list(am100_cagr.keys())}"
+        f"AM100 fixed_5y missing or None. Available keys: {list(am100_period_outputs.keys())}"
     )
 
-fixed_10y_display = safe_period_range(am100_cagr["fixed_10y"])
-fixed_5y_display = safe_period_range(am100_cagr["fixed_5y"])
+fixed_10y_display = safe_period_range(am100_period_outputs["fixed_10y"])
+fixed_5y_display = safe_period_range(am100_period_outputs["fixed_5y"])
 
 st.markdown(
     f"""
@@ -2329,22 +2301,22 @@ def styled(val):
 
 rolling_results = {
     "AM100": {
-        "rolling_10y": am100_cagrs["rolling_10y"],
-        "rolling_5y": am100_cagrs["rolling_5y"],
-        "rolling_3y": am100_cagrs["rolling_3y"],
-        "rolling_1y": am100_cagrs["rolling_1y"],
+        "rolling_10y": cagr_outputs["AM100"]["rolling_10y"],
+        "rolling_5y": cagr_outputs["AM100"]["rolling_5y"],
+        "rolling_3y": cagr_outputs["AM100"]["rolling_3y"],
+        "rolling_1y": cagr_outputs["AM100"]["rolling_1y"],
     },
     "AM200": {
-        "rolling_10y": am200_cagrs["rolling_10y"],
-        "rolling_5y": am200_cagrs["rolling_5y"],
-        "rolling_3y": am200_cagrs["rolling_3y"],
-        "rolling_1y": am200_cagrs["rolling_1y"],
+        "rolling_10y": cagr_outputs["AM200"]["rolling_10y"],
+        "rolling_5y": cagr_outputs["AM200"]["rolling_5y"],
+        "rolling_3y": cagr_outputs["AM200"]["rolling_3y"],
+        "rolling_1y": cagr_outputs["AM200"]["rolling_1y"],
     },
     "AM300": {
-        "rolling_10y": am300_cagrs["rolling_10y"],
-        "rolling_5y": am300_cagrs["rolling_5y"],
-        "rolling_3y": am300_cagrs["rolling_3y"],
-        "rolling_1y": am300_cagrs["rolling_1y"],
+        "rolling_10y": cagr_outputs["AM300"]["rolling_10y"],
+        "rolling_5y": cagr_outputs["AM300"]["rolling_5y"],
+        "rolling_3y": cagr_outputs["AM300"]["rolling_3y"],
+        "rolling_1y": cagr_outputs["AM300"]["rolling_1y"],
     },
 }
 
@@ -2358,18 +2330,18 @@ comparison_period_result = {
 fixed_results = {
     "AM100": {
         "common_period": comparison_period_result["AM100"],
-        "fixed_10y": am100_cagrs["fixed_10y"],
-        "fixed_5y": am100_cagrs["fixed_5y"],
+        "fixed_10y": cagr_outputs["AM100"]["fixed_10y"],
+        "fixed_5y": cagr_outputs["AM100"]["fixed_5y"],
     },
     "AM200": {
         "common_period": comparison_period_result["AM200"],
-        "fixed_10y": am200_cagrs["fixed_10y"],
-        "fixed_5y": am200_cagrs["fixed_5y"],
+        "fixed_10y": cagr_outputs["AM200"]["fixed_10y"],
+        "fixed_5y": cagr_outputs["AM200"]["fixed_5y"],
     },
     "AM300": {
         "common_period": comparison_period_result["AM300"],
-        "fixed_10y": am300_cagrs["fixed_10y"],
-        "fixed_5y": am300_cagrs["fixed_5y"],
+        "fixed_10y": cagr_outputs["AM300"]["fixed_10y"],
+        "fixed_5y": cagr_outputs["AM300"]["fixed_5y"],
     },
 }
 
