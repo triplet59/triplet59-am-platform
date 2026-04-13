@@ -906,12 +906,7 @@ render_global_header()
 
 def render_allocator_view():
     def comparison_metric(index_name):
-        global comparison_metrics
-
-        if not isinstance(comparison_metrics, dict):
-            return None
-        metric_row = comparison_metrics.get(index_name)
-        return metric_row if isinstance(metric_row, dict) else None
+        return comparison_metrics.get(index_name, {})
 
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
@@ -1182,12 +1177,7 @@ if IS_INTERNAL and all(
     ]
 ):
     def comparison_metric(index_name):
-        global comparison_metrics
-
-        if not isinstance(comparison_metrics, dict):
-            return None
-        metric_row = comparison_metrics.get(index_name)
-        return metric_row if isinstance(metric_row, dict) else None
+        return comparison_metrics.get(index_name, {})
 
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
@@ -3307,18 +3297,17 @@ with allocator_tab:
     )
 
 with overview_tab:
-    st.markdown("### Universe Coverage")
+    st.markdown("### Market Coverage")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total Market Universe", "~700+")
-    col2.metric("Validated Securities", f"{validated_securities_count}")
+    col1.metric("Total African Equities (Est.)", "700+")
+    col2.metric("Validated Universe", f"{validated_securities_count}")
     col3.metric("Eligible (>=80% Trading)", f"{eligible_securities_count}")
     col4, col5 = st.columns(2)
     col4.metric("Full Trading Coverage", f"{full_trading_coverage_count}")
     col5.metric("Ineligible Securities", f"{ineligible_securities_count}")
     st.caption(
-        "The AM Index framework is constructed from a broad universe of African equities. "
-        f"From ~700+ listed securities, {validated_securities_count} meet data validation standards, "
-        f"with {eligible_securities_count} currently meeting liquidity and trading consistency rules."
+        "The AM Index framework evaluates a broad universe of African equities, "
+        f"with {validated_securities_count} securities fully validated across price, volume, and dividend data."
     )
 
 with overview_tab:
