@@ -110,6 +110,18 @@ def get_country_weights(df):
     return df.groupby("Country")["Weight"].sum().sort_values(ascending=False)
 
 
+def compute_country_weights(df):
+    if df is None or df.empty or "Country" not in df.columns or "Weight" not in df.columns:
+        return pd.DataFrame(columns=["Country", "Weight"])
+
+    return (
+        df.groupby("Country")["Weight"]
+        .sum()
+        .sort_values(ascending=False)
+        .reset_index()
+    )
+
+
 def audit_volume_quality(df):
     results = []
     for col in df.columns:
@@ -2319,6 +2331,8 @@ top_country_am300 = get_top_country(am300_latest) if SHOW_AM300 else None
 am100_country = get_country_weights(am100_latest)
 am200_country = get_country_weights(am200_latest) if SHOW_AM200 else pd.Series(dtype=float)
 am300_country = get_country_weights(am300_latest) if SHOW_AM300 else pd.Series(dtype=float)
+am100_country_df = compute_country_weights(am100_latest)
+am200_country_df = compute_country_weights(am200_latest) if SHOW_AM200 else pd.DataFrame(columns=["Country", "Weight"])
 latest_am100 = am100.iloc[-1]
 latest_am200 = am200.iloc[-1] if SHOW_AM200 and len(am200) else None
 latest_am300 = am300.iloc[-1] if SHOW_AM300 and len(am300) else None
@@ -3284,31 +3298,26 @@ with overview_tab:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.caption("AM100")
-        fig, ax = plt.subplots(figsize=(6, 2.4))
-        style_chart(fig, ax)
-        ax.bar(am100_country.index, am100_country.values, color=AM100_COLOR)
-        ax.tick_params(axis="x", rotation=90)
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
+        st.markdown("### AM100 Country Allocation")
+        if not am100_country_df.empty:
+            fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
+            style_chart(fig, ax)
+            ax.bar(am100_country_df["Country"], am100_country_df["Weight"], color=AM100_COLOR)
+            ax.tick_params(axis="x", rotation=90)
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
 
     with col2:
-        st.caption("AM200")
-        if SHOW_AM200 and not am200_country.empty:
-            fig, ax = plt.subplots(figsize=(6, 2.4))
+        st.markdown("### AM200 Country Allocation")
+        if SHOW_AM200 and not am200_country_df.empty:
+            fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
             style_chart(fig, ax)
-            ax.bar(am200_country.index, am200_country.values, color=AM200_COLOR)
+            ax.bar(am200_country_df["Country"], am200_country_df["Weight"], color=AM200_COLOR)
             ax.tick_params(axis="x", rotation=90)
             fig.tight_layout()
             st.pyplot(fig, use_container_width=True)
         else:
-            st.info(
-                """
-                AM200 — Expanding coverage through validated data integration (Phase 2)
-
-                This tier is being expanded through validated data integration while preserving liquidity integrity, positive trading coverage requirements, and execution realism.
-                """
-            )
+            st.info("AM200 country allocation not yet available")
 
     st.markdown(
         """
