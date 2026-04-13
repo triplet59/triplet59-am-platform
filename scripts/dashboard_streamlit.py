@@ -718,7 +718,7 @@ if st.session_state.auth_mode is None:
 MODE = st.session_state.auth_mode
 IS_INVESTOR = MODE == "investor"
 IS_INTERNAL = MODE == "internal"
-allocator_mode = st.toggle("Allocator Presentation Mode", value=False)
+allocator_mode = True
 
 intro_text = """
 **AM100 is a rules-based, institutional-grade equity index designed to reflect the investable African equity universe.**
@@ -906,6 +906,8 @@ render_global_header()
 
 def render_allocator_view():
     def comparison_metric(index_name):
+        if not isinstance(comparison_metrics, dict):
+            return {}
         return comparison_metrics.get(index_name, {})
 
     def pct_metric(metrics, key):
@@ -1177,6 +1179,8 @@ if IS_INTERNAL and all(
     ]
 ):
     def comparison_metric(index_name):
+        if not isinstance(comparison_metrics, dict):
+            return {}
         return comparison_metrics.get(index_name, {})
 
     def pct_metric(metrics, key):
