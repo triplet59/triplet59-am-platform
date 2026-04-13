@@ -905,6 +905,12 @@ render_global_header()
 
 
 def render_allocator_view():
+    def comparison_metric(index_name):
+        if not isinstance(comparison_metrics, dict):
+            return {}
+        metric_row = comparison_metrics.get(index_name)
+        return metric_row if isinstance(metric_row, dict) else {}
+
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
         return f"{value * 100:.2f}%" if value is not None and pd.notna(value) else "N/A"
@@ -938,15 +944,18 @@ def render_allocator_view():
 
     st.markdown("### Performance Snapshot")
     col1, col2, col3 = st.columns(3)
+    am100_compare = comparison_metric("AM100")
+    am200_compare = comparison_metric("AM200")
+    am300_compare = comparison_metric("AM300")
 
-    col1.metric("AM100 CAGR", pct_metric(comparison_metrics.get("AM100"), "CAGR"))
-    col1.metric("Sharpe", num_metric(comparison_metrics.get("AM100"), "Sharpe"))
+    col1.metric("AM100 CAGR", pct_metric(am100_compare, "CAGR"))
+    col1.metric("Sharpe", num_metric(am100_compare, "Sharpe"))
 
-    col2.metric("AM200 CAGR", pct_metric(comparison_metrics.get("AM200"), "CAGR"))
-    col2.metric("Sharpe", num_metric(comparison_metrics.get("AM200"), "Sharpe"))
+    col2.metric("AM200 CAGR", pct_metric(am200_compare, "CAGR"))
+    col2.metric("Sharpe", num_metric(am200_compare, "Sharpe"))
 
-    col3.metric("AM300 CAGR", pct_metric(comparison_metrics.get("AM300"), "CAGR"))
-    col3.metric("Sharpe", num_metric(comparison_metrics.get("AM300"), "Sharpe"))
+    col3.metric("AM300 CAGR", pct_metric(am300_compare, "CAGR"))
+    col3.metric("Sharpe", num_metric(am300_compare, "Sharpe"))
 
     st.markdown(
         """
@@ -979,26 +988,26 @@ def render_allocator_view():
                 "Turnover",
             ],
             "AM100": [
-                pct_metric(comparison_metrics.get("AM100"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM100"), "Volatility"),
-                num_metric(comparison_metrics.get("AM100"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM100"), "Max Drawdown"),
+                pct_metric(am100_compare, "CAGR"),
+                pct_metric(am100_compare, "Volatility"),
+                num_metric(am100_compare, "Sharpe"),
+                pct_metric(am100_compare, "Max Drawdown"),
                 am100_snapshot_insights.get("constituents"),
                 turnover_metric(am100_snapshot_insights),
             ],
             "AM200": [
-                pct_metric(comparison_metrics.get("AM200"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM200"), "Volatility"),
-                num_metric(comparison_metrics.get("AM200"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM200"), "Max Drawdown"),
+                pct_metric(am200_compare, "CAGR"),
+                pct_metric(am200_compare, "Volatility"),
+                num_metric(am200_compare, "Sharpe"),
+                pct_metric(am200_compare, "Max Drawdown"),
                 am200_snapshot_insights.get("constituents"),
                 turnover_metric(am200_snapshot_insights),
             ],
             "AM300": [
-                pct_metric(comparison_metrics.get("AM300"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM300"), "Volatility"),
-                num_metric(comparison_metrics.get("AM300"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM300"), "Max Drawdown"),
+                pct_metric(am300_compare, "CAGR"),
+                pct_metric(am300_compare, "Volatility"),
+                num_metric(am300_compare, "Sharpe"),
+                pct_metric(am300_compare, "Max Drawdown"),
                 am300_snapshot_insights.get("constituents"),
                 turnover_metric(am300_snapshot_insights),
             ],
@@ -1170,6 +1179,12 @@ if IS_INTERNAL and all(
         am300_snapshot_insights,
     ]
 ):
+    def comparison_metric(index_name):
+        if not isinstance(comparison_metrics, dict):
+            return {}
+        metric_row = comparison_metrics.get(index_name)
+        return metric_row if isinstance(metric_row, dict) else {}
+
     def pct_metric(metrics, key):
         value = metrics.get(key) if metrics else None
         return f"{value * 100:.2f}%" if value is not None and pd.notna(value) else "N/A"
@@ -1182,6 +1197,10 @@ if IS_INTERNAL and all(
         value = snapshot.get("avg_turnover")
         return f"{value * 100:.1f}%" if value is not None else "N/A"
 
+    am100_compare = comparison_metric("AM100")
+    am200_compare = comparison_metric("AM200")
+    am300_compare = comparison_metric("AM300")
+
     comparison_df = pd.DataFrame(
         {
             "Metric": [
@@ -1193,26 +1212,26 @@ if IS_INTERNAL and all(
                 "Turnover",
             ],
             "AM100": [
-                pct_metric(comparison_metrics.get("AM100"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM100"), "Volatility"),
-                num_metric(comparison_metrics.get("AM100"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM100"), "Max Drawdown"),
+                pct_metric(am100_compare, "CAGR"),
+                pct_metric(am100_compare, "Volatility"),
+                num_metric(am100_compare, "Sharpe"),
+                pct_metric(am100_compare, "Max Drawdown"),
                 am100_snapshot_insights.get("constituents"),
                 turnover_metric(am100_snapshot_insights),
             ],
             "AM200": [
-                pct_metric(comparison_metrics.get("AM200"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM200"), "Volatility"),
-                num_metric(comparison_metrics.get("AM200"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM200"), "Max Drawdown"),
+                pct_metric(am200_compare, "CAGR"),
+                pct_metric(am200_compare, "Volatility"),
+                num_metric(am200_compare, "Sharpe"),
+                pct_metric(am200_compare, "Max Drawdown"),
                 am200_snapshot_insights.get("constituents"),
                 turnover_metric(am200_snapshot_insights),
             ],
             "AM300": [
-                pct_metric(comparison_metrics.get("AM300"), "CAGR"),
-                pct_metric(comparison_metrics.get("AM300"), "Volatility"),
-                num_metric(comparison_metrics.get("AM300"), "Sharpe"),
-                pct_metric(comparison_metrics.get("AM300"), "Max Drawdown"),
+                pct_metric(am300_compare, "CAGR"),
+                pct_metric(am300_compare, "Volatility"),
+                num_metric(am300_compare, "Sharpe"),
+                pct_metric(am300_compare, "Max Drawdown"),
                 am300_snapshot_insights.get("constituents"),
                 turnover_metric(am300_snapshot_insights),
             ],
@@ -1245,8 +1264,8 @@ if IS_INTERNAL and all(
         col1.markdown(
             f"""
             **AM100**  
-            CAGR: {pct_metric(comparison_metrics.get("AM100"), "CAGR")}  
-            Sharpe: {num_metric(comparison_metrics.get("AM100"), "Sharpe")}  
+            CAGR: {pct_metric(am100_compare, "CAGR")}  
+            Sharpe: {num_metric(am100_compare, "Sharpe")}  
             Cons: {am100_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am100_snapshot_insights)}
             """
@@ -1254,8 +1273,8 @@ if IS_INTERNAL and all(
         col2.markdown(
             f"""
             **AM200**  
-            CAGR: {pct_metric(comparison_metrics.get("AM200"), "CAGR")}  
-            Sharpe: {num_metric(comparison_metrics.get("AM200"), "Sharpe")}  
+            CAGR: {pct_metric(am200_compare, "CAGR")}  
+            Sharpe: {num_metric(am200_compare, "Sharpe")}  
             Cons: {am200_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am200_snapshot_insights)}
             """
@@ -1263,8 +1282,8 @@ if IS_INTERNAL and all(
         col3.markdown(
             f"""
             **AM300**  
-            CAGR: {pct_metric(comparison_metrics.get("AM300"), "CAGR")}  
-            Sharpe: {num_metric(comparison_metrics.get("AM300"), "Sharpe")}  
+            CAGR: {pct_metric(am300_compare, "CAGR")}  
+            Sharpe: {num_metric(am300_compare, "Sharpe")}  
             Cons: {am300_snapshot_insights.get("constituents")}  
             Turnover: {turnover_metric(am300_snapshot_insights)}
             """
