@@ -1411,9 +1411,9 @@ if IS_INTERNAL and all(
         st.markdown(
             f"""
             **Performance Period:**  
-            {common_period_label}
+            {common_start.strftime('%d %b %Y') if common_start is not None else 'N/A'} → {common_end.strftime('%d %b %Y') if common_end is not None else 'N/A'}
 
-            All comparison metrics (CAGR, Volatility, Sharpe Ratio, Drawdown) are calculated over this shared period.
+            All comparison metrics (CAGR, Volatility, Sharpe Ratio, Drawdown) are calculated over the shared period where all index series are concurrently available.
             """
         )
         st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
@@ -1968,6 +1968,21 @@ am100_cagrs = compute_cagr_for_periods(am100, am100_periods)
 am200_cagrs = compute_cagr_for_periods(am200, am200_periods)
 am300_cagrs = compute_cagr_for_periods(am300, am300_periods)
 
+cagr_outputs = {
+    "AM100": am100_cagrs,
+    "AM200": am200_cagrs,
+    "AM300": am300_cagrs,
+}
+
+if "fixed_10y" not in cagr_outputs["AM100"]:
+    raise ValueError("fixed_10y missing from AM100 CAGR outputs")
+if "fixed_5y" not in cagr_outputs["AM100"]:
+    raise ValueError("fixed_5y missing from AM100 CAGR outputs")
+if "fixed_10y" not in cagr_outputs["AM200"]:
+    raise ValueError("fixed_10y missing from AM200 CAGR outputs")
+if "fixed_10y" not in cagr_outputs["AM300"]:
+    raise ValueError("fixed_10y missing from AM300 CAGR outputs")
+
 am100_cagr_10y = am100_cagrs["rolling_10y"]["cagr"]
 am100_cagr_rolling_5y = am100_cagrs["rolling_5y"]["cagr"]
 am100_cagr_rolling_3y = am100_cagrs["rolling_3y"]["cagr"]
@@ -2238,8 +2253,8 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
-fixed_10y_display = safe_period_range(am100_cagrs["fixed_10y"])
-fixed_5y_display = safe_period_range(am100_cagrs["fixed_5y"])
+fixed_10y_display = safe_period_range(cagr_outputs["AM100"]["fixed_10y"])
+fixed_5y_display = safe_period_range(cagr_outputs["AM100"]["fixed_5y"])
 
 st.markdown(
     f"""
