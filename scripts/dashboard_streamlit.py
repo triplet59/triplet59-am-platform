@@ -903,6 +903,10 @@ def build_portfolio_index(df, weights):
 
 render_global_header()
 
+# Initialized early so any pre-load UI block can fail safely to N/A
+# instead of crashing before the real metrics object is built later.
+comparison_metrics = {}
+
 
 def render_allocator_view():
     def comparison_metric(index_name):
