@@ -2225,18 +2225,22 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
+am100 = cagr_outputs.get("AM100", {})
 
-if "fixed_10y" not in cagr_outputs["AM100"] or cagr_outputs["AM100"]["fixed_10y"] is None:
+fixed_10y = am100.get("fixed_10y")
+if fixed_10y is None:
     raise ValueError(
-        f"AM100 fixed_10y missing or None. Available keys: {list(cagr_outputs['AM100'].keys())}"
-    )
-if "fixed_5y" not in cagr_outputs["AM100"] or cagr_outputs["AM100"]["fixed_5y"] is None:
-    raise ValueError(
-        f"AM100 fixed_5y missing or None. Available keys: {list(cagr_outputs['AM100'].keys())}"
+        f"AM100 fixed_10y missing. Available keys: {list(am100.keys())}"
     )
 
-fixed_10y_display = safe_period_range(cagr_outputs["AM100"]["fixed_10y"])
-fixed_5y_display = safe_period_range(cagr_outputs["AM100"]["fixed_5y"])
+fixed_5y = am100.get("fixed_5y")
+if fixed_5y is None:
+    raise ValueError(
+        f"AM100 fixed_5y missing. Available keys: {list(am100.keys())}"
+    )
+
+fixed_10y_display = safe_period_range(fixed_10y)
+fixed_5y_display = safe_period_range(fixed_5y)
 
 st.markdown(
     f"""
@@ -2353,19 +2357,22 @@ def safe_metric(result):
     return f"{value:.2%}" if value is not None and pd.notnull(value) else "N/A"
 
 
-def safe_period_range(result):
-    if not result:
+def safe_period_range(period):
+    if not period:
         return "N/A"
-    if isinstance(result, dict):
-        if result.get("status") != "OK":
-            return "N/A"
-        start = result.get("start")
-        end = result.get("end")
-        if start is None or end is None:
-            return "N/A"
-        return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
+
     try:
-        start, end = result
+        if isinstance(period, dict):
+            start = period.get("start")
+            end = period.get("end")
+
+            if not start or not end:
+                return "N/A"
+        elif isinstance(period, tuple):
+            start, end = period
+        else:
+            return "N/A"
+
         return f"{start.strftime('%d %b %Y')} -> {end.strftime('%d %b %Y')}"
     except Exception:
         return "N/A"
