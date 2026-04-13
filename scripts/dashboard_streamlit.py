@@ -468,6 +468,12 @@ def calculate_cagr_window(series, start_date, end_date):
 
 
 def compute_performance(series, window_type, name=None, **kwargs):
+    st.write(f"{name} TYPE:", type(series))
+    if hasattr(series, "head"):
+        st.write(series.head())
+    else:
+        st.write(series)
+
     if series is None:
         raise ValueError(f"{name or 'compute_performance'}: series is None")
 
