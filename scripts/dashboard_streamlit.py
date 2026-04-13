@@ -55,31 +55,64 @@ def render_metric_card(label, value, help_copy=None):
 
 
 def render_global_header():
-    col1, col2 = st.columns([0.8, 9])
+    col1, col2 = st.columns([6, 1])
 
     with col1:
-        st.image(logo_path, width=60)
-
-    with col2:
         st.markdown(
             """
-            <div style="line-height: 1.2;">
-                <span style="font-size:16px; font-weight:600;">African Market Indices</span><br>
-                <span style="font-size:12px; color:#9AA4AF;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="font-size:28px; font-weight:600;">
+                    Veri African Indices
+                </div>
+            </div>
+            <div style="font-size:13px; color:#9aa0a6; margin-top:4px;">
                 AM100 / AM200 / AM300 Total Return Indices
-                </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.caption(f"Build: {BUILD_VERSION}")
-
-    header_spacer, header_logout = st.columns([8, 1])
-    with header_logout:
+    with col2:
         if st.button("Logout", key="global_logout"):
             st.session_state.auth_mode = None
             st.rerun()
+
+    st.markdown("<hr style='margin: 16px 0; opacity: 0.2;'>", unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div style="font-size:15px; font-weight:500; margin-bottom:6px;">
+        AM100 is the institutional core of the Veri African Indices suite.
+        </div>
+
+        <div style="font-size:13px; color:#c9c9c9; max-width:900px;">
+        The framework applies strict USD liquidity, trading consistency, and total return standards to define the
+        investable African equity universe. AM200 and AM300 extend this framework through controlled expansion
+        of the investable universe, while preserving liquidity integrity and execution realism.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#111827;
+            padding:14px 18px;
+            border-radius:8px;
+            margin-top:14px;
+            margin-bottom:10px;
+        ">
+            <div style="font-size:12px; color:#9aa0a6;">
+                Market Coverage
+            </div>
+            <div style="font-size:20px; font-weight:600;">
+                {validated_securities_count} Validated Equities | {eligible_securities_count} Eligible (&ge;80% Trading Coverage)
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def safe_display(value, fallback="N/A"):
@@ -718,7 +751,7 @@ if st.session_state.auth_mode is None:
 MODE = st.session_state.auth_mode
 IS_INVESTOR = MODE == "investor"
 IS_INTERNAL = MODE == "internal"
-allocator_mode = True
+allocator_mode = IS_INVESTOR
 
 intro_text = """
 **AM100 is a rules-based, institutional-grade equity index designed to reflect the investable African equity universe.**
@@ -1166,14 +1199,7 @@ if IS_INVESTOR:
             """
         )
 else:
-    st.title("Veri African Indices")
-    st.markdown(
-        """
-        **AM100 is the institutional core of the Veri African Indices suite.**
-
-        AM100 applies hard USD liquidity, trading-consistency, and total-return standards to define the investable African equity universe. AM200 and AM300 remain part of the wider framework, but AM100 is the benchmark tier currently positioned for institutional use.
-        """
-    )
+    pass
 
 if IS_INTERNAL and all(
     x is not None
@@ -3306,20 +3332,6 @@ with allocator_tab:
 
     st.caption(
         "Estimated capacity is shown as investable capacity in USD, calculated as 20% of average daily traded value to reflect prudent institutional execution."
-    )
-
-with overview_tab:
-    st.markdown("### Market Coverage")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total African Equities (Est.)", "700+")
-    col2.metric("Validated Universe", f"{validated_securities_count}")
-    col3.metric("Eligible (>=80% Trading)", f"{eligible_securities_count}")
-    col4, col5 = st.columns(2)
-    col4.metric("Full Trading Coverage", f"{full_trading_coverage_count}")
-    col5.metric("Ineligible Securities", f"{ineligible_securities_count}")
-    st.caption(
-        "The AM Index framework evaluates a broad universe of African equities, "
-        f"with {validated_securities_count} securities fully validated across price, volume, and dividend data."
     )
 
 with overview_tab:
