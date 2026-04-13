@@ -1,5 +1,6 @@
 import os
 import sys
+import inspect
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -1066,6 +1067,8 @@ eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
 render_static_header()
+st.write("DEPLOY CHECK — CLEAN VERSION ACTIVE")
+st.write(inspect.getfile(safe_period_range))
 
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
@@ -2225,19 +2228,18 @@ st.caption("Performance Summary")
 st.markdown("### CAGR by Period")
 
 common_window_display = common_period_label
-am100_period_outputs = cagr_outputs.get("AM100", {})
 
-if "fixed_10y" not in am100_period_outputs or am100_period_outputs["fixed_10y"] is None:
+if "fixed_10y" not in cagr_outputs["AM100"] or cagr_outputs["AM100"]["fixed_10y"] is None:
     raise ValueError(
-        f"AM100 fixed_10y missing or None. Available keys: {list(am100_period_outputs.keys())}"
+        f"AM100 fixed_10y missing or None. Available keys: {list(cagr_outputs['AM100'].keys())}"
     )
-if "fixed_5y" not in am100_period_outputs or am100_period_outputs["fixed_5y"] is None:
+if "fixed_5y" not in cagr_outputs["AM100"] or cagr_outputs["AM100"]["fixed_5y"] is None:
     raise ValueError(
-        f"AM100 fixed_5y missing or None. Available keys: {list(am100_period_outputs.keys())}"
+        f"AM100 fixed_5y missing or None. Available keys: {list(cagr_outputs['AM100'].keys())}"
     )
 
-fixed_10y_display = safe_period_range(am100_period_outputs["fixed_10y"])
-fixed_5y_display = safe_period_range(am100_period_outputs["fixed_5y"])
+fixed_10y_display = safe_period_range(cagr_outputs["AM100"]["fixed_10y"])
+fixed_5y_display = safe_period_range(cagr_outputs["AM100"]["fixed_5y"])
 
 st.markdown(
     f"""
