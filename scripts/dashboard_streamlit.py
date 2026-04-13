@@ -2439,9 +2439,15 @@ rolling_results = {
     },
 }
 
+index_series_map = {
+    "AM100": am100,
+    "AM200": am200,
+    "AM300": am300,
+}
+
 comparison_period_result = {
     name: compute_performance(
-        series,
+        index_series_map[name],
         "fixed",
         name=name,
         start_date=common_start,
@@ -2449,7 +2455,7 @@ comparison_period_result = {
     )
     if common_start is not None and common_end is not None and name in comparison_series
     else {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
-    for name, series in {"AM100": am100, "AM200": am200, "AM300": am300}.items()
+    for name in index_series_map
 }
 
 for index_name, common_result in comparison_period_result.items():
