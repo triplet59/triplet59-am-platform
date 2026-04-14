@@ -1812,7 +1812,6 @@ validated_securities_count = 0
 eligible_securities_count = 0
 full_trading_coverage_count = 0
 ineligible_securities_count = 0
-render_static_header()
 
 # Initialized early so any pre-load UI block can fail safely to N/A
 # instead of crashing before the real metrics object is built later.
@@ -2712,7 +2711,6 @@ full_trading_coverage_count = int((volume_audit_df["Positive Coverage %"] == 100
 ineligible_securities_count = len(low_volume_coverage_df)
 assert validated_securities_count > 0, "Validated count is zero — pipeline failure"
 assert eligible_securities_count > 0, "Eligible count is zero — filter failure"
-render_data_header(validated_securities_count, eligible_securities_count)
 NO_VOLUME_EXPORT_FILE = "output/missing_volume_companies.csv"
 LOW_COVERAGE_EXPORT_FILE = "output/low_coverage_companies.csv"
 no_volume_df.to_csv(NO_VOLUME_EXPORT_FILE, index=False)
@@ -2728,11 +2726,16 @@ am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 
-if series_choice == "EAC Series":
+if series_choice == "AM Series":
+    pass
+elif series_choice == "EAC Series":
+    st.title("EAC Series")
+    st.subheader("EAC25 Core & EAC Extended")
+    st.success("EAC SERIES ACTIVE")
     render_eac_dashboard()
     st.stop()
-
-if series_choice == "Comparison":
+elif series_choice == "Comparison":
+    st.title("Comparison View")
     render_am_eac_comparison()
     st.stop()
 
@@ -2898,908 +2901,690 @@ am100_df = am100.rename("Index Level").reset_index()
 am200_df = am200.rename("Index Level").reset_index()
 am300_df = am300.rename("Index Level").reset_index()
 
-st.write("Last data date:", am100_df["Date"].max())
+def render_am_series():
+    render_static_header()
+    render_data_header(validated_securities_count, eligible_securities_count)
+    st.write("Last data date:", am100_df["Date"].max())
 
-# Visual-only smoothing for plotting. This does not affect stored data or metrics.
-am100_plot = am100.copy()
-am200_plot = am200.copy()
-am200_plot = am200_plot.interpolate()
+    # Visual-only smoothing for plotting. This does not affect stored data or metrics.
+    am100_plot = am100.copy()
+    am200_plot = am200.copy()
+    am200_plot = am200_plot.interpolate()
 
 
-st.caption("Key Insights")
+    st.caption("Key Insights")
 
-col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
 
-col1.info("AM100: Concentrated, institutional-grade core index")
-col2.info("AM200: Expansion sleeve for broader frontier exposure")
-col3.info("AM300: All-share flagship total return benchmark")
+    col1.info("AM100: Concentrated, institutional-grade core index")
+    col2.info("AM200: Expansion sleeve for broader frontier exposure")
+    col3.info("AM300: All-share flagship total return benchmark")
 
-# ----------------------------
-# METRICS DISPLAY
-# ----------------------------
-cagr100, vol100, sharpe100, dd100 = load_metric_snapshot(
-    "output/AM100_total_return.csv",
-    get_file_version("output/AM100_total_return.csv"),
-)
-cagr200, vol200, sharpe200, dd200 = load_metric_snapshot(
-    "output/AM200_total_return.csv",
-    get_file_version("output/AM200_total_return.csv"),
-)
-cagr300, vol300, sharpe300, dd300 = load_metric_snapshot(
-    "output/AM300_total_return.csv",
-    get_file_version("output/AM300_total_return.csv"),
-)
-
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-col1.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">AM100</div>
-    <div class="kpi-value" style="{color_return(ret100)}">{ret100:.2%}</div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-col2.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">AM200</div>
-    <div class="kpi-value" style="{color_return(ret200)}">{ret200:.2%}</div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
-col3.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">AM300</div>
-    <div class="kpi-value" style="{color_return(ret300)}">{ret300:.2%}</div>
-</div>
-"""
-,
-    unsafe_allow_html=True,
-)
-
-col4.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">Vol (AM100)</div>
-    <div class="kpi-value">{vol100:.2%}</div>
-</div>
-"""
-,
-    unsafe_allow_html=True,
-)
-
-col5.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">Vol (AM200)</div>
-    <div class="kpi-value">{vol200:.2%}</div>
-</div>
-"""
-,
-    unsafe_allow_html=True,
-)
-
-col6.markdown(
-    f"""
-<div class="kpi-card">
-    <div class="kpi-label">Vol (AM300)</div>
-    <div class="kpi-value">{vol300:.2%}</div>
-</div>
-"""
-,
-    unsafe_allow_html=True,
-)
-
-st.caption("Performance Summary")
-
-# =========================
-# CAGR SECTION (STATIC)
-# =========================
-
-st.markdown("### CAGR by Period")
-
-common_window_display = common_period_label
-am100_outputs = cagr_outputs.get("AM100", {})
-
-fixed_10y = am100_outputs.get("fixed_10y")
-if fixed_10y is None:
-    raise ValueError(
-        f"AM100 fixed_10y missing. Available keys: {list(am100_outputs.keys())}"
+    # ----------------------------
+    # METRICS DISPLAY
+    # ----------------------------
+    cagr100, vol100, sharpe100, dd100 = load_metric_snapshot(
+        "output/AM100_total_return.csv",
+        get_file_version("output/AM100_total_return.csv"),
+    )
+    cagr200, vol200, sharpe200, dd200 = load_metric_snapshot(
+        "output/AM200_total_return.csv",
+        get_file_version("output/AM200_total_return.csv"),
+    )
+    cagr300, vol300, sharpe300, dd300 = load_metric_snapshot(
+        "output/AM300_total_return.csv",
+        get_file_version("output/AM300_total_return.csv"),
     )
 
-fixed_5y = am100_outputs.get("fixed_5y")
-if fixed_5y is None:
-    raise ValueError(
-        f"AM100 fixed_5y missing. Available keys: {list(am100_outputs.keys())}"
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+    col1.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">AM100</div>
+        <div class="kpi-value" style="{color_return(ret100)}">{ret100:.2%}</div>
+    </div>
+    """,
+        unsafe_allow_html=True,
     )
 
-fixed_10y_display = safe_period_range(fixed_10y)
-fixed_5y_display = safe_period_range(fixed_5y)
+    col2.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">AM200</div>
+        <div class="kpi-value" style="{color_return(ret200)}">{ret200:.2%}</div>
+    </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
-st.markdown(
-    f"""
-    ### Performance Windows
-
-    **Common Window (Comparable Across Indices)**  
-    {common_window_display}  
-
-    **Fixed Windows (Index-Specific History)**  
-    • 10 Year: {fixed_10y_display}  
-    • 5 Year: {fixed_5y_display}
+    col3.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">AM300</div>
+        <div class="kpi-value" style="{color_return(ret300)}">{ret300:.2%}</div>
+    </div>
     """
-)
-
-latest_valid_dates = {
-    "AM100": am100_periods["latest_valid"],
-    "AM200": am200_periods["latest_valid"],
-    "AM300": am300_periods["latest_valid"],
-}
-min_valid = min(latest_valid_dates.values())
-
-st.markdown(
-    f"<div class='small-note'>Analytics calculated using data through {min_valid.date()} based on full constituent coverage.</div>",
-    unsafe_allow_html=True,
-)
-
-with st.expander("Data Coverage Details"):
-    for index_name, valid_date in latest_valid_dates.items():
-        st.write(f"{index_name}: {valid_date.date()}")
-    requested_rolling_start = am100_periods["rolling_10y"]["requested_start"]
-    actual_rolling_start = am100_periods["rolling_10y"]["start"]
-    rolling_end = am100_periods["rolling_10y"]["end"]
-    st.write("Rolling requested start:", requested_rolling_start)
-    st.write("Rolling actual start used:", actual_rolling_start)
-    st.write("Rolling end date:", rolling_end)
-    if actual_rolling_start is not None:
-        st.write(
-            "10Y Rolling:",
-            f"{actual_rolling_start.strftime('%d %b %Y')} -> {rolling_end.strftime('%d %b %Y')}",
-        )
-    st.write("Shared comparison start:", common_start)
-    if actual_rolling_start is not None:
-        window_length = (rolling_end - actual_rolling_start).days / 365
-        st.write("Rolling window length (years):", round(window_length, 3))
-        rolling_gap_days = (actual_rolling_start - requested_rolling_start).days
-        if rolling_gap_days > 7:
-            st.write("10Y rolling status:", "Approximate 10Y")
-
-
-def color(val):
-    if val is None:
-        return "white"
-    return "lime" if val > 0 else "red"
-
-
-def styled(val):
-    if val is None:
-        return "-"
-    return f"<span style='color:{color(val)}'>{val:.2%}</span>"
-
-
-rolling_results = {
-    "AM100": {
-        "rolling_10y": cagr_outputs["AM100"]["rolling_10y"],
-        "rolling_5y": cagr_outputs["AM100"]["rolling_5y"],
-        "rolling_3y": cagr_outputs["AM100"]["rolling_3y"],
-        "rolling_1y": cagr_outputs["AM100"]["rolling_1y"],
-    },
-    "AM200": {
-        "rolling_10y": cagr_outputs["AM200"]["rolling_10y"],
-        "rolling_5y": cagr_outputs["AM200"]["rolling_5y"],
-        "rolling_3y": cagr_outputs["AM200"]["rolling_3y"],
-        "rolling_1y": cagr_outputs["AM200"]["rolling_1y"],
-    },
-    "AM300": {
-        "rolling_10y": cagr_outputs["AM300"]["rolling_10y"],
-        "rolling_5y": cagr_outputs["AM300"]["rolling_5y"],
-        "rolling_3y": cagr_outputs["AM300"]["rolling_3y"],
-        "rolling_1y": cagr_outputs["AM300"]["rolling_1y"],
-    },
-}
-
-index_series_map = {
-    "AM100": am100_series,
-    "AM200": am200_series,
-    "AM300": am300_series,
-}
-
-comparison_period_result = {
-    name: compute_performance(
-        index_series_map[name],
-        "fixed",
-        name=name,
-        start_date=common_start,
-        end_date=common_end,
+    ,
+        unsafe_allow_html=True,
     )
-    if common_start is not None and common_end is not None and name in comparison_series
-    else {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
-    for name in index_series_map
-}
 
-for index_name, common_result in comparison_period_result.items():
-    if index_name in cagr_outputs:
-        cagr_outputs[index_name]["common"] = common_result
+    col4.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">Vol (AM100)</div>
+        <div class="kpi-value">{vol100:.2%}</div>
+    </div>
+    """
+    ,
+        unsafe_allow_html=True,
+    )
 
-fixed_results = {
-    "AM100": {
-        "common_period": cagr_outputs["AM100"]["common"],
-        "fixed_10y": cagr_outputs["AM100"]["fixed_10y"],
-        "fixed_5y": cagr_outputs["AM100"]["fixed_5y"],
-    },
-    "AM200": {
-        "common_period": cagr_outputs["AM200"]["common"],
-        "fixed_10y": cagr_outputs["AM200"]["fixed_10y"],
-        "fixed_5y": cagr_outputs["AM200"]["fixed_5y"],
-    },
-    "AM300": {
-        "common_period": cagr_outputs["AM300"]["common"],
-        "fixed_10y": cagr_outputs["AM300"]["fixed_10y"],
-        "fixed_5y": cagr_outputs["AM300"]["fixed_5y"],
-    },
-}
-with st.expander("Rolling Performance Analysis"):
-    for index_name, results in rolling_results.items():
-        st.markdown(f"**{index_name}**")
-        st.caption("Trailing annualised returns over the latest valid 10Y, 5Y, 3Y, and 1Y windows.")
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("10Y", safe_metric(results["rolling_10y"]))
-        col2.metric("5Y", safe_metric(results["rolling_5y"]))
-        col3.metric("3Y", safe_metric(results["rolling_3y"]))
-        col4.metric("1Y", safe_metric(results["rolling_1y"]))
-        st.markdown(
-            f"<div class='small-note'>"
-            f"10Y: {safe_period_range(results['rolling_10y'])} | "
-            f"5Y: {safe_period_range(results['rolling_5y'])} | "
-            f"3Y: {safe_period_range(results['rolling_3y'])} | "
-            f"1Y: {safe_period_range(results['rolling_1y'])}"
-            f"</div>",
-            unsafe_allow_html=True,
+    col5.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">Vol (AM200)</div>
+        <div class="kpi-value">{vol200:.2%}</div>
+    </div>
+    """
+    ,
+        unsafe_allow_html=True,
+    )
+
+    col6.markdown(
+        f"""
+    <div class="kpi-card">
+        <div class="kpi-label">Vol (AM300)</div>
+        <div class="kpi-value">{vol300:.2%}</div>
+    </div>
+    """
+    ,
+        unsafe_allow_html=True,
+    )
+
+    st.caption("Performance Summary")
+
+    # =========================
+    # CAGR SECTION (STATIC)
+    # =========================
+
+    st.markdown("### CAGR by Period")
+
+    common_window_display = common_period_label
+    am100_outputs = cagr_outputs.get("AM100", {})
+
+    fixed_10y = am100_outputs.get("fixed_10y")
+    if fixed_10y is None:
+        raise ValueError(
+            f"AM100 fixed_10y missing. Available keys: {list(am100_outputs.keys())}"
         )
 
-comparison_df = pd.DataFrame(
-    {
-        "Metric": ["CAGR", "Volatility", "Sharpe", "Max Drawdown"],
-        "AM100": [f"{cagr100:.2%}", f"{vol100:.2%}", f"{sharpe100:.2f}", f"{dd100:.2%}"],
-        "AM200": [f"{cagr200:.2%}", f"{vol200:.2%}", f"{sharpe200:.2f}", f"{dd200:.2%}"],
-        "AM300": [f"{cagr300:.2%}", f"{vol300:.2%}", f"{sharpe300:.2f}", f"{dd300:.2%}"],
+    fixed_5y = am100_outputs.get("fixed_5y")
+    if fixed_5y is None:
+        raise ValueError(
+            f"AM100 fixed_5y missing. Available keys: {list(am100_outputs.keys())}"
+        )
+
+    fixed_10y_display = safe_period_range(fixed_10y)
+    fixed_5y_display = safe_period_range(fixed_5y)
+
+    st.markdown(
+        f"""
+        ### Performance Windows
+
+        **Common Window (Comparable Across Indices)**  
+        {common_window_display}  
+
+        **Fixed Windows (Index-Specific History)**  
+        • 10 Year: {fixed_10y_display}  
+        • 5 Year: {fixed_5y_display}
+        """
+    )
+
+    latest_valid_dates = {
+        "AM100": am100_periods["latest_valid"],
+        "AM200": am200_periods["latest_valid"],
+        "AM300": am300_periods["latest_valid"],
     }
-)
-st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    min_valid = min(latest_valid_dates.values())
+
+    st.markdown(
+        f"<div class='small-note'>Analytics calculated using data through {min_valid.date()} based on full constituent coverage.</div>",
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Data Coverage Details"):
+        for index_name, valid_date in latest_valid_dates.items():
+            st.write(f"{index_name}: {valid_date.date()}")
+        requested_rolling_start = am100_periods["rolling_10y"]["requested_start"]
+        actual_rolling_start = am100_periods["rolling_10y"]["start"]
+        rolling_end = am100_periods["rolling_10y"]["end"]
+        st.write("Rolling requested start:", requested_rolling_start)
+        st.write("Rolling actual start used:", actual_rolling_start)
+        st.write("Rolling end date:", rolling_end)
+        if actual_rolling_start is not None:
+            st.write(
+                "10Y Rolling:",
+                f"{actual_rolling_start.strftime('%d %b %Y')} -> {rolling_end.strftime('%d %b %Y')}",
+            )
+        st.write("Shared comparison start:", common_start)
+        if actual_rolling_start is not None:
+            window_length = (rolling_end - actual_rolling_start).days / 365
+            st.write("Rolling window length (years):", round(window_length, 3))
+            rolling_gap_days = (actual_rolling_start - requested_rolling_start).days
+            if rolling_gap_days > 7:
+                st.write("10Y rolling status:", "Approximate 10Y")
 
 
-def metric_help_text(metric_name, period_label):
-    if metric_name == "CAGR":
-        return (
-            "Compound Annual Growth Rate.\n\n"
-            "Calculated as:\n"
-            "(end value / start value)^(1/years) - 1\n\n"
-            f"Period:\n{period_label}\n\n"
-            "Includes:\n"
-            "✔ Dividends (total return)\n"
-            "✔ FX-normalised (USD)\n\n"
-            "Excludes:\n"
-            "✖ Fees\n"
-            "✖ Slippage"
+    def color(val):
+        if val is None:
+            return "white"
+        return "lime" if val > 0 else "red"
+
+
+    def styled(val):
+        if val is None:
+            return "-"
+        return f"<span style='color:{color(val)}'>{val:.2%}</span>"
+
+
+    rolling_results = {
+        "AM100": {
+            "rolling_10y": cagr_outputs["AM100"]["rolling_10y"],
+            "rolling_5y": cagr_outputs["AM100"]["rolling_5y"],
+            "rolling_3y": cagr_outputs["AM100"]["rolling_3y"],
+            "rolling_1y": cagr_outputs["AM100"]["rolling_1y"],
+        },
+        "AM200": {
+            "rolling_10y": cagr_outputs["AM200"]["rolling_10y"],
+            "rolling_5y": cagr_outputs["AM200"]["rolling_5y"],
+            "rolling_3y": cagr_outputs["AM200"]["rolling_3y"],
+            "rolling_1y": cagr_outputs["AM200"]["rolling_1y"],
+        },
+        "AM300": {
+            "rolling_10y": cagr_outputs["AM300"]["rolling_10y"],
+            "rolling_5y": cagr_outputs["AM300"]["rolling_5y"],
+            "rolling_3y": cagr_outputs["AM300"]["rolling_3y"],
+            "rolling_1y": cagr_outputs["AM300"]["rolling_1y"],
+        },
+    }
+
+    index_series_map = {
+        "AM100": am100_series,
+        "AM200": am200_series,
+        "AM300": am300_series,
+    }
+
+    comparison_period_result = {
+        name: compute_performance(
+            index_series_map[name],
+            "fixed",
+            name=name,
+            start_date=common_start,
+            end_date=common_end,
         )
-    if metric_name == "Volatility":
-        return (
-            "Annualised standard deviation of returns.\n\n"
-            "Measures risk over the observed return path.\n\n"
-            "Includes:\n"
-            "✔ Total return moves\n"
-            "✔ FX-normalised (USD)\n\n"
-            "Excludes:\n"
-            "✖ Fees\n"
-            "✖ Slippage"
-        )
-    if metric_name == "Sharpe Ratio":
-        return (
-            "Return per unit of risk.\n\n"
-            "Calculated from annualised return and annualised volatility with a 2% risk-free rate assumption."
-        )
-    if metric_name == "Max Drawdown":
-        return "Largest peak-to-trough decline over the period."
-    return ""
+        if common_start is not None and common_end is not None and name in comparison_series
+        else {"status": "NO_DATA", "cagr": None, "start": None, "end": None}
+        for name in index_series_map
+    }
 
+    for index_name, common_result in comparison_period_result.items():
+        if index_name in cagr_outputs:
+            cagr_outputs[index_name]["common"] = common_result
 
-headline_period_label = common_period_label
+    fixed_results = {
+        "AM100": {
+            "common_period": cagr_outputs["AM100"]["common"],
+            "fixed_10y": cagr_outputs["AM100"]["fixed_10y"],
+            "fixed_5y": cagr_outputs["AM100"]["fixed_5y"],
+        },
+        "AM200": {
+            "common_period": cagr_outputs["AM200"]["common"],
+            "fixed_10y": cagr_outputs["AM200"]["fixed_10y"],
+            "fixed_5y": cagr_outputs["AM200"]["fixed_5y"],
+        },
+        "AM300": {
+            "common_period": cagr_outputs["AM300"]["common"],
+            "fixed_10y": cagr_outputs["AM300"]["fixed_10y"],
+            "fixed_5y": cagr_outputs["AM300"]["fixed_5y"],
+        },
+    }
+    with st.expander("Rolling Performance Analysis"):
+        for index_name, results in rolling_results.items():
+            st.markdown(f"**{index_name}**")
+            st.caption("Trailing annualised returns over the latest valid 10Y, 5Y, 3Y, and 1Y windows.")
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("10Y", safe_metric(results["rolling_10y"]))
+            col2.metric("5Y", safe_metric(results["rolling_5y"]))
+            col3.metric("3Y", safe_metric(results["rolling_3y"]))
+            col4.metric("1Y", safe_metric(results["rolling_1y"]))
+            st.markdown(
+                f"<div class='small-note'>"
+                f"10Y: {safe_period_range(results['rolling_10y'])} | "
+                f"5Y: {safe_period_range(results['rolling_5y'])} | "
+                f"3Y: {safe_period_range(results['rolling_3y'])} | "
+                f"1Y: {safe_period_range(results['rolling_1y'])}"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.write("AM100")
-    st.metric(
-        label="CAGR ℹ️",
-        value=f"{cagr100:.2%}",
-        help=metric_help_text("CAGR", headline_period_label),
-    )
-    st.metric(
-        label="Volatility ℹ️",
-        value=f"{vol100:.2%}",
-        help=metric_help_text("Volatility", headline_period_label),
-    )
-    st.metric(
-        label="Sharpe Ratio ℹ️",
-        value=f"{sharpe100:.2f}",
-        help=metric_help_text("Sharpe Ratio", headline_period_label),
-    )
-    st.metric(
-        label="Max Drawdown ℹ️",
-        value=f"{dd100:.2%}",
-        help=metric_help_text("Max Drawdown", headline_period_label),
-    )
-
-with col2:
-    st.write("AM200")
-    st.metric(
-        label="CAGR ℹ️",
-        value=f"{cagr200:.2%}",
-        help=metric_help_text("CAGR", headline_period_label),
-    )
-    st.metric(
-        label="Volatility ℹ️",
-        value=f"{vol200:.2%}",
-        help=metric_help_text("Volatility", headline_period_label),
-    )
-    st.metric(
-        label="Sharpe Ratio ℹ️",
-        value=f"{sharpe200:.2f}",
-        help=metric_help_text("Sharpe Ratio", headline_period_label),
-    )
-    st.metric(
-        label="Max Drawdown ℹ️",
-        value=f"{dd200:.2%}",
-        help=metric_help_text("Max Drawdown", headline_period_label),
-    )
-
-with col3:
-    st.write("AM300")
-    st.metric(
-        label="CAGR ℹ️",
-        value=f"{cagr300:.2%}",
-        help=metric_help_text("CAGR", headline_period_label),
-    )
-    st.metric(
-        label="Volatility ℹ️",
-        value=f"{vol300:.2%}",
-        help=metric_help_text("Volatility", headline_period_label),
-    )
-    st.metric(
-        label="Sharpe Ratio ℹ️",
-        value=f"{sharpe300:.2f}",
-        help=metric_help_text("Sharpe Ratio", headline_period_label),
-    )
-    st.metric(
-        label="Max Drawdown ℹ️",
-        value=f"{dd300:.2%}",
-        help=metric_help_text("Max Drawdown", headline_period_label),
-    )
-
-st.caption("Key Observations")
-
-obs = []
-
-if cagr200 > cagr100:
-    obs.append(
-        "AM200 is outperforming AM100, indicating stronger growth in mid-cap and frontier segments."
-    )
-
-if vol200 > vol100:
-    obs.append(
-        "AM200 exhibits higher volatility, reflecting increased exposure to emerging markets."
-    )
-
-if dd200 < dd100:
-    obs.append("AM200 has experienced deeper drawdowns, highlighting higher risk.")
-
-top_country_am100 = get_top_country(am100_latest)
-top_country_am200 = get_top_country(am200_latest)
-top_country_am300 = get_top_country(am300_latest) if SHOW_AM300 else None
-am100_country = get_country_weights(am100_latest)
-am200_country = get_country_weights(am200_latest)
-am300_country = get_country_weights(am300_latest) if SHOW_AM300 else pd.Series(dtype=float)
-am100_country_df = compute_country_weights(am100_latest)
-am200_country_df = compute_country_weights(am200_latest)
-latest_am100 = am100.iloc[-1]
-latest_am200 = am200.iloc[-1] if len(am200) else None
-latest_am300 = am300.iloc[-1] if SHOW_AM300 and len(am300) else None
-
-ticker_parts = [
-    f"AM100: {latest_am100:.2f} ({ret100:.2%})",
-    f"Top Country AM100: {safe_display(top_country_am100)}",
-]
-if latest_am200 is not None:
-    ticker_parts.append(f"AM200: {latest_am200:.2f} ({ret200:.2%})")
-    ticker_parts.append(f"Top Country AM200: {safe_display(top_country_am200)}")
-if SHOW_AM300 and latest_am300 is not None:
-    ticker_parts.append(f"AM300: {latest_am300:.2f} ({ret300:.2%})")
-    ticker_parts.append(f"Top Country AM300: {safe_display(top_country_am300)}")
-ticker_text = " •\n".join(ticker_parts)
-
-if top_country_am100:
-    obs.append(f"AM100 is most exposed to {top_country_am100}.")
-if top_country_am200:
-    obs.append(f"AM200 shows strongest exposure to {top_country_am200}.")
-if SHOW_AM300 and top_country_am300:
-    obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
-
-@st.cache_data
-def load_capacity_usd_file(path, _version=None):
-    return pd.read_csv(path, parse_dates=["Date"]).sort_values("Date")
-
-
-@st.cache_data
-def load_investability_map(_version=None):
-    path = "output/investability_map.csv"
-    if not os.path.exists(path):
-        return None
-    return pd.read_csv(path)
-
-
-investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
-
-if allocator_mode and all(
-    x is not None
-    for x in [
-        am100_metrics,
-        am200_metrics,
-        am300_metrics,
-        am100_snapshot_insights,
-        am200_snapshot_insights,
-        am300_snapshot_insights,
-    ]
-):
-    render_allocator_view()
-    st.stop()
-
-am100_s, am100_r = prep(am100_df)
-am200_s, am200_r = prep(am200_df)
-am300_s, am300_r = prep(am300_df)
-
-risk_ratings_path = "output/index_risk_ratings.csv"
-benchmark_metrics_path = "output/am100_vs_msci_africa.csv"
-benchmark_series_path = "output/msci_africa.csv"
-drivers_path = "output/am100_volatility_drivers.csv"
-
-rolling_vol_100 = rolling_volatility(am100_r)
-rolling_vol_200 = rolling_volatility(am200_r)
-rolling_vol_300 = rolling_volatility(am300_r)
-
-rolling_mean_100 = am100_r.rolling(30).mean() * 252
-rolling_mean_200 = am200_r.rolling(30).mean() * 252
-rolling_mean_300 = am300_r.rolling(30).mean() * 252
-
-rolling_sharpe_100 = (rolling_mean_100 - 0.02) / rolling_vol_100
-rolling_sharpe_200 = (rolling_mean_200 - 0.02) / rolling_vol_200
-rolling_sharpe_300 = (rolling_mean_300 - 0.02) / rolling_vol_300
-
-rolling_perf_1y_100 = am100_s.pct_change(252).dropna()
-rolling_perf_1y_200 = am200_s.pct_change(252).dropna()
-rolling_perf_1y_300 = am300_s.pct_change(252).dropna()
-
-drawdown_100 = calculate_drawdown(am100_s)
-drawdown_200 = calculate_drawdown(am200_s)
-drawdown_300 = calculate_drawdown(am300_s)
-
-dashboard_outputs = build_dashboard_outputs(
-    am100_df=am100_df,
-    am200_df=am200_df,
-    am300_df=am300_df,
-    rolling_perf_1y_100=rolling_perf_1y_100,
-    rolling_perf_1y_200=rolling_perf_1y_200,
-    rolling_perf_1y_300=rolling_perf_1y_300,
-    rolling_vol_100=rolling_vol_100,
-    rolling_vol_200=rolling_vol_200,
-    rolling_vol_300=rolling_vol_300,
-    drawdown_100=drawdown_100,
-    drawdown_200=drawdown_200,
-    drawdown_300=drawdown_300,
-    am100_latest=am100_latest,
-    am200_latest=am200_latest,
-    am300_latest=am300_latest,
-    stats_dict={
-        "AM100": {"CAGR": cagr100, "Volatility": vol100, "Sharpe": sharpe100, "Max_Drawdown": dd100},
-        "AM200": {"CAGR": cagr200, "Volatility": vol200, "Sharpe": sharpe200, "Max_Drawdown": dd200},
-        "AM300": {"CAGR": cagr300, "Volatility": vol300, "Sharpe": sharpe300, "Max_Drawdown": dd300},
-    },
-)
-perf = validate_df(
-    dashboard_outputs["performance"], "performance", ["Date", "Index", "Index_Level"]
-)
-roll = validate_df(
-    dashboard_outputs["rolling"], "rolling", ["Date", "Index", "Metric", "Value"]
-)
-dd = validate_df(
-    dashboard_outputs["drawdown"], "drawdown", ["Date", "Index", "Metric", "Value"]
-)
-constituents = validate_df(
-    dashboard_outputs["constituents"],
-    "constituents",
-    ["Index", "Company", "Country", "Weight"],
-)
-
-for o in obs:
-    st.write(f"• {o}")
-
-st.markdown(
-    f"<div class='ticker'><span>{ticker_text}</span></div>",
-    unsafe_allow_html=True,
-)
-
-allocator_levels = pd.concat(
-    [
-        am100.rename("AM100"),
-        am200.rename("AM200"),
-        am300.rename("AM300"),
-    ],
-    axis=1,
-    join="inner",
-).dropna()
-allocator_returns = prepare_returns_frame(allocator_levels)
-high_risk_result = optimize_high_risk_portfolio(allocator_returns)
-MODEL_WEIGHTS = build_model_weight_system(high_risk_result["Weights"])
-model_levels, model_returns = build_model_series(
-    allocator_levels,
-    model_weights=MODEL_WEIGHTS,
-)
-model_metrics = build_model_metrics_table(
-    model_levels,
-    model_returns,
-    {"AM100": am100_capacity, "AM200": am200_capacity, "AM300": am300_capacity},
-    model_weights=MODEL_WEIGHTS,
-)
-
-overview_tab, risk_tab, allocator_tab = st.tabs(["Overview", "Risk", "Allocator"])
-
-with overview_tab:
-    st.caption("Overview")
-    st.write(
-        "Use the Risk tab for the full institutional risk view: summary metrics, "
-        "risk ratings, rolling stability, benchmark comparison, and volatility decomposition."
-    )
-
-with risk_tab:
-    st.markdown("## Risk Summary")
-    risk_summary_df = pd.DataFrame(
+    comparison_df = pd.DataFrame(
         {
-            "Metric": ["Volatility", "Drawdown", "Sharpe", "Capacity", "Risk Rating"],
-            "AM100": [
-                f"{vol100:.2%}",
-                f"{dd100:.2%}",
-                f"{sharpe100:.2f}",
-                f"{am100_capacity:,.0f}",
-                "-",
-            ],
-            "AM200": [
-                f"{vol200:.2%}",
-                f"{dd200:.2%}",
-                f"{sharpe200:.2f}",
-                f"{am200_capacity:,.0f}",
-                "-",
-            ],
-            "AM300": [
-                f"{vol300:.2%}",
-                f"{dd300:.2%}",
-                f"{sharpe300:.2f}",
-                f"{am300_capacity:,.0f}",
-                "-",
-            ],
+            "Metric": ["CAGR", "Volatility", "Sharpe", "Max Drawdown"],
+            "AM100": [f"{cagr100:.2%}", f"{vol100:.2%}", f"{sharpe100:.2f}", f"{dd100:.2%}"],
+            "AM200": [f"{cagr200:.2%}", f"{vol200:.2%}", f"{sharpe200:.2f}", f"{dd200:.2%}"],
+            "AM300": [f"{cagr300:.2%}", f"{vol300:.2%}", f"{sharpe300:.2f}", f"{dd300:.2%}"],
         }
     )
+    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 
-    if os.path.exists(risk_ratings_path):
-        risk_ratings = load_csv_file(
-            risk_ratings_path, get_file_version(risk_ratings_path)
-        )
-        for _, row in risk_ratings.iterrows():
-            risk_summary_df.loc[
-                risk_summary_df["Metric"] == "Risk Rating", row["Index"]
-            ] = f"{row['Rating']} ({row['Risk Score']:.2f})"
-    else:
-        risk_ratings = None
 
-    st.dataframe(risk_summary_df, use_container_width=True, hide_index=True)
-    st.caption(
-        "Capacity is calculated assuming a 20% participation rate in average daily traded value, representing a prudent institutional execution threshold."
-    )
+    def metric_help_text(metric_name, period_label):
+        if metric_name == "CAGR":
+            return (
+                "Compound Annual Growth Rate.\n\n"
+                "Calculated as:\n"
+                "(end value / start value)^(1/years) - 1\n\n"
+                f"Period:\n{period_label}\n\n"
+                "Includes:\n"
+                "✔ Dividends (total return)\n"
+                "✔ FX-normalised (USD)\n\n"
+                "Excludes:\n"
+                "✖ Fees\n"
+                "✖ Slippage"
+            )
+        if metric_name == "Volatility":
+            return (
+                "Annualised standard deviation of returns.\n\n"
+                "Measures risk over the observed return path.\n\n"
+                "Includes:\n"
+                "✔ Total return moves\n"
+                "✔ FX-normalised (USD)\n\n"
+                "Excludes:\n"
+                "✖ Fees\n"
+                "✖ Slippage"
+            )
+        if metric_name == "Sharpe Ratio":
+            return (
+                "Return per unit of risk.\n\n"
+                "Calculated from annualised return and annualised volatility with a 2% risk-free rate assumption."
+            )
+        if metric_name == "Max Drawdown":
+            return "Largest peak-to-trough decline over the period."
+        return ""
 
-    capacity_display = pd.DataFrame(
-        {
-            "Metric": [
-                "Average Daily Traded Value (USD)",
-                "Investable Capacity (USD, 20%)",
-            ],
-            "AM100": [f"{am100_adv_usd:,.0f}", f"{am100_capacity:,.0f}"],
-            "AM200": [f"{am200_adv_usd:,.0f}", f"{am200_capacity:,.0f}"],
-            "AM300": [f"{am300_adv_usd:,.0f}", f"{am300_capacity:,.0f}"],
-        }
-    )
-    st.write(capacity_display.to_html(index=False, escape=False), unsafe_allow_html=True)
-    st.caption(
-        "Average Daily Traded Value (USD) represents the total value of shares traded daily across index constituents. Estimated Investable Capacity (USD, 20% participation) reflects a conservative estimate of capital that can be deployed without materially impacting market prices."
-    )
 
-    st.markdown("## Risk Rating")
-    risk_cols = st.columns(3)
-    am300_label = "Unavailable"
-    for i, name in enumerate(INDEX_POOL):
-        with risk_cols[i]:
-            if risk_ratings is not None:
-                row = risk_ratings[risk_ratings["Index"] == name].iloc[0]
-                if name == "AM300":
-                    am300_label = row["Rating"]
-                render_metric_card(
-                    f"{name} Risk",
-                    row["Rating"],
-                    f"Multi-factor risk score: {row['Risk Score']:.2f}",
-                )
-                st.caption(
-                    f"Score {row['Risk Score']:.2f} | Investable Capacity {row['Capacity']:,.0f}"
-                )
-            else:
-                render_metric_card(f"{name} Risk", "Unavailable")
+    headline_period_label = common_period_label
 
-    st.markdown("### AM300 Risk Snapshot")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
+
     with col1:
-        render_metric_card("AM300 Volatility", f"{vol300:.2%}", "Annualised standard deviation of returns. Measures risk.")
+        st.write("AM100")
+        st.metric(
+            label="CAGR ℹ️",
+            value=f"{cagr100:.2%}",
+            help=metric_help_text("CAGR", headline_period_label),
+        )
+        st.metric(
+            label="Volatility ℹ️",
+            value=f"{vol100:.2%}",
+            help=metric_help_text("Volatility", headline_period_label),
+        )
+        st.metric(
+            label="Sharpe Ratio ℹ️",
+            value=f"{sharpe100:.2f}",
+            help=metric_help_text("Sharpe Ratio", headline_period_label),
+        )
+        st.metric(
+            label="Max Drawdown ℹ️",
+            value=f"{dd100:.2%}",
+            help=metric_help_text("Max Drawdown", headline_period_label),
+        )
+
     with col2:
-        render_metric_card("AM300 Drawdown", f"{dd300:.2%}", "Largest peak-to-trough decline over the period.")
+        st.write("AM200")
+        st.metric(
+            label="CAGR ℹ️",
+            value=f"{cagr200:.2%}",
+            help=metric_help_text("CAGR", headline_period_label),
+        )
+        st.metric(
+            label="Volatility ℹ️",
+            value=f"{vol200:.2%}",
+            help=metric_help_text("Volatility", headline_period_label),
+        )
+        st.metric(
+            label="Sharpe Ratio ℹ️",
+            value=f"{sharpe200:.2f}",
+            help=metric_help_text("Sharpe Ratio", headline_period_label),
+        )
+        st.metric(
+            label="Max Drawdown ℹ️",
+            value=f"{dd200:.2%}",
+            help=metric_help_text("Max Drawdown", headline_period_label),
+        )
+
     with col3:
-        render_metric_card("AM300 Sharpe", f"{sharpe300:.2f}", "Return per unit of risk. Higher indicates better risk-adjusted performance.")
-    with col4:
-        render_metric_card("AM300 Risk", am300_label, "Multi-factor risk label combining volatility, drawdown, liquidity, and concentration.")
-
-    st.markdown("## Rolling Risk")
-
-    st.subheader("Rolling 1Y Performance")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=rolling_perf_1y_100.index, y=rolling_perf_1y_100, name="AM100 1Y", line=dict(color=AM100_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_perf_1y_200.index, y=rolling_perf_1y_200, name="AM200 1Y", line=dict(color=AM200_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_perf_1y_300.index, y=rolling_perf_1y_300, name="AM300 1Y", line=dict(color=AM300_COLOR, width=2)))
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-        yaxis_tickformat=".0%",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Rolling Volatility (30D)")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=rolling_vol_100.index, y=rolling_vol_100, name="AM100 Volatility", line=dict(color=AM100_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_vol_200.index, y=rolling_vol_200, name="AM200 Volatility", line=dict(color=AM200_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_vol_300.index, y=rolling_vol_300, name="AM300 Volatility", line=dict(color=AM300_COLOR, width=2)))
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Rolling Sharpe Ratio")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=rolling_sharpe_100.index, y=rolling_sharpe_100, name="AM100 Sharpe", line=dict(color=AM100_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_sharpe_200.index, y=rolling_sharpe_200, name="AM200 Sharpe", line=dict(color=AM200_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=rolling_sharpe_300.index, y=rolling_sharpe_300, name="AM300 Sharpe", line=dict(color=AM300_COLOR, width=2)))
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Drawdown")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=drawdown_100.index, y=drawdown_100, name="AM100 Drawdown", line=dict(color=AM100_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=drawdown_200.index, y=drawdown_200, name="AM200 Drawdown", line=dict(color=AM200_COLOR, width=2)))
-    fig.add_trace(go.Scatter(x=drawdown_300.index, y=drawdown_300, name="AM300 Drawdown", line=dict(color=AM300_COLOR, width=2)))
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("## Benchmark Comparison")
-    if os.path.exists(benchmark_metrics_path):
-        if os.path.exists(benchmark_series_path):
-            benchmark_series = load_benchmark_data(
-                get_file_version(benchmark_series_path)
-            )
-            msci_s, msci_r = prep(benchmark_series)
-            am100_s, am100_r = prep(am100_df)
-            am300_s, am300_r = prep(am300_df)
-
-            am100_stats = block(am100_s, am100_r)
-            am300_stats = block(am300_s, am300_r)
-            msci_stats = block(msci_s, msci_r)
-
-            benchmark_display = pd.DataFrame(
-                [am100_stats, am300_stats, msci_stats],
-                index=["AM100", "AM300", "MSCI Africa"],
-            )
-            formatted_benchmark = benchmark_display.copy()
-            for col in ["CAGR", "Vol", "Drawdown"]:
-                formatted_benchmark[col] = formatted_benchmark[col].map("{:.2%}".format)
-            formatted_benchmark["Sharpe"] = formatted_benchmark["Sharpe"].map("{:.2f}".format)
-            st.dataframe(formatted_benchmark, use_container_width=True)
-
-            am100_alpha = am100_r.mean() * 252 - msci_r.mean() * 252
-            am300_alpha = am300_r.mean() * 252 - msci_r.mean() * 252
-            am100_ir = info_ratio(am100_r, msci_r)
-            am300_ir = info_ratio(am300_r, msci_r)
-            am100_benchmark_score = advanced_risk_score(vol100, dd100, am100_alpha, am100_ir)
-            am300_benchmark_score = advanced_risk_score(vol300, dd300, am300_alpha, am300_ir)
-
-            alpha_df = pd.DataFrame(
-                {
-                    "Index": ["AM100", "AM300"],
-                    "Alpha": [am100_alpha, am300_alpha],
-                    "Information Ratio": [am100_ir, am300_ir],
-                    "Advanced Risk Score": [am100_benchmark_score, am300_benchmark_score],
-                    "Risk Label": [risk_label(am100_benchmark_score), risk_label(am300_benchmark_score)],
-                }
-            )
-            alpha_display = alpha_df.copy()
-            alpha_display["Alpha"] = alpha_display["Alpha"].map("{:.2%}".format)
-            alpha_display["Information Ratio"] = alpha_display["Information Ratio"].map("{:.2f}".format)
-            alpha_display["Advanced Risk Score"] = alpha_display["Advanced Risk Score"].map("{:.2f}".format)
-            st.dataframe(alpha_display, use_container_width=True, hide_index=True)
-
-            benchmark_overlay = pd.merge(
-                am100_s.rename("Index Level_AM100").reset_index(),
-                msci_s.rename("Index Level_MSCI").reset_index(),
-                on="Date",
-            ).sort_values("Date")
-            fig = go.Figure()
-            fig.add_trace(
-                go.Scatter(
-                    x=benchmark_overlay["Date"],
-                    y=benchmark_overlay["Index Level_AM100"],
-                    name="AM100",
-                    line=dict(color=AM100_COLOR, width=2),
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=benchmark_overlay["Date"],
-                    y=benchmark_overlay["Index Level_MSCI"],
-                    name="MSCI Africa",
-                    line=dict(color="#A855F7", width=2),
-                )
-            )
-            fig.add_trace(
-                go.Scatter(
-                    x=am300_s.index,
-                    y=am300_s,
-                    name="AM300",
-                    line=dict(color=AM300_COLOR, width=2),
-                )
-            )
-            fig.update_layout(
-                paper_bgcolor="#0E1117",
-                plot_bgcolor="#0E1117",
-                font=dict(size=10, color="#CCCCCC"),
-                margin=dict(l=0, r=0, t=30, b=0),
-                legend=dict(bgcolor="rgba(0,0,0,0)"),
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        st.caption(
-            "Compared to traditional African benchmarks, the AM100 demonstrates improved risk-adjusted returns."
+        st.write("AM300")
+        st.metric(
+            label="CAGR ℹ️",
+            value=f"{cagr300:.2%}",
+            help=metric_help_text("CAGR", headline_period_label),
         )
-    else:
-        st.info("Benchmark comparison unavailable. Run scripts/benchmark_compare.py to populate this section.")
+        st.metric(
+            label="Volatility ℹ️",
+            value=f"{vol300:.2%}",
+            help=metric_help_text("Volatility", headline_period_label),
+        )
+        st.metric(
+            label="Sharpe Ratio ℹ️",
+            value=f"{sharpe300:.2f}",
+            help=metric_help_text("Sharpe Ratio", headline_period_label),
+        )
+        st.metric(
+            label="Max Drawdown ℹ️",
+            value=f"{dd300:.2%}",
+            help=metric_help_text("Max Drawdown", headline_period_label),
+        )
 
-    st.markdown("## Volume Data Quality Audit")
-    st.caption(
-        f"Minimum internal threshold: {MIN_POSITIVE_COVERAGE:.0%} positive trading days. Missing volume indicates data failure, zero volume indicates no trading, and only positive volume days count toward liquidity eligibility."
+    st.caption("Key Observations")
+
+    obs = []
+
+    if cagr200 > cagr100:
+        obs.append(
+            "AM200 is outperforming AM100, indicating stronger growth in mid-cap and frontier segments."
+        )
+
+    if vol200 > vol100:
+        obs.append(
+            "AM200 exhibits higher volatility, reflecting increased exposure to emerging markets."
+        )
+
+    if dd200 < dd100:
+        obs.append("AM200 has experienced deeper drawdowns, highlighting higher risk.")
+
+    top_country_am100 = get_top_country(am100_latest)
+    top_country_am200 = get_top_country(am200_latest)
+    top_country_am300 = get_top_country(am300_latest) if SHOW_AM300 else None
+    am100_country = get_country_weights(am100_latest)
+    am200_country = get_country_weights(am200_latest)
+    am300_country = get_country_weights(am300_latest) if SHOW_AM300 else pd.Series(dtype=float)
+    am100_country_df = compute_country_weights(am100_latest)
+    am200_country_df = compute_country_weights(am200_latest)
+    latest_am100 = am100.iloc[-1]
+    latest_am200 = am200.iloc[-1] if len(am200) else None
+    latest_am300 = am300.iloc[-1] if SHOW_AM300 and len(am300) else None
+
+    ticker_parts = [
+        f"AM100: {latest_am100:.2f} ({ret100:.2%})",
+        f"Top Country AM100: {safe_display(top_country_am100)}",
+    ]
+    if latest_am200 is not None:
+        ticker_parts.append(f"AM200: {latest_am200:.2f} ({ret200:.2%})")
+        ticker_parts.append(f"Top Country AM200: {safe_display(top_country_am200)}")
+    if SHOW_AM300 and latest_am300 is not None:
+        ticker_parts.append(f"AM300: {latest_am300:.2f} ({ret300:.2%})")
+        ticker_parts.append(f"Top Country AM300: {safe_display(top_country_am300)}")
+    ticker_text = " •\n".join(ticker_parts)
+
+    if top_country_am100:
+        obs.append(f"AM100 is most exposed to {top_country_am100}.")
+    if top_country_am200:
+        obs.append(f"AM200 shows strongest exposure to {top_country_am200}.")
+    if SHOW_AM300 and top_country_am300:
+        obs.append(f"AM300 shows flagship concentration in {top_country_am300}.")
+
+    @st.cache_data
+    def load_capacity_usd_file(path, _version=None):
+        return pd.read_csv(path, parse_dates=["Date"]).sort_values("Date")
+
+
+    @st.cache_data
+    def load_investability_map(_version=None):
+        path = "output/investability_map.csv"
+        if not os.path.exists(path):
+            return None
+        return pd.read_csv(path)
+
+
+    investability_map = load_investability_map(get_file_version("output/investability_map.csv"))
+
+    if allocator_mode and all(
+        x is not None
+        for x in [
+            am100_metrics,
+            am200_metrics,
+            am300_metrics,
+            am100_snapshot_insights,
+            am200_snapshot_insights,
+            am300_snapshot_insights,
+        ]
+    ):
+        render_allocator_view()
+        st.stop()
+
+    am100_s, am100_r = prep(am100_df)
+    am200_s, am200_r = prep(am200_df)
+    am300_s, am300_r = prep(am300_df)
+
+    risk_ratings_path = "output/index_risk_ratings.csv"
+    benchmark_metrics_path = "output/am100_vs_msci_africa.csv"
+    benchmark_series_path = "output/msci_africa.csv"
+    drivers_path = "output/am100_volatility_drivers.csv"
+
+    rolling_vol_100 = rolling_volatility(am100_r)
+    rolling_vol_200 = rolling_volatility(am200_r)
+    rolling_vol_300 = rolling_volatility(am300_r)
+
+    rolling_mean_100 = am100_r.rolling(30).mean() * 252
+    rolling_mean_200 = am200_r.rolling(30).mean() * 252
+    rolling_mean_300 = am300_r.rolling(30).mean() * 252
+
+    rolling_sharpe_100 = (rolling_mean_100 - 0.02) / rolling_vol_100
+    rolling_sharpe_200 = (rolling_mean_200 - 0.02) / rolling_vol_200
+    rolling_sharpe_300 = (rolling_mean_300 - 0.02) / rolling_vol_300
+
+    rolling_perf_1y_100 = am100_s.pct_change(252).dropna()
+    rolling_perf_1y_200 = am200_s.pct_change(252).dropna()
+    rolling_perf_1y_300 = am300_s.pct_change(252).dropna()
+
+    drawdown_100 = calculate_drawdown(am100_s)
+    drawdown_200 = calculate_drawdown(am200_s)
+    drawdown_300 = calculate_drawdown(am300_s)
+
+    dashboard_outputs = build_dashboard_outputs(
+        am100_df=am100_df,
+        am200_df=am200_df,
+        am300_df=am300_df,
+        rolling_perf_1y_100=rolling_perf_1y_100,
+        rolling_perf_1y_200=rolling_perf_1y_200,
+        rolling_perf_1y_300=rolling_perf_1y_300,
+        rolling_vol_100=rolling_vol_100,
+        rolling_vol_200=rolling_vol_200,
+        rolling_vol_300=rolling_vol_300,
+        drawdown_100=drawdown_100,
+        drawdown_200=drawdown_200,
+        drawdown_300=drawdown_300,
+        am100_latest=am100_latest,
+        am200_latest=am200_latest,
+        am300_latest=am300_latest,
+        stats_dict={
+            "AM100": {"CAGR": cagr100, "Volatility": vol100, "Sharpe": sharpe100, "Max_Drawdown": dd100},
+            "AM200": {"CAGR": cagr200, "Volatility": vol200, "Sharpe": sharpe200, "Max_Drawdown": dd200},
+            "AM300": {"CAGR": cagr300, "Volatility": vol300, "Sharpe": sharpe300, "Max_Drawdown": dd300},
+        },
+    )
+    perf = validate_df(
+        dashboard_outputs["performance"], "performance", ["Date", "Index", "Index_Level"]
+    )
+    roll = validate_df(
+        dashboard_outputs["rolling"], "rolling", ["Date", "Index", "Metric", "Value"]
+    )
+    dd = validate_df(
+        dashboard_outputs["drawdown"], "drawdown", ["Date", "Index", "Metric", "Value"]
+    )
+    constituents = validate_df(
+        dashboard_outputs["constituents"],
+        "constituents",
+        ["Index", "Company", "Country", "Weight"],
     )
 
-    if not volume_audit_df.empty:
-        st.dataframe(volume_audit_df, use_container_width=True, hide_index=True, height=280)
+    for o in obs:
+        st.write(f"• {o}")
 
-        full_coverage = int((volume_audit_df["Positive Coverage %"] == 100).sum())
-        cov_col1, cov_col2, cov_col3 = st.columns(3)
-        cov_col1.metric("Full Positive Coverage", f"{full_coverage}")
-        cov_col2.metric("Eligible (>=80%)", f"{len(eligible_volume_df)}")
-        cov_col3.metric("Ineligible", f"{len(low_volume_coverage_df)}")
+    st.markdown(
+        f"<div class='ticker'><span>{ticker_text}</span></div>",
+        unsafe_allow_html=True,
+    )
 
-        if not no_volume_df.empty:
-            st.error("Companies with NO Volume Data")
-            st.write(sorted(no_volume_df["Security"].tolist()))
+    allocator_levels = pd.concat(
+        [
+            am100.rename("AM100"),
+            am200.rename("AM200"),
+            am300.rename("AM300"),
+        ],
+        axis=1,
+        join="inner",
+    ).dropna()
+    allocator_returns = prepare_returns_frame(allocator_levels)
+    high_risk_result = optimize_high_risk_portfolio(allocator_returns)
+    MODEL_WEIGHTS = build_model_weight_system(high_risk_result["Weights"])
+    model_levels, model_returns = build_model_series(
+        allocator_levels,
+        model_weights=MODEL_WEIGHTS,
+    )
+    model_metrics = build_model_metrics_table(
+        model_levels,
+        model_returns,
+        {"AM100": am100_capacity, "AM200": am200_capacity, "AM300": am300_capacity},
+        model_weights=MODEL_WEIGHTS,
+    )
 
-        if not zero_only_volume_df.empty:
-            st.warning("Securities with ZERO volume on all observed days")
-            st.write(sorted(zero_only_volume_df["Security"].tolist()))
+    overview_tab, risk_tab, allocator_tab = st.tabs(["Overview", "Risk", "Allocator"])
 
-        if not low_volume_coverage_df.empty:
-            st.warning(
-                f"Companies with LOW Trading Coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
-            )
-            df_low = pd.DataFrame(
-                sorted(low_volume_coverage_df["Security"].tolist()),
-                columns=["Company"],
-            )
-            df_low["Country"] = df_low["Company"].str.extract(r"\((.*?)\)")
-            df_low = df_low.sort_values(["Country", "Company"], na_position="last")
-            st.dataframe(
-                df_low,
-                use_container_width=True,
-                hide_index=True,
-                height=400,
-            )
-        st.caption(
-            f"Exports written to `{NO_VOLUME_EXPORT_FILE}` and `{LOW_COVERAGE_EXPORT_FILE}`."
+    with overview_tab:
+        st.caption("Overview")
+        st.write(
+            "Use the Risk tab for the full institutional risk view: summary metrics, "
+            "risk ratings, rolling stability, benchmark comparison, and volatility decomposition."
         )
-    else:
-        st.info("No volume columns were found in the master panel.")
 
-    st.markdown("## Return Decomposition")
-    st.caption("Portion of total return generated from dividends rather than price appreciation.")
-    price_only_path = "output/AM100_PRICE_ONLY_total_return.csv"
-    am300_price_only_path = "output/AM300_PRICE_ONLY_total_return.csv"
-    if os.path.exists(price_only_path):
-        price_only_df = load_index("AM100_PRICE_ONLY")
-        total_return_df = load_index("AM100")
-
-        price_only_series = price_only_df.set_index("Date")["Index Level"]
-        total_return_series = total_return_df.set_index("Date")["Index Level"]
-
-        aligned_return_df = pd.concat(
-            [
-                price_only_series.rename("PriceOnly"),
-                total_return_series.rename("TotalReturn"),
-            ],
-            axis=1,
-            join="inner",
-        ).dropna()
-
-        price_r = aligned_return_df["PriceOnly"].pct_change().dropna()
-        tr_r = aligned_return_df["TotalReturn"].pct_change().dropna()
-        div_r = tr_r - price_r
-
-        price_cagr = calculate_cagr(
-            aligned_return_df["PriceOnly"].rename("Index Level").reset_index(),
-            aligned_return_df.index.min(),
-            aligned_return_df.index.max(),
-        )
-        tr_cagr = calculate_cagr(
-            aligned_return_df["TotalReturn"].rename("Index Level").reset_index(),
-            aligned_return_df.index.min(),
-            aligned_return_df.index.max(),
-        )
-        div_contribution = tr_cagr - price_cagr
-
-        return_decomp_df = pd.DataFrame(
+    with risk_tab:
+        st.markdown("## Risk Summary")
+        risk_summary_df = pd.DataFrame(
             {
-                "Component": ["Price Return", "Dividend Contribution", "Total Return"],
-                "Value": [price_cagr, div_contribution, tr_cagr],
+                "Metric": ["Volatility", "Drawdown", "Sharpe", "Capacity", "Risk Rating"],
+                "AM100": [
+                    f"{vol100:.2%}",
+                    f"{dd100:.2%}",
+                    f"{sharpe100:.2f}",
+                    f"{am100_capacity:,.0f}",
+                    "-",
+                ],
+                "AM200": [
+                    f"{vol200:.2%}",
+                    f"{dd200:.2%}",
+                    f"{sharpe200:.2f}",
+                    f"{am200_capacity:,.0f}",
+                    "-",
+                ],
+                "AM300": [
+                    f"{vol300:.2%}",
+                    f"{dd300:.2%}",
+                    f"{sharpe300:.2f}",
+                    f"{am300_capacity:,.0f}",
+                    "-",
+                ],
             }
         )
-        return_decomp_display = return_decomp_df.copy()
-        return_decomp_display["Value"] = return_decomp_display["Value"].map("{:.2%}".format)
-        st.dataframe(return_decomp_display, use_container_width=True, hide_index=True)
 
+        if os.path.exists(risk_ratings_path):
+            risk_ratings = load_csv_file(
+                risk_ratings_path, get_file_version(risk_ratings_path)
+            )
+            for _, row in risk_ratings.iterrows():
+                risk_summary_df.loc[
+                    risk_summary_df["Metric"] == "Risk Rating", row["Index"]
+                ] = f"{row['Rating']} ({row['Risk Score']:.2f})"
+        else:
+            risk_ratings = None
+
+        st.dataframe(risk_summary_df, use_container_width=True, hide_index=True)
+        st.caption(
+            "Capacity is calculated assuming a 20% participation rate in average daily traded value, representing a prudent institutional execution threshold."
+        )
+
+        capacity_display = pd.DataFrame(
+            {
+                "Metric": [
+                    "Average Daily Traded Value (USD)",
+                    "Investable Capacity (USD, 20%)",
+                ],
+                "AM100": [f"{am100_adv_usd:,.0f}", f"{am100_capacity:,.0f}"],
+                "AM200": [f"{am200_adv_usd:,.0f}", f"{am200_capacity:,.0f}"],
+                "AM300": [f"{am300_adv_usd:,.0f}", f"{am300_capacity:,.0f}"],
+            }
+        )
+        st.write(capacity_display.to_html(index=False, escape=False), unsafe_allow_html=True)
+        st.caption(
+            "Average Daily Traded Value (USD) represents the total value of shares traded daily across index constituents. Estimated Investable Capacity (USD, 20% participation) reflects a conservative estimate of capital that can be deployed without materially impacting market prices."
+        )
+
+        st.markdown("## Risk Rating")
+        risk_cols = st.columns(3)
+        am300_label = "Unavailable"
+        for i, name in enumerate(INDEX_POOL):
+            with risk_cols[i]:
+                if risk_ratings is not None:
+                    row = risk_ratings[risk_ratings["Index"] == name].iloc[0]
+                    if name == "AM300":
+                        am300_label = row["Rating"]
+                    render_metric_card(
+                        f"{name} Risk",
+                        row["Rating"],
+                        f"Multi-factor risk score: {row['Risk Score']:.2f}",
+                    )
+                    st.caption(
+                        f"Score {row['Risk Score']:.2f} | Investable Capacity {row['Capacity']:,.0f}"
+                    )
+                else:
+                    render_metric_card(f"{name} Risk", "Unavailable")
+
+        st.markdown("### AM300 Risk Snapshot")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            render_metric_card("AM300 Volatility", f"{vol300:.2%}", "Annualised standard deviation of returns. Measures risk.")
+        with col2:
+            render_metric_card("AM300 Drawdown", f"{dd300:.2%}", "Largest peak-to-trough decline over the period.")
+        with col3:
+            render_metric_card("AM300 Sharpe", f"{sharpe300:.2f}", "Return per unit of risk. Higher indicates better risk-adjusted performance.")
+        with col4:
+            render_metric_card("AM300 Risk", am300_label, "Multi-factor risk label combining volatility, drawdown, liquidity, and concentration.")
+
+        st.markdown("## Rolling Risk")
+
+        st.subheader("Rolling 1Y Performance")
         fig = go.Figure()
-        fig.add_trace(go.Bar(name="Price", x=["AM100"], y=[price_cagr], marker_color=AM100_COLOR))
-        fig.add_trace(go.Bar(name="Dividend", x=["AM100"], y=[div_contribution], marker_color="#F59E0B"))
+        fig.add_trace(go.Scatter(x=rolling_perf_1y_100.index, y=rolling_perf_1y_100, name="AM100 1Y", line=dict(color=AM100_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_perf_1y_200.index, y=rolling_perf_1y_200, name="AM200 1Y", line=dict(color=AM200_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_perf_1y_300.index, y=rolling_perf_1y_300, name="AM300 1Y", line=dict(color=AM300_COLOR, width=2)))
         fig.update_layout(
-            barmode="stack",
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+            yaxis_tickformat=".0%",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Rolling Volatility (30D)")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=rolling_vol_100.index, y=rolling_vol_100, name="AM100 Volatility", line=dict(color=AM100_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_vol_200.index, y=rolling_vol_200, name="AM200 Volatility", line=dict(color=AM200_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_vol_300.index, y=rolling_vol_300, name="AM300 Volatility", line=dict(color=AM300_COLOR, width=2)))
+        fig.update_layout(
             paper_bgcolor="#0E1117",
             plot_bgcolor="#0E1117",
             font=dict(size=10, color="#CCCCCC"),
@@ -3807,53 +3592,218 @@ with risk_tab:
             legend=dict(bgcolor="rgba(0,0,0,0)"),
         )
         st.plotly_chart(fig, use_container_width=True)
-        st.caption(
-            f"Approximately {div_contribution:.2%} annual return is generated from income, not price movement."
+
+        st.subheader("Rolling Sharpe Ratio")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=rolling_sharpe_100.index, y=rolling_sharpe_100, name="AM100 Sharpe", line=dict(color=AM100_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_sharpe_200.index, y=rolling_sharpe_200, name="AM200 Sharpe", line=dict(color=AM200_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=rolling_sharpe_300.index, y=rolling_sharpe_300, name="AM300 Sharpe", line=dict(color=AM300_COLOR, width=2)))
+        fig.update_layout(
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
         )
-        st.caption("Dividend contribution isolates the portion of total return generated from dividends rather than price appreciation.")
+        st.plotly_chart(fig, use_container_width=True)
 
-        if os.path.exists(am300_price_only_path):
-            am300_price_df = load_index("AM300_PRICE_ONLY")
-            am300_total_df = load_index("AM300")
+        st.subheader("Drawdown")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=drawdown_100.index, y=drawdown_100, name="AM100 Drawdown", line=dict(color=AM100_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=drawdown_200.index, y=drawdown_200, name="AM200 Drawdown", line=dict(color=AM200_COLOR, width=2)))
+        fig.add_trace(go.Scatter(x=drawdown_300.index, y=drawdown_300, name="AM300 Drawdown", line=dict(color=AM300_COLOR, width=2)))
+        fig.update_layout(
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-            am300_price_series = am300_price_df.set_index("Date")["Index Level"]
-            am300_total_series = am300_total_df.set_index("Date")["Index Level"]
-            am300_aligned = pd.concat(
+        st.markdown("## Benchmark Comparison")
+        if os.path.exists(benchmark_metrics_path):
+            if os.path.exists(benchmark_series_path):
+                benchmark_series = load_benchmark_data(
+                    get_file_version(benchmark_series_path)
+                )
+                msci_s, msci_r = prep(benchmark_series)
+                am100_s, am100_r = prep(am100_df)
+                am300_s, am300_r = prep(am300_df)
+
+                am100_stats = block(am100_s, am100_r)
+                am300_stats = block(am300_s, am300_r)
+                msci_stats = block(msci_s, msci_r)
+
+                benchmark_display = pd.DataFrame(
+                    [am100_stats, am300_stats, msci_stats],
+                    index=["AM100", "AM300", "MSCI Africa"],
+                )
+                formatted_benchmark = benchmark_display.copy()
+                for col in ["CAGR", "Vol", "Drawdown"]:
+                    formatted_benchmark[col] = formatted_benchmark[col].map("{:.2%}".format)
+                formatted_benchmark["Sharpe"] = formatted_benchmark["Sharpe"].map("{:.2f}".format)
+                st.dataframe(formatted_benchmark, use_container_width=True)
+
+                am100_alpha = am100_r.mean() * 252 - msci_r.mean() * 252
+                am300_alpha = am300_r.mean() * 252 - msci_r.mean() * 252
+                am100_ir = info_ratio(am100_r, msci_r)
+                am300_ir = info_ratio(am300_r, msci_r)
+                am100_benchmark_score = advanced_risk_score(vol100, dd100, am100_alpha, am100_ir)
+                am300_benchmark_score = advanced_risk_score(vol300, dd300, am300_alpha, am300_ir)
+
+                alpha_df = pd.DataFrame(
+                    {
+                        "Index": ["AM100", "AM300"],
+                        "Alpha": [am100_alpha, am300_alpha],
+                        "Information Ratio": [am100_ir, am300_ir],
+                        "Advanced Risk Score": [am100_benchmark_score, am300_benchmark_score],
+                        "Risk Label": [risk_label(am100_benchmark_score), risk_label(am300_benchmark_score)],
+                    }
+                )
+                alpha_display = alpha_df.copy()
+                alpha_display["Alpha"] = alpha_display["Alpha"].map("{:.2%}".format)
+                alpha_display["Information Ratio"] = alpha_display["Information Ratio"].map("{:.2f}".format)
+                alpha_display["Advanced Risk Score"] = alpha_display["Advanced Risk Score"].map("{:.2f}".format)
+                st.dataframe(alpha_display, use_container_width=True, hide_index=True)
+
+                benchmark_overlay = pd.merge(
+                    am100_s.rename("Index Level_AM100").reset_index(),
+                    msci_s.rename("Index Level_MSCI").reset_index(),
+                    on="Date",
+                ).sort_values("Date")
+                fig = go.Figure()
+                fig.add_trace(
+                    go.Scatter(
+                        x=benchmark_overlay["Date"],
+                        y=benchmark_overlay["Index Level_AM100"],
+                        name="AM100",
+                        line=dict(color=AM100_COLOR, width=2),
+                    )
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=benchmark_overlay["Date"],
+                        y=benchmark_overlay["Index Level_MSCI"],
+                        name="MSCI Africa",
+                        line=dict(color="#A855F7", width=2),
+                    )
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=am300_s.index,
+                        y=am300_s,
+                        name="AM300",
+                        line=dict(color=AM300_COLOR, width=2),
+                    )
+                )
+                fig.update_layout(
+                    paper_bgcolor="#0E1117",
+                    plot_bgcolor="#0E1117",
+                    font=dict(size=10, color="#CCCCCC"),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    legend=dict(bgcolor="rgba(0,0,0,0)"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            st.caption(
+                "Compared to traditional African benchmarks, the AM100 demonstrates improved risk-adjusted returns."
+            )
+        else:
+            st.info("Benchmark comparison unavailable. Run scripts/benchmark_compare.py to populate this section.")
+
+        st.markdown("## Volume Data Quality Audit")
+        st.caption(
+            f"Minimum internal threshold: {MIN_POSITIVE_COVERAGE:.0%} positive trading days. Missing volume indicates data failure, zero volume indicates no trading, and only positive volume days count toward liquidity eligibility."
+        )
+
+        if not volume_audit_df.empty:
+            st.dataframe(volume_audit_df, use_container_width=True, hide_index=True, height=280)
+
+            full_coverage = int((volume_audit_df["Positive Coverage %"] == 100).sum())
+            cov_col1, cov_col2, cov_col3 = st.columns(3)
+            cov_col1.metric("Full Positive Coverage", f"{full_coverage}")
+            cov_col2.metric("Eligible (>=80%)", f"{len(eligible_volume_df)}")
+            cov_col3.metric("Ineligible", f"{len(low_volume_coverage_df)}")
+
+            if not no_volume_df.empty:
+                st.error("Companies with NO Volume Data")
+                st.write(sorted(no_volume_df["Security"].tolist()))
+
+            if not zero_only_volume_df.empty:
+                st.warning("Securities with ZERO volume on all observed days")
+                st.write(sorted(zero_only_volume_df["Security"].tolist()))
+
+            if not low_volume_coverage_df.empty:
+                st.warning(
+                    f"Companies with LOW Trading Coverage (<{MIN_POSITIVE_COVERAGE:.0%})"
+                )
+                df_low = pd.DataFrame(
+                    sorted(low_volume_coverage_df["Security"].tolist()),
+                    columns=["Company"],
+                )
+                df_low["Country"] = df_low["Company"].str.extract(r"\((.*?)\)")
+                df_low = df_low.sort_values(["Country", "Company"], na_position="last")
+                st.dataframe(
+                    df_low,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=400,
+                )
+            st.caption(
+                f"Exports written to `{NO_VOLUME_EXPORT_FILE}` and `{LOW_COVERAGE_EXPORT_FILE}`."
+            )
+        else:
+            st.info("No volume columns were found in the master panel.")
+
+        st.markdown("## Return Decomposition")
+        st.caption("Portion of total return generated from dividends rather than price appreciation.")
+        price_only_path = "output/AM100_PRICE_ONLY_total_return.csv"
+        am300_price_only_path = "output/AM300_PRICE_ONLY_total_return.csv"
+        if os.path.exists(price_only_path):
+            price_only_df = load_index("AM100_PRICE_ONLY")
+            total_return_df = load_index("AM100")
+
+            price_only_series = price_only_df.set_index("Date")["Index Level"]
+            total_return_series = total_return_df.set_index("Date")["Index Level"]
+
+            aligned_return_df = pd.concat(
                 [
-                    am300_price_series.rename("PriceOnly"),
-                    am300_total_series.rename("TotalReturn"),
+                    price_only_series.rename("PriceOnly"),
+                    total_return_series.rename("TotalReturn"),
                 ],
                 axis=1,
                 join="inner",
             ).dropna()
-            am300_price_r = am300_aligned["PriceOnly"].pct_change().dropna()
-            am300_tr_r = am300_aligned["TotalReturn"].pct_change().dropna()
-            am300_div_r = am300_tr_r - am300_price_r
-            am300_price_cagr = calculate_cagr(
-                am300_aligned["PriceOnly"].rename("Index Level").reset_index(),
-                am300_aligned.index.min(),
-                am300_aligned.index.max(),
-            )
-            am300_tr_cagr = calculate_cagr(
-                am300_aligned["TotalReturn"].rename("Index Level").reset_index(),
-                am300_aligned.index.min(),
-                am300_aligned.index.max(),
-            )
-            am300_div_contribution = am300_tr_cagr - am300_price_cagr
 
-            am300_decomp = pd.DataFrame(
+            price_r = aligned_return_df["PriceOnly"].pct_change().dropna()
+            tr_r = aligned_return_df["TotalReturn"].pct_change().dropna()
+            div_r = tr_r - price_r
+
+            price_cagr = calculate_cagr(
+                aligned_return_df["PriceOnly"].rename("Index Level").reset_index(),
+                aligned_return_df.index.min(),
+                aligned_return_df.index.max(),
+            )
+            tr_cagr = calculate_cagr(
+                aligned_return_df["TotalReturn"].rename("Index Level").reset_index(),
+                aligned_return_df.index.min(),
+                aligned_return_df.index.max(),
+            )
+            div_contribution = tr_cagr - price_cagr
+
+            return_decomp_df = pd.DataFrame(
                 {
                     "Component": ["Price Return", "Dividend Contribution", "Total Return"],
-                    "Value": [am300_price_cagr, am300_div_contribution, am300_tr_cagr],
+                    "Value": [price_cagr, div_contribution, tr_cagr],
                 }
             )
-            am300_display = am300_decomp.copy()
-            am300_display["Value"] = am300_display["Value"].map("{:.2%}".format)
-            st.dataframe(am300_display, use_container_width=True, hide_index=True)
+            return_decomp_display = return_decomp_df.copy()
+            return_decomp_display["Value"] = return_decomp_display["Value"].map("{:.2%}".format)
+            st.dataframe(return_decomp_display, use_container_width=True, hide_index=True)
 
             fig = go.Figure()
-            fig.add_trace(go.Bar(name="Price", x=["AM300"], y=[am300_price_cagr], marker_color=AM300_COLOR))
-            fig.add_trace(go.Bar(name="Dividend", x=["AM300"], y=[am300_div_contribution], marker_color="#F59E0B"))
+            fig.add_trace(go.Bar(name="Price", x=["AM100"], y=[price_cagr], marker_color=AM100_COLOR))
+            fig.add_trace(go.Bar(name="Dividend", x=["AM100"], y=[div_contribution], marker_color="#F59E0B"))
             fig.update_layout(
                 barmode="stack",
                 paper_bgcolor="#0E1117",
@@ -3864,730 +3814,790 @@ with risk_tab:
             )
             st.plotly_chart(fig, use_container_width=True)
             st.caption(
-                f"AM300 annual dividend contribution is {am300_div_contribution:.2%}, supporting the flagship total return profile."
+                f"Approximately {div_contribution:.2%} annual return is generated from income, not price movement."
             )
-    else:
-        st.info("Return decomposition unavailable. Run scripts/compare_price_only_vs_total_return.py to create the price-only AM100 series.")
+            st.caption("Dividend contribution isolates the portion of total return generated from dividends rather than price appreciation.")
 
-    st.markdown("## Volatility Decomposition")
-    if os.path.exists(drivers_path):
-        drivers_df = load_csv_file(drivers_path, get_file_version(drivers_path))
-        drivers_display = drivers_df.copy()
-        drivers_display["Contribution"] = drivers_display["Contribution"].map("{:.2%}".format)
-        st.dataframe(drivers_display, use_container_width=True, hide_index=True)
-        st.caption("Volatility reduced by diversification and liquidity filtering, with dividend dampening providing an additional cushion.")
-    else:
-        st.info("Volatility decomposition unavailable. Run scripts/am100_analytics.py to populate this section.")
+            if os.path.exists(am300_price_only_path):
+                am300_price_df = load_index("AM300_PRICE_ONLY")
+                am300_total_df = load_index("AM300")
 
-with allocator_tab:
-    st.header("Allocator Performance")
-    st.caption(
-        "Client-ready model portfolio system built from AM100 (Core), AM200 (Growth), and AM300 (Broad Market) using daily total return index data."
-    )
+                am300_price_series = am300_price_df.set_index("Date")["Index Level"]
+                am300_total_series = am300_total_df.set_index("Date")["Index Level"]
+                am300_aligned = pd.concat(
+                    [
+                        am300_price_series.rename("PriceOnly"),
+                        am300_total_series.rename("TotalReturn"),
+                    ],
+                    axis=1,
+                    join="inner",
+                ).dropna()
+                am300_price_r = am300_aligned["PriceOnly"].pct_change().dropna()
+                am300_tr_r = am300_aligned["TotalReturn"].pct_change().dropna()
+                am300_div_r = am300_tr_r - am300_price_r
+                am300_price_cagr = calculate_cagr(
+                    am300_aligned["PriceOnly"].rename("Index Level").reset_index(),
+                    am300_aligned.index.min(),
+                    am300_aligned.index.max(),
+                )
+                am300_tr_cagr = calculate_cagr(
+                    am300_aligned["TotalReturn"].rename("Index Level").reset_index(),
+                    am300_aligned.index.min(),
+                    am300_aligned.index.max(),
+                )
+                am300_div_contribution = am300_tr_cagr - am300_price_cagr
 
-    st.subheader("Performance Summary")
-    allocator_summary_df = pd.DataFrame(
-        {
-            "Metric": ["CAGR", "Volatility", "Sharpe Ratio", "Max Drawdown"],
-            "AM100": [
-                f"{am100_metrics['CAGR'] * 100:.2f}%",
-                f"{am100_metrics['Volatility'] * 100:.2f}%",
-                f"{am100_metrics['Sharpe']:.2f}",
-                f"{am100_metrics['Max Drawdown'] * 100:.2f}%",
-            ],
-            "AM200": [
-                f"{am200_metrics['CAGR'] * 100:.2f}%",
-                f"{am200_metrics['Volatility'] * 100:.2f}%",
-                f"{am200_metrics['Sharpe']:.2f}",
-                f"{am200_metrics['Max Drawdown'] * 100:.2f}%",
-            ],
-            "AM300": [
-                f"{am300_metrics['CAGR'] * 100:.2f}%",
-                f"{am300_metrics['Volatility'] * 100:.2f}%",
-                f"{am300_metrics['Sharpe']:.2f}",
-                f"{am300_metrics['Max Drawdown'] * 100:.2f}%",
-            ],
+                am300_decomp = pd.DataFrame(
+                    {
+                        "Component": ["Price Return", "Dividend Contribution", "Total Return"],
+                        "Value": [am300_price_cagr, am300_div_contribution, am300_tr_cagr],
+                    }
+                )
+                am300_display = am300_decomp.copy()
+                am300_display["Value"] = am300_display["Value"].map("{:.2%}".format)
+                st.dataframe(am300_display, use_container_width=True, hide_index=True)
+
+                fig = go.Figure()
+                fig.add_trace(go.Bar(name="Price", x=["AM300"], y=[am300_price_cagr], marker_color=AM300_COLOR))
+                fig.add_trace(go.Bar(name="Dividend", x=["AM300"], y=[am300_div_contribution], marker_color="#F59E0B"))
+                fig.update_layout(
+                    barmode="stack",
+                    paper_bgcolor="#0E1117",
+                    plot_bgcolor="#0E1117",
+                    font=dict(size=10, color="#CCCCCC"),
+                    margin=dict(l=0, r=0, t=30, b=0),
+                    legend=dict(bgcolor="rgba(0,0,0,0)"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                st.caption(
+                    f"AM300 annual dividend contribution is {am300_div_contribution:.2%}, supporting the flagship total return profile."
+                )
+        else:
+            st.info("Return decomposition unavailable. Run scripts/compare_price_only_vs_total_return.py to create the price-only AM100 series.")
+
+        st.markdown("## Volatility Decomposition")
+        if os.path.exists(drivers_path):
+            drivers_df = load_csv_file(drivers_path, get_file_version(drivers_path))
+            drivers_display = drivers_df.copy()
+            drivers_display["Contribution"] = drivers_display["Contribution"].map("{:.2%}".format)
+            st.dataframe(drivers_display, use_container_width=True, hide_index=True)
+            st.caption("Volatility reduced by diversification and liquidity filtering, with dividend dampening providing an additional cushion.")
+        else:
+            st.info("Volatility decomposition unavailable. Run scripts/am100_analytics.py to populate this section.")
+
+    with allocator_tab:
+        st.header("Allocator Performance")
+        st.caption(
+            "Client-ready model portfolio system built from AM100 (Core), AM200 (Growth), and AM300 (Broad Market) using daily total return index data."
+        )
+
+        st.subheader("Performance Summary")
+        allocator_summary_df = pd.DataFrame(
+            {
+                "Metric": ["CAGR", "Volatility", "Sharpe Ratio", "Max Drawdown"],
+                "AM100": [
+                    f"{am100_metrics['CAGR'] * 100:.2f}%",
+                    f"{am100_metrics['Volatility'] * 100:.2f}%",
+                    f"{am100_metrics['Sharpe']:.2f}",
+                    f"{am100_metrics['Max Drawdown'] * 100:.2f}%",
+                ],
+                "AM200": [
+                    f"{am200_metrics['CAGR'] * 100:.2f}%",
+                    f"{am200_metrics['Volatility'] * 100:.2f}%",
+                    f"{am200_metrics['Sharpe']:.2f}",
+                    f"{am200_metrics['Max Drawdown'] * 100:.2f}%",
+                ],
+                "AM300": [
+                    f"{am300_metrics['CAGR'] * 100:.2f}%",
+                    f"{am300_metrics['Volatility'] * 100:.2f}%",
+                    f"{am300_metrics['Sharpe']:.2f}",
+                    f"{am300_metrics['Max Drawdown'] * 100:.2f}%",
+                ],
+            }
+        )
+        st.dataframe(allocator_summary_df, use_container_width=True, hide_index=True)
+
+        st.subheader("Annual Returns")
+        render_annual_returns_section("download_annual_returns_allocator_tab")
+
+        allocator_descriptions = {
+            "Conservative": "Lower risk portfolio with higher allocation to liquid, stable constituents.",
+            "Balanced": "Moderate risk portfolio combining growth and stability.",
+            "Growth": "Higher risk portfolio targeting higher returns through frontier exposure.",
+            "Aggressive": "Maximum return portfolio using the optimizer-led high-risk allocation.",
         }
-    )
-    st.dataframe(allocator_summary_df, use_container_width=True, hide_index=True)
 
-    st.subheader("Annual Returns")
-    render_annual_returns_section("download_annual_returns_allocator_tab")
+        allocator_cols = st.columns(len(MODEL_WEIGHTS))
+        for allocator_col, (model_name, weights) in zip(allocator_cols, MODEL_WEIGHTS.items()):
+            with allocator_col:
+                st.markdown(f"### {model_name}")
+                st.caption(allocator_descriptions.get(model_name, MODEL_METADATA[model_name]["Characteristics"]))
+                st.markdown(f"**Objective:** {MODEL_METADATA[model_name]['Objective']}")
+                st.write(MODEL_METADATA[model_name]["Characteristics"])
+                for index_name, weight in weights.items():
+                    st.write(f"{index_name}: {weight:.0%}")
 
-    allocator_descriptions = {
-        "Conservative": "Lower risk portfolio with higher allocation to liquid, stable constituents.",
-        "Balanced": "Moderate risk portfolio combining growth and stability.",
-        "Growth": "Higher risk portfolio targeting higher returns through frontier exposure.",
-        "Aggressive": "Maximum return portfolio using the optimizer-led high-risk allocation.",
-    }
+        st.markdown("### Allocation Weights")
+        weights_df = pd.DataFrame(MODEL_WEIGHTS).T.reset_index().rename(columns={"index": "Model"})
+        weights_display = weights_df.copy()
+        for col in ["AM100", "AM200", "AM300"]:
+            weights_display[col] = weights_display[col].map("{:.0%}".format)
+        st.dataframe(weights_display, use_container_width=True, hide_index=True)
 
-    allocator_cols = st.columns(len(MODEL_WEIGHTS))
-    for allocator_col, (model_name, weights) in zip(allocator_cols, MODEL_WEIGHTS.items()):
-        with allocator_col:
-            st.markdown(f"### {model_name}")
-            st.caption(allocator_descriptions.get(model_name, MODEL_METADATA[model_name]["Characteristics"]))
-            st.markdown(f"**Objective:** {MODEL_METADATA[model_name]['Objective']}")
-            st.write(MODEL_METADATA[model_name]["Characteristics"])
-            for index_name, weight in weights.items():
-                st.write(f"{index_name}: {weight:.0%}")
+        st.markdown("### Portfolio Metrics")
+        model_metrics_display = model_metrics.copy()
+        for col in ["CAGR", "Volatility", "Max Drawdown"]:
+            model_metrics_display[col] = model_metrics_display[col].map("{:.2%}".format)
+        model_metrics_display["Sharpe"] = model_metrics_display["Sharpe"].map("{:.2f}".format)
+        model_metrics_display["Latest Level"] = model_metrics_display["Latest Level"].map("{:,.2f}".format)
+        model_metrics_display["Estimated Capacity"] = model_metrics_display["Estimated Capacity"].map("{:,.0f}".format)
+        st.dataframe(model_metrics_display, use_container_width=True, hide_index=True)
 
-    st.markdown("### Allocation Weights")
-    weights_df = pd.DataFrame(MODEL_WEIGHTS).T.reset_index().rename(columns={"index": "Model"})
-    weights_display = weights_df.copy()
-    for col in ["AM100", "AM200", "AM300"]:
-        weights_display[col] = weights_display[col].map("{:.0%}".format)
-    st.dataframe(weights_display, use_container_width=True, hide_index=True)
-
-    st.markdown("### Portfolio Metrics")
-    model_metrics_display = model_metrics.copy()
-    for col in ["CAGR", "Volatility", "Max Drawdown"]:
-        model_metrics_display[col] = model_metrics_display[col].map("{:.2%}".format)
-    model_metrics_display["Sharpe"] = model_metrics_display["Sharpe"].map("{:.2f}".format)
-    model_metrics_display["Latest Level"] = model_metrics_display["Latest Level"].map("{:,.2f}".format)
-    model_metrics_display["Estimated Capacity"] = model_metrics_display["Estimated Capacity"].map("{:,.0f}".format)
-    st.dataframe(model_metrics_display, use_container_width=True, hide_index=True)
-
-    if annual_returns_daily_df is not None and not annual_returns_daily_df.empty:
-        portfolio_source = annual_returns_daily_df.copy().sort_values("Date")
-        portfolio_source[["AM100", "AM200", "AM300"]] = (
-            portfolio_source[["AM100", "AM200", "AM300"]].ffill().bfill()
-        )
-        portfolio_returns = []
-        for name, weights in PORTFOLIOS.items():
-            portfolio_source[name] = build_portfolio_index(portfolio_source, weights)
-            ret = compute_annual_returns(portfolio_source, name)
-            portfolio_returns.append(ret)
-
-        portfolio_annual = portfolio_returns[0]
-        for p in portfolio_returns[1:]:
-            portfolio_annual = portfolio_annual.merge(p, on="Year", how="outer")
-
-        portfolio_annual = portfolio_annual.sort_values("Year").round(2)
-
-        st.subheader("Portfolio Returns")
-        st.markdown("### Portfolio Annual Returns (%)")
-        st.dataframe(portfolio_annual, use_container_width=True, hide_index=True)
-
-        rolling_3y = compute_rolling_returns(portfolio_source, "AM100", 3).rename(columns={"3Y": "AM100"})
-        rolling_3y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 3)["3Y"]
-        rolling_3y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 3)["3Y"]
-        for name in PORTFOLIOS.keys():
-            rolling_3y[name] = compute_rolling_returns(portfolio_source, name, 3)["3Y"]
-
-        rolling_5y = compute_rolling_returns(portfolio_source, "AM100", 5).rename(columns={"5Y": "AM100"})
-        rolling_5y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 5)["5Y"]
-        rolling_5y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 5)["5Y"]
-        for name in PORTFOLIOS.keys():
-            rolling_5y[name] = compute_rolling_returns(portfolio_source, name, 5)["5Y"]
-
-        st.subheader("Rolling Returns")
-        st.markdown("### Rolling 3-Year Returns (%)")
-        rolling_3y_chart = rolling_3y.set_index("Date").dropna(how="all")
-        fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
-        for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
-            ax.plot(
-                rolling_3y_chart.index,
-                rolling_3y_chart[col],
-                label=col,
-                linewidth=1.8,
-                color=CHART_COLORS[col],
+        if annual_returns_daily_df is not None and not annual_returns_daily_df.empty:
+            portfolio_source = annual_returns_daily_df.copy().sort_values("Date")
+            portfolio_source[["AM100", "AM200", "AM300"]] = (
+                portfolio_source[["AM100", "AM200", "AM300"]].ffill().bfill()
             )
-        ax.set_title("Rolling 3-Year Returns (%)")
-        ax.set_ylabel("Return (%)")
-        ax.set_xlim(rolling_3y_chart.index.min(), rolling_3y_chart.index.max())
-        style_dark_axes(ax)
-        ax.legend(frameon=False, ncol=3)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=True)
-        plt.close(fig)
+            portfolio_returns = []
+            for name, weights in PORTFOLIOS.items():
+                portfolio_source[name] = build_portfolio_index(portfolio_source, weights)
+                ret = compute_annual_returns(portfolio_source, name)
+                portfolio_returns.append(ret)
 
-        st.markdown("### Rolling 5-Year Returns (%)")
-        rolling_5y_chart = rolling_5y.set_index("Date").dropna(how="all")
-        fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
-        for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
-            ax.plot(
-                rolling_5y_chart.index,
-                rolling_5y_chart[col],
-                label=col,
-                linewidth=1.8,
-                color=CHART_COLORS[col],
+            portfolio_annual = portfolio_returns[0]
+            for p in portfolio_returns[1:]:
+                portfolio_annual = portfolio_annual.merge(p, on="Year", how="outer")
+
+            portfolio_annual = portfolio_annual.sort_values("Year").round(2)
+
+            st.subheader("Portfolio Returns")
+            st.markdown("### Portfolio Annual Returns (%)")
+            st.dataframe(portfolio_annual, use_container_width=True, hide_index=True)
+
+            rolling_3y = compute_rolling_returns(portfolio_source, "AM100", 3).rename(columns={"3Y": "AM100"})
+            rolling_3y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 3)["3Y"]
+            rolling_3y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 3)["3Y"]
+            for name in PORTFOLIOS.keys():
+                rolling_3y[name] = compute_rolling_returns(portfolio_source, name, 3)["3Y"]
+
+            rolling_5y = compute_rolling_returns(portfolio_source, "AM100", 5).rename(columns={"5Y": "AM100"})
+            rolling_5y["AM200"] = compute_rolling_returns(portfolio_source, "AM200", 5)["5Y"]
+            rolling_5y["AM300"] = compute_rolling_returns(portfolio_source, "AM300", 5)["5Y"]
+            for name in PORTFOLIOS.keys():
+                rolling_5y[name] = compute_rolling_returns(portfolio_source, name, 5)["5Y"]
+
+            st.subheader("Rolling Returns")
+            st.markdown("### Rolling 3-Year Returns (%)")
+            rolling_3y_chart = rolling_3y.set_index("Date").dropna(how="all")
+            fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
+            for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
+                ax.plot(
+                    rolling_3y_chart.index,
+                    rolling_3y_chart[col],
+                    label=col,
+                    linewidth=1.8,
+                    color=CHART_COLORS[col],
+                )
+            ax.set_title("Rolling 3-Year Returns (%)")
+            ax.set_ylabel("Return (%)")
+            ax.set_xlim(rolling_3y_chart.index.min(), rolling_3y_chart.index.max())
+            style_dark_axes(ax)
+            ax.legend(frameon=False, ncol=3)
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+
+            st.markdown("### Rolling 5-Year Returns (%)")
+            rolling_5y_chart = rolling_5y.set_index("Date").dropna(how="all")
+            fig, ax = plt.subplots(figsize=(12, 5), facecolor="#0E1117")
+            for col in ["AM100", "AM200", "AM300", "Conservative", "Balanced", "Growth"]:
+                ax.plot(
+                    rolling_5y_chart.index,
+                    rolling_5y_chart[col],
+                    label=col,
+                    linewidth=1.8,
+                    color=CHART_COLORS[col],
+                )
+            ax.set_title("Rolling 5-Year Returns (%)")
+            ax.set_ylabel("Return (%)")
+            ax.set_xlim(rolling_5y_chart.index.min(), rolling_5y_chart.index.max())
+            style_dark_axes(ax)
+            ax.legend(frameon=False, ncol=3)
+            plt.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+
+            rolling_3y_stats = rolling_3y.drop(columns=["Date"]).describe(percentiles=[0.1, 0.25, 0.5, 0.75, 0.9]).round(2)
+            st.markdown("### Rolling Return Statistics - Interpretation")
+            st.markdown(
+                """
+                The table below summarises the distribution of rolling returns over time.
+
+                Count: Number of observations used in the calculation  
+                Mean: Average rolling return across all periods  
+                Std (Standard Deviation): Measure of variability in returns  
+                Min: Lowest observed rolling return (worst-case period)  
+                10% / 25% / 50% / 75% / 90%: Percentile distribution of outcomes  
+                Example: 10% = worst 10% of periods  
+                Max: Highest observed rolling return
+
+                These statistics provide insight into:
+                - Return consistency
+                - Downside risk
+                - Distribution of outcomes over time
+                """
             )
-        ax.set_title("Rolling 5-Year Returns (%)")
-        ax.set_ylabel("Return (%)")
-        ax.set_xlim(rolling_5y_chart.index.min(), rolling_5y_chart.index.max())
-        style_dark_axes(ax)
-        ax.legend(frameon=False, ncol=3)
-        plt.tight_layout()
-        st.pyplot(fig, use_container_width=True)
-        plt.close(fig)
+            st.dataframe(rolling_3y_stats, use_container_width=True)
 
-        rolling_3y_stats = rolling_3y.drop(columns=["Date"]).describe(percentiles=[0.1, 0.25, 0.5, 0.75, 0.9]).round(2)
-        st.markdown("### Rolling Return Statistics - Interpretation")
-        st.markdown(
-            """
-            The table below summarises the distribution of rolling returns over time.
+            st.markdown("### Performance Characteristics")
+            st.markdown(
+                """
+                Returns are driven by:
+                - Structural growth across African markets
+                - Dividend contribution through total return methodology
+                - Concentration in the most liquid qualifying securities
 
-            Count: Number of observations used in the calculation  
-            Mean: Average rolling return across all periods  
-            Std (Standard Deviation): Measure of variability in returns  
-            Min: Lowest observed rolling return (worst-case period)  
-            10% / 25% / 50% / 75% / 90%: Percentile distribution of outcomes  
-            Example: 10% = worst 10% of periods  
-            Max: Highest observed rolling return
+                Risk is driven by:
+                - Market structure and liquidity constraints
+                - Country concentration
+                - USD-normalised currency exposure
+                """
+            )
 
-            These statistics provide insight into:
-            - Return consistency
-            - Downside risk
-            - Distribution of outcomes over time
-            """
+            st.markdown("### Key Observations")
+            st.markdown(
+                """
+                - Strong long-term performance is achieved through compounding
+                - Year-to-year returns show real volatility and recovery cycles
+                - Rolling returns demonstrate how consistency evolves over time
+                - Portfolio blends provide different risk / return profiles for allocators
+                """
+            )
+
+            st.markdown("### Key Takeaway")
+            st.markdown(
+                """
+                The AM Index framework delivers investable, execution-aware performance, reflecting where capital can actually be deployed and grown over time.
+                """
+            )
+
+        st.markdown("### Output Table")
+        selected_model = st.selectbox(
+            "Model",
+            list(MODEL_WEIGHTS.keys()),
+            key="allocator_model_select",
         )
-        st.dataframe(rolling_3y_stats, use_container_width=True)
+        cagr, vol, sharpe, dd = portfolio_metrics(model_levels[selected_model])
+        with st.container():
+            st.markdown(f"### PORTFOLIO: {selected_model.upper()}")
+            st.markdown(
+                f"""
+                **CAGR**: {cagr * 100:.2f}%  
+                **Volatility**: {vol * 100:.2f}%  
+                **Sharpe**: {sharpe:.2f}  
+                **Max Drawdown**: {dd * 100:.2f}%
+                """
+            )
 
-        st.markdown("### Performance Characteristics")
-        st.markdown(
-            """
-            Returns are driven by:
-            - Structural growth across African markets
-            - Dividend contribution through total return methodology
-            - Concentration in the most liquid qualifying securities
-
-            Risk is driven by:
-            - Market structure and liquidity constraints
-            - Country concentration
-            - USD-normalised currency exposure
-            """
+        st.markdown("### MPS Portfolio Builder")
+        model = st.selectbox(
+            "Select Portfolio",
+            list(MODEL_WEIGHTS.keys()),
+            key="mps_model_select",
         )
+        weights = MODEL_WEIGHTS[model]
+        port_returns = build_portfolio(allocator_returns, weights)
+        port_index = build_index(port_returns)
+        cagr, vol, sharpe, dd = portfolio_metrics(port_index)
 
-        st.markdown("### Key Observations")
-        st.markdown(
-            """
-            - Strong long-term performance is achieved through compounding
-            - Year-to-year returns show real volatility and recovery cycles
-            - Rolling returns demonstrate how consistency evolves over time
-            - Portfolio blends provide different risk / return profiles for allocators
-            """
-        )
+        with st.container():
+            st.markdown(f"### PORTFOLIO: {model.upper()}")
+            st.markdown(
+                f"""
+                **CAGR**: {cagr * 100:.2f}%  
+                **Volatility**: {vol * 100:.2f}%  
+                **Sharpe**: {sharpe:.2f}  
+                **Max Drawdown**: {dd * 100:.2f}%
+                """
+            )
+            st.markdown("---")
+            st.markdown(
+                f"""
+                **ALLOCATION**
 
-        st.markdown("### Key Takeaway")
-        st.markdown(
-            """
-            The AM Index framework delivers investable, execution-aware performance, reflecting where capital can actually be deployed and grown over time.
-            """
-        )
+                AM100 ⟶ {weights.get('AM100', 0) * 100:.0f}%  
+                AM200 ⟶ {weights.get('AM200', 0) * 100:.0f}%  
+                AM300 ⟶ {weights.get('AM300', 0) * 100:.0f}%
+                """
+            )
 
-    st.markdown("### Output Table")
-    selected_model = st.selectbox(
-        "Model",
-        list(MODEL_WEIGHTS.keys()),
-        key="allocator_model_select",
-    )
-    cagr, vol, sharpe, dd = portfolio_metrics(model_levels[selected_model])
-    with st.container():
-        st.markdown(f"### PORTFOLIO: {selected_model.upper()}")
-        st.markdown(
-            f"""
-            **CAGR**: {cagr * 100:.2f}%  
-            **Volatility**: {vol * 100:.2f}%  
-            **Sharpe**: {sharpe:.2f}  
-            **Max Drawdown**: {dd * 100:.2f}%
-            """
-        )
-
-    st.markdown("### MPS Portfolio Builder")
-    model = st.selectbox(
-        "Select Portfolio",
-        list(MODEL_WEIGHTS.keys()),
-        key="mps_model_select",
-    )
-    weights = MODEL_WEIGHTS[model]
-    port_returns = build_portfolio(allocator_returns, weights)
-    port_index = build_index(port_returns)
-    cagr, vol, sharpe, dd = portfolio_metrics(port_index)
-
-    with st.container():
-        st.markdown(f"### PORTFOLIO: {model.upper()}")
-        st.markdown(
-            f"""
-            **CAGR**: {cagr * 100:.2f}%  
-            **Volatility**: {vol * 100:.2f}%  
-            **Sharpe**: {sharpe:.2f}  
-            **Max Drawdown**: {dd * 100:.2f}%
-            """
-        )
-        st.markdown("---")
-        st.markdown(
-            f"""
-            **ALLOCATION**
-
-            AM100 ⟶ {weights.get('AM100', 0) * 100:.0f}%  
-            AM200 ⟶ {weights.get('AM200', 0) * 100:.0f}%  
-            AM300 ⟶ {weights.get('AM300', 0) * 100:.0f}%
-            """
-        )
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=port_index.index,
-            y=port_index,
-            name=model,
-            line=dict(color="#F59E0B", width=2),
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=am100_s.index,
-            y=am100_s,
-            name="AM100",
-            line=dict(color=AM100_COLOR, width=2),
-        )
-    )
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Portfolio Performance")
-    fig = go.Figure()
-    model_colors = {
-        "Conservative": AM100_COLOR,
-        "Balanced": "#38BDF8",
-        "Growth": AM200_COLOR,
-        "Aggressive": AM300_COLOR,
-    }
-    for model_name in model_levels.columns:
+        fig = go.Figure()
         fig.add_trace(
             go.Scatter(
-                x=model_levels.index,
-                y=model_levels[model_name],
-                name=model_name,
-                line=dict(color=model_colors[model_name], width=2),
+                x=port_index.index,
+                y=port_index,
+                name=model,
+                line=dict(color="#F59E0B", width=2),
             )
         )
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### Efficient Frontier")
-    st.caption(
-        "The efficient frontier shows the highest expected return for each level of risk. Points represent portfolio allocations."
-    )
-    frontier = simulate_random_frontier(prepare_returns_frame())
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=frontier["Vol"],
-            y=frontier["Return"],
-            mode="markers",
-            marker=dict(size=2, color="#7DD3FC", opacity=0.3),
-            name="Efficient Frontier",
-            hovertemplate="Return: %{y:.2%}<br>Risk: %{x:.2%}<extra></extra>",
-        )
-    )
-
-    def plot_point(name, vol_value, ret_value, color):
         fig.add_trace(
             go.Scatter(
-                x=[vol_value],
-                y=[ret_value],
-                mode="markers+text",
-                text=[name],
-                textposition="top center",
-                marker=dict(size=10, color=color),
-                name=name,
+                x=am100_s.index,
+                y=am100_s,
+                name="AM100",
+                line=dict(color=AM100_COLOR, width=2),
+            )
+        )
+        fig.update_layout(
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("### Portfolio Performance")
+        fig = go.Figure()
+        model_colors = {
+            "Conservative": AM100_COLOR,
+            "Balanced": "#38BDF8",
+            "Growth": AM200_COLOR,
+            "Aggressive": AM300_COLOR,
+        }
+        for model_name in model_levels.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=model_levels.index,
+                    y=model_levels[model_name],
+                    name=model_name,
+                    line=dict(color=model_colors[model_name], width=2),
+                )
+            )
+        fig.update_layout(
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("### Efficient Frontier")
+        st.caption(
+            "The efficient frontier shows the highest expected return for each level of risk. Points represent portfolio allocations."
+        )
+        frontier = simulate_random_frontier(prepare_returns_frame())
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=frontier["Vol"],
+                y=frontier["Return"],
+                mode="markers",
+                marker=dict(size=2, color="#7DD3FC", opacity=0.3),
+                name="Efficient Frontier",
                 hovertemplate="Return: %{y:.2%}<br>Risk: %{x:.2%}<extra></extra>",
             )
         )
 
-    for model_name, color in model_colors.items():
-        row = model_metrics[model_metrics["Model"] == model_name].iloc[0]
-        plot_point(model_name, row["Volatility"], row["CAGR"], color)
-    fig.update_layout(
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-        xaxis_title="Risk (Annualised Volatility)",
-        yaxis_title="Expected Return (Annualised)",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    st.caption(
-        "Each point represents a portfolio allocation. The curve shows the best achievable return for a given level of risk."
-    )
-
-    st.markdown("### Building Block Mix")
-    fig = go.Figure()
-    for index_name, color in [("AM100", AM100_COLOR), ("AM200", AM200_COLOR), ("AM300", AM300_COLOR)]:
-        fig.add_trace(
-            go.Bar(
-                x=list(MODEL_WEIGHTS.keys()),
-                y=[MODEL_WEIGHTS[model][index_name] for model in MODEL_WEIGHTS],
-                name=index_name,
-                marker_color=color,
-            )
-        )
-    fig.update_layout(
-        barmode="stack",
-        paper_bgcolor="#0E1117",
-        plot_bgcolor="#0E1117",
-        font=dict(size=10, color="#CCCCCC"),
-        margin=dict(l=0, r=0, t=30, b=0),
-        legend=dict(bgcolor="rgba(0,0,0,0)"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.caption(
-        "Estimated capacity is shown as investable capacity in USD, calculated as 20% of average daily traded value to reflect prudent institutional execution."
-    )
-
-with overview_tab:
-    st.markdown("## Performance")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.caption("Index Performance")
-        fig, ax = plt.subplots(figsize=(6, 2.4))
-        style_chart(fig, ax)
-        ax.plot(am100_plot, label="AM100", color=AM100_COLOR, linewidth=2)
-        ax.plot(am200_plot, label="AM200", color=AM200_COLOR, linewidth=2)
-        ax.plot(am300, label="AM300", color=AM300_COLOR, linewidth=2)
-        ax.legend(frameon=False, fontsize=10)
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
-
-    with col2:
-        st.caption("Log Performance")
-        fig, ax = plt.subplots(figsize=(6, 2.4))
-        style_chart(fig, ax)
-        ax.plot(am100_plot, color=AM100_COLOR, linewidth=2)
-        ax.plot(am200_plot, color=AM200_COLOR, linewidth=2)
-        ax.plot(am300, color=AM300_COLOR, linewidth=2)
-        ax.set_yscale("log")
-        fig.tight_layout()
-        st.pyplot(fig, use_container_width=True)
-        st.caption("Series begin at first eligible inclusion date per index.")
-
-    st.caption("Index composition shift due to liquidity-driven rebalance")
-
-
-with overview_tab:
-    st.markdown("## 🌍 Allocation")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown("### AM100 Country Allocation")
-        if not am100_country_df.empty:
-            fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
-            style_chart(fig, ax)
-            ax.bar(am100_country_df["Country"], am100_country_df["Weight"], color=AM100_COLOR)
-            ax.tick_params(axis="x", rotation=90)
-            fig.tight_layout()
-            st.pyplot(fig, use_container_width=True)
-
-    with col2:
-        st.markdown("### AM200 Country Allocation")
-        if SHOW_AM200 and not am200_country_df.empty:
-            fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
-            style_chart(fig, ax)
-            ax.bar(am200_country_df["Country"], am200_country_df["Weight"], color=AM200_COLOR)
-            ax.tick_params(axis="x", rotation=90)
-            fig.tight_layout()
-            st.pyplot(fig, use_container_width=True)
-        else:
-            st.info(
-                "AM200 country allocation is being standardised under the updated liquidity framework and will be included in the next release."
+        def plot_point(name, vol_value, ret_value, color):
+            fig.add_trace(
+                go.Scatter(
+                    x=[vol_value],
+                    y=[ret_value],
+                    mode="markers+text",
+                    text=[name],
+                    textposition="top center",
+                    marker=dict(size=10, color=color),
+                    name=name,
+                    hovertemplate="Return: %{y:.2%}<br>Risk: %{x:.2%}<extra></extra>",
+                )
             )
 
-    st.markdown(
-        """
-        ### 🌍 Africa Investability Map
-
-        This map shows which African markets meet institutional liquidity and trading standards under the AM100 methodology.
-
-        Markets are included based on:
-        - Minimum liquidity thresholds
-        - Trading consistency
-        - Data integrity
-
-        Exclusions reflect structural market constraints, not qualitative judgement.
-        """
-    )
-
-    if investability_map is not None and not investability_map.empty:
-        iso_map = {
-            "SOUTH AFRICA": "ZAF",
-            "EGYPT": "EGY",
-            "MOROCCO": "MAR",
-            "NIGERIA": "NGA",
-            "KENYA": "KEN",
-            "NAMIBIA": "NAM",
-            "ZIMBABWE": "ZWE",
-            "SENEGAL": "SEN",
-            "MAURITIUS": "MUS",
-            "UGANDA": "UGA",
-            "GHANA": "GHA",
-            "TANZANIA": "TZA",
-            "MALAWI": "MWI",
-            "ZAMBIA": "ZMB",
-            "NIGER": "NER",
-            "TOGO": "TGO",
-            "RWANDA": "RWA",
-            "TUNISIA": "TUN",
-        }
-
-        map_df = investability_map.copy()
-        map_df["Country"] = map_df["Country"].astype(str).str.upper()
-        map_df["ISO"] = map_df["Country"].map(iso_map)
-        map_df = map_df.dropna(subset=["ISO"]).copy()
-        map_df["StatusColor"] = map_df["Inclusion Status"].map(
-            {"Included": 1, "Excluded": 0}
-        )
-        map_df["Tooltip"] = (
-            "Country: "
-            + map_df["Country"].str.title()
-            + "<br>Avg ADV: $"
-            + map_df["AvgADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
-            + "<br>Median ADV: $"
-            + map_df["MedianADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
-            + "<br>Avg Trading Days: "
-            + map_df["AvgTradingDays90d"].fillna(0).round(1).astype(str)
-            + "<br>Selected: "
-            + map_df["SelectedCount"].fillna(0).astype(int).astype(str)
-            + "<br>Status: "
-            + map_df["Inclusion Status"].astype(str)
-        )
-
-        fig = px.choropleth(
-            map_df,
-            locations="ISO",
-            color="StatusColor",
-            hover_name="Country",
-            hover_data={"StatusColor": False, "ISO": False},
-            color_continuous_scale=["#d62728", "#2ca02c"],
-            range_color=(0, 1),
-        )
-
-        fig.update_traces(hovertemplate=map_df["Tooltip"])
+        for model_name, color in model_colors.items():
+            row = model_metrics[model_metrics["Model"] == model_name].iloc[0]
+            plot_point(model_name, row["Volatility"], row["CAGR"], color)
         fig.update_layout(
-            coloraxis_showscale=False,
-            geo=dict(
-                scope="africa",
-                projection_type="natural earth",
-                showland=True,
-                landcolor="#0E1117",
-                bgcolor="#0E1117",
-            ),
             paper_bgcolor="#0E1117",
             plot_bgcolor="#0E1117",
-            font=dict(size=10),
-            margin=dict(l=0, r=0, t=0, b=0),
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
+            xaxis_title="Risk (Annualised Volatility)",
+            yaxis_title="Expected Return (Annualised)",
         )
-
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown(
-            "*Note: Markets excluded from AM100 may still present attractive investment opportunities but currently fall below institutional liquidity and trading thresholds.*"
+        st.caption(
+            "Each point represents a portfolio allocation. The curve shows the best achievable return for a given level of risk."
         )
-    else:
-        st.info("Investability map will appear once output/investability_map.csv is available.")
 
-    st.markdown("---")
-
-with overview_tab:
-    st.markdown("## 🏦 Constituents")
-
-    if IS_INVESTOR:
-        st.caption("Top Holdings")
-
-        investor_col1, investor_col2, investor_col3 = st.columns(3)
-
-        with investor_col1:
-            st.markdown("**AM100 Top 10**")
-            investor_am100 = prepare_constituent_table(am100_latest, limit=10)[
-                ["Company", "Country", "Weight"]
-            ]
-            st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
-
-        with investor_col2:
-            st.markdown("**AM200 Top 10**")
-            if am200_latest is None or am200_latest.empty:
-                st.info("AM200 not yet populated")
-            else:
-                top10_am200 = (
-                    am200_latest.sort_values("Weight", ascending=False)
-                    .head(10)[["Company", "Country", "Weight"]]
-                    .copy()
+        st.markdown("### Building Block Mix")
+        fig = go.Figure()
+        for index_name, color in [("AM100", AM100_COLOR), ("AM200", AM200_COLOR), ("AM300", AM300_COLOR)]:
+            fig.add_trace(
+                go.Bar(
+                    x=list(MODEL_WEIGHTS.keys()),
+                    y=[MODEL_WEIGHTS[model][index_name] for model in MODEL_WEIGHTS],
+                    name=index_name,
+                    marker_color=color,
                 )
-                top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
-                st.dataframe(
-                    display_with_row_numbers(top10_am200),
-                    use_container_width=True,
-                )
-
-        with investor_col3:
-            st.markdown("**AM300 Top 10**")
-            investor_am300 = prepare_constituent_table(am300_latest, limit=10)[
-                ["Company", "Country", "Weight"]
-            ]
-            st.dataframe(display_with_row_numbers(investor_am300), use_container_width=True)
-
-        st.caption("Geographic Exposure")
-        investor_country_exposure = pd.concat(
-            [
-                am100_country.rename("AM100"),
-                am200_country.rename("AM200"),
-                am300_country.rename("AM300"),
-            ],
-            axis=1,
-        ).fillna(0)
-        investor_country_exposure = (
-            investor_country_exposure.sort_values("AM300", ascending=False)
-            .reset_index()
-            .rename(columns={"index": "Country"})
+            )
+        fig.update_layout(
+            barmode="stack",
+            paper_bgcolor="#0E1117",
+            plot_bgcolor="#0E1117",
+            font=dict(size=10, color="#CCCCCC"),
+            margin=dict(l=0, r=0, t=30, b=0),
+            legend=dict(bgcolor="rgba(0,0,0,0)"),
         )
-        st.dataframe(investor_country_exposure, use_container_width=True, hide_index=True)
-    else:
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.caption(
+            "Estimated capacity is shown as investable capacity in USD, calculated as 20% of average daily traded value to reflect prudent institutional execution."
+        )
+
+    with overview_tab:
+        st.markdown("## Performance")
+
         col1, col2 = st.columns(2)
 
         with col1:
-            st.caption("AM100 Top 10")
-            am100_top = prepare_constituent_table(am100_latest, limit=10)
-            st.dataframe(display_with_row_numbers(am100_top), use_container_width=True)
+            st.caption("Index Performance")
+            fig, ax = plt.subplots(figsize=(6, 2.4))
+            style_chart(fig, ax)
+            ax.plot(am100_plot, label="AM100", color=AM100_COLOR, linewidth=2)
+            ax.plot(am200_plot, label="AM200", color=AM200_COLOR, linewidth=2)
+            ax.plot(am300, label="AM300", color=AM300_COLOR, linewidth=2)
+            ax.legend(frameon=False, fontsize=10)
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
 
         with col2:
-            st.caption("AM200 Top 10")
-            if am200_latest is None or am200_latest.empty:
-                st.info("AM200 not yet populated")
+            st.caption("Log Performance")
+            fig, ax = plt.subplots(figsize=(6, 2.4))
+            style_chart(fig, ax)
+            ax.plot(am100_plot, color=AM100_COLOR, linewidth=2)
+            ax.plot(am200_plot, color=AM200_COLOR, linewidth=2)
+            ax.plot(am300, color=AM300_COLOR, linewidth=2)
+            ax.set_yscale("log")
+            fig.tight_layout()
+            st.pyplot(fig, use_container_width=True)
+            st.caption("Series begin at first eligible inclusion date per index.")
+
+        st.caption("Index composition shift due to liquidity-driven rebalance")
+
+
+    with overview_tab:
+        st.markdown("## 🌍 Allocation")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### AM100 Country Allocation")
+            if not am100_country_df.empty:
+                fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
+                style_chart(fig, ax)
+                ax.bar(am100_country_df["Country"], am100_country_df["Weight"], color=AM100_COLOR)
+                ax.tick_params(axis="x", rotation=90)
+                fig.tight_layout()
+                st.pyplot(fig, use_container_width=True)
+
+        with col2:
+            st.markdown("### AM200 Country Allocation")
+            if SHOW_AM200 and not am200_country_df.empty:
+                fig, ax = plt.subplots(figsize=(6, 2.4), facecolor="#0E1117")
+                style_chart(fig, ax)
+                ax.bar(am200_country_df["Country"], am200_country_df["Weight"], color=AM200_COLOR)
+                ax.tick_params(axis="x", rotation=90)
+                fig.tight_layout()
+                st.pyplot(fig, use_container_width=True)
             else:
-                top10_am200 = (
-                    am200_latest.sort_values("Weight", ascending=False)
-                    .head(10)[["Company", "Country", "Weight"]]
-                    .copy()
-                )
-                top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
-                st.dataframe(
-                    display_with_row_numbers(top10_am200),
-                    use_container_width=True,
+                st.info(
+                    "AM200 country allocation is being standardised under the updated liquidity framework and will be included in the next release."
                 )
 
-        with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
-            search = st.text_input("Search AM100", key="am100_search")
-            am100_full = prepare_constituent_table(
-                am100_latest, include_rank=True, search=search
+        st.markdown(
+            """
+            ### 🌍 Africa Investability Map
+
+            This map shows which African markets meet institutional liquidity and trading standards under the AM100 methodology.
+
+            Markets are included based on:
+            - Minimum liquidity thresholds
+            - Trading consistency
+            - Data integrity
+
+            Exclusions reflect structural market constraints, not qualitative judgement.
+            """
+        )
+
+        if investability_map is not None and not investability_map.empty:
+            iso_map = {
+                "SOUTH AFRICA": "ZAF",
+                "EGYPT": "EGY",
+                "MOROCCO": "MAR",
+                "NIGERIA": "NGA",
+                "KENYA": "KEN",
+                "NAMIBIA": "NAM",
+                "ZIMBABWE": "ZWE",
+                "SENEGAL": "SEN",
+                "MAURITIUS": "MUS",
+                "UGANDA": "UGA",
+                "GHANA": "GHA",
+                "TANZANIA": "TZA",
+                "MALAWI": "MWI",
+                "ZAMBIA": "ZMB",
+                "NIGER": "NER",
+                "TOGO": "TGO",
+                "RWANDA": "RWA",
+                "TUNISIA": "TUN",
+            }
+
+            map_df = investability_map.copy()
+            map_df["Country"] = map_df["Country"].astype(str).str.upper()
+            map_df["ISO"] = map_df["Country"].map(iso_map)
+            map_df = map_df.dropna(subset=["ISO"]).copy()
+            map_df["StatusColor"] = map_df["Inclusion Status"].map(
+                {"Included": 1, "Excluded": 0}
             )
-            st.dataframe(display_with_row_numbers(am100_full), use_container_width=True)
-
-        with st.expander("🔍 View Full AM200 Constituents (101–200)"):
-            search = st.text_input("Search AM200", key="am200_search")
-            am200_full = prepare_constituent_table(
-                am200_latest, include_rank=True, search=search
+            map_df["Tooltip"] = (
+                "Country: "
+                + map_df["Country"].str.title()
+                + "<br>Avg ADV: $"
+                + map_df["AvgADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
+                + "<br>Median ADV: $"
+                + map_df["MedianADV_USD_30D"].fillna(0).round(0).map("{:,.0f}".format)
+                + "<br>Avg Trading Days: "
+                + map_df["AvgTradingDays90d"].fillna(0).round(1).astype(str)
+                + "<br>Selected: "
+                + map_df["SelectedCount"].fillna(0).astype(int).astype(str)
+                + "<br>Status: "
+                + map_df["Inclusion Status"].astype(str)
             )
-            st.dataframe(display_with_row_numbers(am200_full), use_container_width=True)
 
-        st.caption("Holdings Explorer")
+            fig = px.choropleth(
+                map_df,
+                locations="ISO",
+                color="StatusColor",
+                hover_name="Country",
+                hover_data={"StatusColor": False, "ISO": False},
+                color_continuous_scale=["#d62728", "#2ca02c"],
+                range_color=(0, 1),
+            )
 
-        view_option = st.selectbox(
-            "Select View",
-            [
-                "Top 10 (AM100 & AM200)",
-                "Full AM100 (Top 100)",
-                "Full AM200 (101–200)",
-            ],
+            fig.update_traces(hovertemplate=map_df["Tooltip"])
+            fig.update_layout(
+                coloraxis_showscale=False,
+                geo=dict(
+                    scope="africa",
+                    projection_type="natural earth",
+                    showland=True,
+                    landcolor="#0E1117",
+                    bgcolor="#0E1117",
+                ),
+                paper_bgcolor="#0E1117",
+                plot_bgcolor="#0E1117",
+                font=dict(size=10),
+                margin=dict(l=0, r=0, t=0, b=0),
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown(
+                "*Note: Markets excluded from AM100 may still present attractive investment opportunities but currently fall below institutional liquidity and trading thresholds.*"
+            )
+        else:
+            st.info("Investability map will appear once output/investability_map.csv is available.")
+
+        st.markdown("---")
+
+    with overview_tab:
+        st.markdown("## 🏦 Constituents")
+
+        if IS_INVESTOR:
+            st.caption("Top Holdings")
+
+            investor_col1, investor_col2, investor_col3 = st.columns(3)
+
+            with investor_col1:
+                st.markdown("**AM100 Top 10**")
+                investor_am100 = prepare_constituent_table(am100_latest, limit=10)[
+                    ["Company", "Country", "Weight"]
+                ]
+                st.dataframe(display_with_row_numbers(investor_am100), use_container_width=True)
+
+            with investor_col2:
+                st.markdown("**AM200 Top 10**")
+                if am200_latest is None or am200_latest.empty:
+                    st.info("AM200 not yet populated")
+                else:
+                    top10_am200 = (
+                        am200_latest.sort_values("Weight", ascending=False)
+                        .head(10)[["Company", "Country", "Weight"]]
+                        .copy()
+                    )
+                    top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
+                    st.dataframe(
+                        display_with_row_numbers(top10_am200),
+                        use_container_width=True,
+                    )
+
+            with investor_col3:
+                st.markdown("**AM300 Top 10**")
+                investor_am300 = prepare_constituent_table(am300_latest, limit=10)[
+                    ["Company", "Country", "Weight"]
+                ]
+                st.dataframe(display_with_row_numbers(investor_am300), use_container_width=True)
+
+            st.caption("Geographic Exposure")
+            investor_country_exposure = pd.concat(
+                [
+                    am100_country.rename("AM100"),
+                    am200_country.rename("AM200"),
+                    am300_country.rename("AM300"),
+                ],
+                axis=1,
+            ).fillna(0)
+            investor_country_exposure = (
+                investor_country_exposure.sort_values("AM300", ascending=False)
+                .reset_index()
+                .rename(columns={"index": "Country"})
+            )
+            st.dataframe(investor_country_exposure, use_container_width=True, hide_index=True)
+        else:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.caption("AM100 Top 10")
+                am100_top = prepare_constituent_table(am100_latest, limit=10)
+                st.dataframe(display_with_row_numbers(am100_top), use_container_width=True)
+
+            with col2:
+                st.caption("AM200 Top 10")
+                if am200_latest is None or am200_latest.empty:
+                    st.info("AM200 not yet populated")
+                else:
+                    top10_am200 = (
+                        am200_latest.sort_values("Weight", ascending=False)
+                        .head(10)[["Company", "Country", "Weight"]]
+                        .copy()
+                    )
+                    top10_am200["Weight"] = top10_am200["Weight"].map("{:.2%}".format)
+                    st.dataframe(
+                        display_with_row_numbers(top10_am200),
+                        use_container_width=True,
+                    )
+
+            with st.expander("🔍 View Full AM100 Constituents (Top 100)"):
+                search = st.text_input("Search AM100", key="am100_search")
+                am100_full = prepare_constituent_table(
+                    am100_latest, include_rank=True, search=search
+                )
+                st.dataframe(display_with_row_numbers(am100_full), use_container_width=True)
+
+            with st.expander("🔍 View Full AM200 Constituents (101–200)"):
+                search = st.text_input("Search AM200", key="am200_search")
+                am200_full = prepare_constituent_table(
+                    am200_latest, include_rank=True, search=search
+                )
+                st.dataframe(display_with_row_numbers(am200_full), use_container_width=True)
+
+            st.caption("Holdings Explorer")
+
+            view_option = st.selectbox(
+                "Select View",
+                [
+                    "Top 10 (AM100 & AM200)",
+                    "Full AM100 (Top 100)",
+                    "Full AM200 (101–200)",
+                ],
+            )
+
+        st.markdown("---")
+
+        st.markdown("## Methodology")
+
+        col1, col2 = st.columns([2, 1])
+
+    with overview_tab:
+        with col1:
+            st.markdown("### Methodology Flow")
+
+            st.markdown(
+                """
+    **Data Pipeline -> Index Construction**
+
+    **1. Raw Market Data**
+    - Prices, volumes, corporate actions
+
+    **2. Cleaning & Validation**
+    - Outlier detection  
+    - Missing data handling  
+
+    **3. Liquidity Scoring**
+    - Traded Value x Participation^2  
+
+    **4. Ranking Engine**
+    - Cross-market comparability  
+
+    **5. Eligibility Filters**
+    - Liquidity thresholds  
+    - Data consistency  
+
+    **6. Index Construction**
+    - AM100 (Top 100)  
+    - AM200 (Next 100)  
+    - AM300 (All Share Total Return)  
+
+    **7. Rebalancing**
+    - Monthly  
+    - Buffer-controlled turnover  
+    """
+            )
+
+            st.markdown("### Methodology Overview")
+
+            st.markdown(
+                """
+    - Liquidity-driven selection  
+    - Participation-adjusted scoring  
+    - Monthly rebalancing  
+    - Country caps applied iteratively  
+    - No interpolation of missing data  
+    - Total return methodology with dividend integration  
+    """
+            )
+
+        with col2:
+            st.markdown("### Qualification Rules")
+
+            st.markdown("**Eligibility**")
+            st.markdown(
+                """
+    - Minimum trading history  
+    - Valid price series  
+    - Volume or value data available  
+    """
+            )
+
+            st.markdown("**Liquidity Model**")
+            st.markdown(
+                """
+    - 30 valid trading days  
+    - Traded Value x Participation^2  
+    - Country/regime scaling  
+    """
+            )
+
+        pdf_data = generate_pdf(cagr100, cagr200)
+        st.download_button(
+            "📄 Download PDF Report",
+            data=pdf_data,
+            file_name="AM_Report.pdf",
         )
 
-    st.markdown("---")
+        st.markdown("---")
+        st.caption("Veri AM Indices • Liquidity-Driven African Equity Benchmarks • 2026")
 
-    st.markdown("## Methodology")
 
-    col1, col2 = st.columns([2, 1])
-
-with overview_tab:
-    with col1:
-        st.markdown("### Methodology Flow")
-
-        st.markdown(
-            """
-**Data Pipeline -> Index Construction**
-
-**1. Raw Market Data**
-- Prices, volumes, corporate actions
-
-**2. Cleaning & Validation**
-- Outlier detection  
-- Missing data handling  
-
-**3. Liquidity Scoring**
-- Traded Value x Participation^2  
-
-**4. Ranking Engine**
-- Cross-market comparability  
-
-**5. Eligibility Filters**
-- Liquidity thresholds  
-- Data consistency  
-
-**6. Index Construction**
-- AM100 (Top 100)  
-- AM200 (Next 100)  
-- AM300 (All Share Total Return)  
-
-**7. Rebalancing**
-- Monthly  
-- Buffer-controlled turnover  
-"""
-        )
-
-        st.markdown("### Methodology Overview")
-
-        st.markdown(
-            """
-- Liquidity-driven selection  
-- Participation-adjusted scoring  
-- Monthly rebalancing  
-- Country caps applied iteratively  
-- No interpolation of missing data  
-- Total return methodology with dividend integration  
-"""
-        )
-
-    with col2:
-        st.markdown("### Qualification Rules")
-
-        st.markdown("**Eligibility**")
-        st.markdown(
-            """
-- Minimum trading history  
-- Valid price series  
-- Volume or value data available  
-"""
-        )
-
-        st.markdown("**Liquidity Model**")
-        st.markdown(
-            """
-- 30 valid trading days  
-- Traded Value x Participation^2  
-- Country/regime scaling  
-"""
-        )
-
-    pdf_data = generate_pdf(cagr100, cagr200)
-    st.download_button(
-        "📄 Download PDF Report",
-        data=pdf_data,
-        file_name="AM_Report.pdf",
-    )
-
-    st.markdown("---")
-    st.caption("Veri AM Indices • Liquidity-Driven African Equity Benchmarks • 2026")
+if series_choice == "AM Series":
+    render_am_series()
