@@ -25,22 +25,6 @@ from scripts.portfolio_allocator import (
     simulate_random_frontier,
 )
 
-st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
-
-# Temporary deployment cache-buster for Streamlit Cloud refreshes.
-st.cache_data.clear()
-
-# NAVIGATION — MUST BE FIRST UI ELEMENT
-series_choice = st.radio(
-    "Select Series",
-    ["AM Series", "EAC Series", "Comparison"],
-    horizontal=True,
-    key="global_series_selector",
-)
-
-st.markdown("---")
-
-
 def help_text(text):
     return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
 
@@ -64,6 +48,26 @@ def render_metric_card(label, value, help_copy=None):
         """,
         unsafe_allow_html=True,
     )
+
+
+def configure_app():
+    st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+    # Temporary deployment cache-buster for Streamlit Cloud refreshes.
+    st.cache_data.clear()
+
+
+def render_series_selector():
+    configure_app()
+    return st.radio(
+        "Select Series",
+        ["AM Series", "EAC Series", "Comparison"],
+        horizontal=True,
+        key="global_series_selector",
+    )
+
+
+series_choice = render_series_selector()
+st.markdown("---")
 
 
 def render_static_header():
@@ -2393,136 +2397,137 @@ The platform continues to evolve with:
 
 DEBUG = False
 
-if DEBUG:
-    st.write(os.listdir())
+def render_global_styles():
+    if DEBUG:
+        st.write(os.listdir())
 
-st.markdown("""
-<style>
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
-.ticker {
-    white-space: nowrap;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-.ticker span {
-    display: inline-block;
-    padding-left: 100%;
-    animation: ticker 25s linear infinite;
-}
-@keyframes ticker {
-    0%   { transform: translate(0, 0); }
-    100% { transform: translate(-100%, 0); }
-}
-/* Background */
-body {
-    background-color: #0B0F14;
-}
-
-/* Main container tighter */
-.block-container {
-    padding-top: 1rem !important;
-    padding-bottom: 0rem !important;
-}
-
-/* Remove vertical gaps */
-.element-container {
-    margin-bottom: 0.3rem !important;
-}
-
-/* Headings smaller + tighter */
-h1 {
-    font-size: 20px !important;
-}
-h2 {
-    font-size: 16px !important;
-    margin-bottom: 0.2rem !important;
-}
-h3 {
-    font-size: 14px !important;
-}
-
-/* Captions = chart titles */
-.caption {
-    font-size: 11px !important;
-    color: #9AA4AF;
-}
-
-/* Columns tighter */
-div[data-testid="column"] {
-    padding-left: 0.3rem !important;
-    padding-right: 0.3rem !important;
-}
-
-.kpi-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(154, 164, 175, 0.18);
-    border-radius: 8px;
-    min-height: 68px;
-    padding: 0.45rem 0.6rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.kpi-label {
-    font-size: 13px;
-    color: #9CA3AF;
-    line-height: 1.1;
-    margin-bottom: 0.15rem;
-}
-
-.kpi-value {
-    font-size: 28px;
-    font-weight: 600;
-    line-height: 1.1;
-}
-
-.metric-label {
-    font-size: 13px;
-    color: #9CA3AF;
-}
-
-.metric-value {
-    font-size: 28px;
-    font-weight: 600;
-}
-
-.section-header {
-    font-size: 18px;
-    font-weight: 600;
-    margin-top: 20px;
-}
-
-.small-note {
-    font-size: 12px;
-    color: #6B7280;
-}
-
-img {
-    object-fit: contain !important;
-}
-
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-
-@media print {
-    /* Hide sidebar */
-    section[data-testid="stSidebar"] {
-        display: none;
+    st.markdown("""
+    <style>
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
 
-    /* Remove padding */
-    .main {
-        padding: 0 !important;
+    .ticker {
+        white-space: nowrap;
+        overflow: hidden;
+        box-sizing: border-box;
     }
-
-    /* Force white background */
+    .ticker span {
+        display: inline-block;
+        padding-left: 100%;
+        animation: ticker 25s linear infinite;
+    }
+    @keyframes ticker {
+        0%   { transform: translate(0, 0); }
+        100% { transform: translate(-100%, 0); }
+    }
+    /* Background */
     body {
+        background-color: #0B0F14;
+    }
+
+    /* Main container tighter */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0rem !important;
+    }
+
+    /* Remove vertical gaps */
+    .element-container {
+        margin-bottom: 0.3rem !important;
+    }
+
+    /* Headings smaller + tighter */
+    h1 {
+        font-size: 20px !important;
+    }
+    h2 {
+        font-size: 16px !important;
+        margin-bottom: 0.2rem !important;
+    }
+    h3 {
+        font-size: 14px !important;
+    }
+
+    /* Captions = chart titles */
+    .caption {
+        font-size: 11px !important;
+        color: #9AA4AF;
+    }
+
+    /* Columns tighter */
+    div[data-testid="column"] {
+        padding-left: 0.3rem !important;
+        padding-right: 0.3rem !important;
+    }
+
+    .kpi-card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(154, 164, 175, 0.18);
+        border-radius: 8px;
+        min-height: 68px;
+        padding: 0.45rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        color: #9CA3AF;
+        line-height: 1.1;
+        margin-bottom: 0.15rem;
+    }
+
+    .kpi-value {
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+
+    .metric-label {
+        font-size: 13px;
+        color: #9CA3AF;
+    }
+
+    .metric-value {
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+    .section-header {
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 20px;
+    }
+
+    .small-note {
+        font-size: 12px;
+        color: #6B7280;
+    }
+
+    img {
+        object-fit: contain !important;
+    }
+
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    <style>
+
+    @media print {
+        /* Hide sidebar */
+        section[data-testid="stSidebar"] {
+            display: none;
+        }
+
+        /* Remove padding */
+        .main {
+            padding: 0 !important;
+        }
+
+        /* Force white background */
+        body {
         background: white !important;
         color: black !important;
     }
@@ -2883,6 +2888,7 @@ am200_df = am200.rename("Index Level").reset_index()
 am300_df = am300.rename("Index Level").reset_index()
 
 def render_am_series():
+    render_global_styles()
     render_static_header()
     render_data_header(validated_securities_count, eligible_securities_count)
     st.markdown("---")
@@ -4582,13 +4588,22 @@ def render_am_series():
         st.markdown("---")
         st.caption("Veri AM Indices • Liquidity-Driven African Equity Benchmarks • 2026")
 
+
+def render_eac_series():
+    render_global_styles()
+    st.title("EAC Series")
+    st.subheader("EAC25 Core & EAC Extended")
+    render_eac_dashboard()
+
+
+def render_comparison():
+    render_global_styles()
+    st.title("Comparison")
+    render_am_eac_comparison()
+
 if series_choice == "AM Series":
     render_am_series()
 elif series_choice == "EAC Series":
-    st.title("EAC Series")
-    st.subheader("EAC25 Core & EAC Extended")
-    st.success("EAC SERIES ACTIVE")
-    render_eac_dashboard()
+    render_eac_series()
 elif series_choice == "Comparison":
-    st.title("Comparison")
-    render_am_eac_comparison()
+    render_comparison()
