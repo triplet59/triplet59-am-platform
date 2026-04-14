@@ -25,6 +25,20 @@ from scripts.portfolio_allocator import (
     simulate_random_frontier,
 )
 
+# ================================
+# GLOBAL SERIES SELECTOR (FORCED TOP)
+# ================================
+st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
+
+series_choice = st.radio(
+    "Select Series",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    key="global_series_selector",
+)
+
+st.markdown("---")
+
 # Temporary deployment cache-buster for Streamlit Cloud refreshes.
 st.cache_data.clear()
 
@@ -978,8 +992,6 @@ AM300_COLOR = "#22C55E"
 BUILD_VERSION = "21aa1d7"
 SHOW_AM200 = True
 SHOW_AM300 = False
-
-st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 
 INTERNAL_PASSWORD = st.secrets.get("internal_password", "internal123")
 INVESTOR_PASSWORD = st.secrets.get("investor_password", "investor123")
@@ -2716,20 +2728,11 @@ am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 
-st.markdown("### Series Navigation")
-series_family = st.radio(
-    "Series Family",
-    ["AM Series", "EAC Series", "Comparison"],
-    horizontal=True,
-    label_visibility="collapsed",
-    key="series_family",
-)
-
-if series_family == "EAC Series":
+if series_choice == "EAC Series":
     render_eac_dashboard()
     st.stop()
 
-if series_family == "Comparison":
+if series_choice == "Comparison":
     render_am_eac_comparison()
     st.stop()
 
