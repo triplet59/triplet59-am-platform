@@ -4601,9 +4601,14 @@ series_choice = st.radio(
     key="global_series_selector",
 )
 
+st.markdown("---")
+
 if series_choice == "AM Series":
     render_am_series()
+    st.stop()
 elif series_choice == "EAC Series":
     render_eac_series()
+    st.stop()
 elif series_choice == "Comparison":
     render_comparison()
+    st.stop()
