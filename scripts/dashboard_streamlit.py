@@ -30,6 +30,16 @@ st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
 # Temporary deployment cache-buster for Streamlit Cloud refreshes.
 st.cache_data.clear()
 
+# NAVIGATION — MUST BE FIRST UI ELEMENT
+series_choice = st.radio(
+    "Select Series",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    key="global_series_selector",
+)
+
+st.markdown("---")
+
 
 def help_text(text):
     return f"<span title='{text}' style='cursor: help;'>ⓘ</span>"
@@ -2231,8 +2241,6 @@ if IS_INTERNAL and all(
             """
         )
 
-st.markdown("---")
-
 methodology_text = """
 ## African Market Indices Framework
 
@@ -2387,9 +2395,6 @@ DEBUG = False
 
 if DEBUG:
     st.write(os.listdir())
-
-with st.expander("📘 Methodology & Overview", expanded=False):
-    st.markdown(methodology_text)
 
 st.markdown("""
 <style>
@@ -2648,8 +2653,6 @@ comparison_metrics = normalize_comparison_metrics(
     else {}
 )
 
-st.write("Data Last Updated:", am100.index.max())
-
 
 @st.cache_data
 def load_history(am100_version=None, am200_version=None, am300_version=None):
@@ -2853,10 +2856,13 @@ def generate_pdf(cagr100, cagr200):
 # ----------------------------
 # SIDEBAR
 # ----------------------------
-st.sidebar.title("Controls")
-
-start_date = st.sidebar.date_input("Start Date", am100_series.index.min())
-end_date = st.sidebar.date_input("End Date", am100_series.index.max())
+if series_choice == "AM Series":
+    st.sidebar.title("Controls")
+    start_date = st.sidebar.date_input("Start Date", am100_series.index.min())
+    end_date = st.sidebar.date_input("End Date", am100_series.index.max())
+else:
+    start_date = am100_series.index.min()
+    end_date = am100_series.index.max()
 
 # Filter data
 am100 = am100_series[
@@ -2879,6 +2885,9 @@ am300_df = am300.rename("Index Level").reset_index()
 def render_am_series():
     render_static_header()
     render_data_header(validated_securities_count, eligible_securities_count)
+    st.markdown("---")
+    with st.expander("📘 Methodology & Overview", expanded=False):
+        st.markdown(methodology_text)
     st.write("Last data date:", am100_df["Date"].max())
 
     # Visual-only smoothing for plotting. This does not affect stored data or metrics.
@@ -4572,15 +4581,6 @@ def render_am_series():
 
         st.markdown("---")
         st.caption("Veri AM Indices • Liquidity-Driven African Equity Benchmarks • 2026")
-
-series_choice = st.radio(
-    "Select Series",
-    ["AM Series", "EAC Series", "Comparison"],
-    horizontal=True,
-    key="global_series_selector",
-)
-
-st.markdown("---")
 
 if series_choice == "AM Series":
     render_am_series()
