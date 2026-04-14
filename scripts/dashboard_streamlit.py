@@ -25,19 +25,7 @@ from scripts.portfolio_allocator import (
     simulate_random_frontier,
 )
 
-# ================================
-# GLOBAL SERIES SELECTOR (FORCED TOP)
-# ================================
 st.set_page_config(layout="wide", initial_sidebar_state="collapsed")
-
-series_choice = st.radio(
-    "Select Series",
-    ["AM Series", "EAC Series", "Comparison"],
-    horizontal=True,
-    key="global_series_selector",
-)
-
-st.markdown("---")
 
 # Temporary deployment cache-buster for Streamlit Cloud refreshes.
 st.cache_data.clear()
@@ -2726,19 +2714,6 @@ am100_adv_usd, am100_capacity = external_capacity_metrics(am100_latest)
 am200_adv_usd, am200_capacity = external_capacity_metrics(am200_latest)
 am300_adv_usd, am300_capacity = external_capacity_metrics(am300_latest)
 
-if series_choice == "AM Series":
-    pass
-elif series_choice == "EAC Series":
-    st.title("EAC Series")
-    st.subheader("EAC25 Core & EAC Extended")
-    st.success("EAC SERIES ACTIVE")
-    render_eac_dashboard()
-    st.stop()
-elif series_choice == "Comparison":
-    st.title("Comparison View")
-    render_am_eac_comparison()
-    st.stop()
-
 am100_constituents = am100_latest["Company"].tolist()
 am200_constituents = am200_latest["Company"].tolist()
 am300_constituents = am300_latest["Company"].tolist()
@@ -4598,6 +4573,22 @@ def render_am_series():
         st.markdown("---")
         st.caption("Veri AM Indices • Liquidity-Driven African Equity Benchmarks • 2026")
 
+series_choice = st.radio(
+    "Select Series",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    key="global_series_selector",
+)
+
+st.markdown("---")
 
 if series_choice == "AM Series":
     render_am_series()
+elif series_choice == "EAC Series":
+    st.title("EAC Series")
+    st.subheader("EAC25 Core & EAC Extended")
+    st.success("EAC SERIES ACTIVE")
+    render_eac_dashboard()
+elif series_choice == "Comparison":
+    st.title("Comparison")
+    render_am_eac_comparison()
