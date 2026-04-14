@@ -56,6 +56,10 @@ def configure_app():
     st.cache_data.clear()
 
 
+def get_selected_series():
+    return st.session_state.get("global_series_selector", "AM Series")
+
+
 def render_static_header():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     logo_path = os.path.join(base_dir, "assets", "veri_logo.png")
@@ -2847,7 +2851,7 @@ def generate_pdf(cagr100, cagr200):
 # ----------------------------
 # SIDEBAR
 # ----------------------------
-if series_choice == "AM Series":
+if get_selected_series() == "AM Series":
     st.sidebar.title("Controls")
     start_date = st.sidebar.date_input("Start Date", am100_series.index.min())
     end_date = st.sidebar.date_input("End Date", am100_series.index.max())
