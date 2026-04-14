@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+st.stop()
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate
 from scripts.data_loader import INDEX_POOL, load_benchmark, load_index
