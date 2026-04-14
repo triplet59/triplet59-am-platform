@@ -56,20 +56,6 @@ def configure_app():
     st.cache_data.clear()
 
 
-def render_series_selector():
-    configure_app()
-    return st.radio(
-        "Select Series",
-        ["AM Series", "EAC Series", "Comparison"],
-        horizontal=True,
-        key="global_series_selector",
-    )
-
-
-series_choice = render_series_selector()
-st.markdown("---")
-
-
 def render_static_header():
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     logo_path = os.path.join(base_dir, "assets", "veri_logo.png")
@@ -4600,6 +4586,16 @@ def render_comparison():
     render_global_styles()
     st.title("Comparison")
     render_am_eac_comparison()
+
+
+configure_app()
+
+series_choice = st.radio(
+    "Select Series",
+    ["AM Series", "EAC Series", "Comparison"],
+    horizontal=True,
+    key="global_series_selector",
+)
 
 if series_choice == "AM Series":
     render_am_series()
