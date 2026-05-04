@@ -2803,29 +2803,58 @@ def render_am_series():
     render_static_header()
     render_data_header(validated_securities_count, eligible_securities_count)
 
+    local_common = get_common_analysis_window(
+        {"AM100": am100_series, "AM200": am200_series, "AM300": am300_series}
+    )
+    local_comparison_metrics = normalize_comparison_metrics(
+        {
+            name: compute_window_metrics(series)
+            for name, series in local_common["series"].items()
+        }
+        if isinstance(local_common.get("series"), dict)
+        else {}
+    )
+
+    def header_comparison_metric(index_name):
+        if not isinstance(local_comparison_metrics, dict):
+            return {}
+        return local_comparison_metrics.get(index_name, {})
+
+    def header_pct_metric(metrics, key):
+        value = metrics.get(key) if metrics else None
+        return f"{value * 100:.2f}%" if value is not None and pd.notna(value) else "N/A"
+
+    def header_num_metric(metrics, key):
+        value = metrics.get(key) if metrics else None
+        return f"{value:.2f}" if value is not None and pd.notna(value) else "N/A"
+
+    am100_header_compare = header_comparison_metric("AM100")
+    am200_header_compare = header_comparison_metric("AM200")
+    am300_header_compare = header_comparison_metric("AM300")
+
     am_header_metrics = pd.DataFrame(
         {
             "Metric": ["Constituents", "CAGR", "Volatility", "Sharpe", "Max Drawdown"],
             "AM100": [
                 am100_snapshot_insights.get("constituents"),
-                pct_metric(am100_compare, "CAGR"),
-                pct_metric(am100_compare, "Volatility"),
-                num_metric(am100_compare, "Sharpe"),
-                pct_metric(am100_compare, "Max Drawdown"),
+                header_pct_metric(am100_header_compare, "CAGR"),
+                header_pct_metric(am100_header_compare, "Volatility"),
+                header_num_metric(am100_header_compare, "Sharpe"),
+                header_pct_metric(am100_header_compare, "Max Drawdown"),
             ],
             "AM200": [
                 am200_snapshot_insights.get("constituents"),
-                pct_metric(am200_compare, "CAGR"),
-                pct_metric(am200_compare, "Volatility"),
-                num_metric(am200_compare, "Sharpe"),
-                pct_metric(am200_compare, "Max Drawdown"),
+                header_pct_metric(am200_header_compare, "CAGR"),
+                header_pct_metric(am200_header_compare, "Volatility"),
+                header_num_metric(am200_header_compare, "Sharpe"),
+                header_pct_metric(am200_header_compare, "Max Drawdown"),
             ],
             "AM300": [
                 am300_snapshot_insights.get("constituents"),
-                pct_metric(am300_compare, "CAGR"),
-                pct_metric(am300_compare, "Volatility"),
-                num_metric(am300_compare, "Sharpe"),
-                pct_metric(am300_compare, "Max Drawdown"),
+                header_pct_metric(am300_header_compare, "CAGR"),
+                header_pct_metric(am300_header_compare, "Volatility"),
+                header_num_metric(am300_header_compare, "Sharpe"),
+                header_pct_metric(am300_header_compare, "Max Drawdown"),
             ],
         }
     )
