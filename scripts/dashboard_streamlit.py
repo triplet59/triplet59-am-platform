@@ -2155,87 +2155,6 @@ if IS_INTERNAL and all(
         }
     )
 
-    st.markdown("### AM INDEX COMPARISON")
-    with st.container():
-        st.markdown(
-            """
-            **The AM index family provides a tiered view of African equity markets,
-            from institutional core exposure to broader frontier opportunity sets.**
-            """
-        )
-        st.markdown(
-            f"""
-            **Performance Period:**  
-            {common_start.strftime('%d %b %Y') if common_start is not None else 'N/A'} → {common_end.strftime('%d %b %Y') if common_end is not None else 'N/A'}
-
-            All comparison metrics (CAGR, Volatility, Sharpe Ratio, Drawdown) are calculated over the shared period where all index series are concurrently available.
-            """
-        )
-        st.dataframe(comparison_df, use_container_width=True, hide_index=True, height=240)
-        st.caption(
-            "Metrics are calculated using USD total return methodology. Volatility and Sharpe Ratio are annualised. Max Drawdown is measured over the full shared period. Turnover is shown as the average across rebalance events."
-        )
-        st.divider()
-
-        col1, col2, col3 = st.columns(3)
-        col1.markdown(
-            f"""
-            **AM100**  
-            CAGR: {pct_metric(am100_compare, "CAGR")}  
-            Sharpe: {num_metric(am100_compare, "Sharpe")}  
-            Cons: {am100_snapshot_insights.get("constituents")}  
-            Turnover: {turnover_metric(am100_snapshot_insights)}
-            """
-        )
-        col2.markdown(
-            f"""
-            **AM200**  
-            CAGR: {pct_metric(am200_compare, "CAGR")}  
-            Sharpe: {num_metric(am200_compare, "Sharpe")}  
-            Cons: {am200_snapshot_insights.get("constituents")}  
-            Turnover: {turnover_metric(am200_snapshot_insights)}
-            """
-        )
-        col3.markdown(
-            f"""
-            **AM300**  
-            CAGR: {pct_metric(am300_compare, "CAGR")}  
-            Sharpe: {num_metric(am300_compare, "Sharpe")}  
-            Cons: {am300_snapshot_insights.get("constituents")}  
-            Turnover: {turnover_metric(am300_snapshot_insights)}
-            """
-        )
-        st.divider()
-
-        if index_overlap_metrics:
-            st.markdown(
-                f"""
-                **STRUCTURE**
-
-                AM100 ⊂ AM200: {index_overlap_metrics.get('AM100_in_AM200', 0) * 100:.0f}%  
-                AM100 ⊂ AM300: {index_overlap_metrics.get('AM100_in_AM300', 0) * 100:.0f}%  
-                AM200 ⊂ AM300: {index_overlap_metrics.get('AM200_in_AM300', 0) * 100:.0f}%
-                """
-            )
-            st.caption(
-                """
-                Each index is a strict superset of the previous tier, ensuring consistency,
-                transparency, and comparability across the AM index family.
-                """
-            )
-        st.divider()
-
-        st.markdown(
-            """
-            **INTERPRETATION**
-
-            • AM100 = Institutional core (highest liquidity)  
-            • AM200 = Expanded investable universe  
-            • AM300 = Broader frontier exposure with still-observable trading activity  
-
-            Performance dispersion reflects liquidity constraints, not methodology changes.
-            """
-        )
 
 methodology_text = """
 ## African Market Indices Framework
@@ -2883,6 +2802,46 @@ def render_am_series():
     render_global_styles()
     render_static_header()
     render_data_header(validated_securities_count, eligible_securities_count)
+
+    am_header_metrics = pd.DataFrame(
+        {
+            "Metric": ["Constituents", "CAGR", "Volatility", "Sharpe", "Max Drawdown"],
+            "AM100": [
+                am100_snapshot_insights.get("constituents"),
+                pct_metric(am100_compare, "CAGR"),
+                pct_metric(am100_compare, "Volatility"),
+                num_metric(am100_compare, "Sharpe"),
+                pct_metric(am100_compare, "Max Drawdown"),
+            ],
+            "AM200": [
+                am200_snapshot_insights.get("constituents"),
+                pct_metric(am200_compare, "CAGR"),
+                pct_metric(am200_compare, "Volatility"),
+                num_metric(am200_compare, "Sharpe"),
+                pct_metric(am200_compare, "Max Drawdown"),
+            ],
+            "AM300": [
+                am300_snapshot_insights.get("constituents"),
+                pct_metric(am300_compare, "CAGR"),
+                pct_metric(am300_compare, "Volatility"),
+                num_metric(am300_compare, "Sharpe"),
+                pct_metric(am300_compare, "Max Drawdown"),
+            ],
+        }
+    )
+    st.dataframe(am_header_metrics, use_container_width=True, hide_index=True)
+    st.markdown(
+        """
+        **INTERPRETATION**
+
+        • AM100 = Institutional core (highest liquidity)  
+        • AM200 = Expanded investable universe  
+        • AM300 = Broader frontier exposure with still-observable trading activity  
+
+        Performance dispersion reflects liquidity constraints, not methodology changes.
+        """
+    )
+
     st.markdown("---")
     with st.expander("📘 Methodology & Overview", expanded=False):
         st.markdown(methodology_text)
