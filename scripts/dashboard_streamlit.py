@@ -1452,15 +1452,17 @@ def render_eac_dashboard():
         with top_col1:
             st.markdown("### Top 10 Holdings — EAC25 Core")
             top25 = eac25_portfolio.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
-            top25.insert(0, "Rank", range(1, len(top25) + 1))
+            top25["Rank"] = range(1, len(top25) + 1)
             top25["Weight"] = top25["Weight"].map("{:.2%}".format)
-            st.dataframe(top25[["Rank", "Company", "Country", "Weight"]], use_container_width=True, hide_index=True)
+            top25 = top25[["Rank", "Company", "Country", "Weight"]]
+            st.dataframe(top25, use_container_width=True, hide_index=True)
         with top_col2:
             st.markdown("### Top 10 Holdings — EAC Extended")
             top_ext = eac_ext_portfolio.sort_values(["Weight", "Company"], ascending=[False, True]).head(10).copy()
-            top_ext.insert(0, "Rank", range(1, len(top_ext) + 1))
+            top_ext["Rank"] = range(1, len(top_ext) + 1)
             top_ext["Weight"] = top_ext["Weight"].map("{:.2%}".format)
-            st.dataframe(top_ext[["Rank", "Company", "Country", "Weight"]], use_container_width=True, hide_index=True)
+            top_ext = top_ext[["Rank", "Company", "Country", "Weight"]]
+            st.dataframe(top_ext, use_container_width=True, hide_index=True)
 
         st.markdown("### Liquidity Profile")
         fig = px.histogram(
