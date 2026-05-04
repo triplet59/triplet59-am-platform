@@ -1264,6 +1264,14 @@ def render_eac_dashboard():
         "output/EAC_extended_35_summary.csv",
         get_file_version("output/EAC_extended_35_summary.csv"),
     )
+    eac25_annual = load_eac_portfolio_file(
+        "output/EAC25_annual_returns.csv",
+        get_file_version("output/EAC25_annual_returns.csv"),
+    )
+    eac_ext_annual = load_eac_portfolio_file(
+        "output/EAC_EXT_annual_returns.csv",
+        get_file_version("output/EAC_EXT_annual_returns.csv"),
+    )
 
     required = [eac25_series, eac_ext_series, eac25_metrics, eac_ext_metrics, eac25_portfolio, eac_ext_portfolio]
     if any(item is None for item in required):
@@ -1282,6 +1290,10 @@ def render_eac_dashboard():
     eac_ext_current_top3 = float(eac_ext_portfolio["Weight"].nlargest(3).sum())
     eac25_effective_n = float(1 / np.square(eac25_portfolio["Weight"]).sum())
     eac_ext_effective_n = float(1 / np.square(eac_ext_portfolio["Weight"]).sum())
+    eac25_adv_usd = float(eac25_portfolio["LiquidityUSD"].fillna(0).sum()) if "LiquidityUSD" in eac25_portfolio.columns else np.nan
+    eac_ext_adv_usd = float(eac_ext_portfolio["LiquidityUSD"].fillna(0).sum()) if "LiquidityUSD" in eac_ext_portfolio.columns else np.nan
+    eac25_capacity = eac25_adv_usd * 0.20 if pd.notna(eac25_adv_usd) else np.nan
+    eac_ext_capacity = eac_ext_adv_usd * 0.20 if pd.notna(eac_ext_adv_usd) else np.nan
 
     with eac_tabs[0]:
         st.markdown("## EAC SERIES — EAST AFRICA DEPLOYABLE EQUITY PORTFOLIOS")
@@ -1364,6 +1376,32 @@ def render_eac_dashboard():
         )
         st.dataframe(perf_df, use_container_width=True, hide_index=True)
         st.caption("Metrics reflect full historical series including early periods of high concentration and limited breadth.")
+
+        if eac25_annual is not None and eac_ext_annual is not None:
+            st.markdown("### Annual Returns (%)")
+            annual_display = pd.merge(
+                eac25_annual.rename(columns={"ReturnPct": "EAC25 Core"}),
+                eac_ext_annual.rename(columns={"ReturnPct": "EAC Extended"}),
+                on="Year",
+                how="outer",
+            ).sort_values("Year")
+            annual_table = annual_display.copy()
+            for col in ["EAC25 Core", "EAC Extended"]:
+                annual_table[col] = annual_table[col].map(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+
+            annual_col1, annual_col2 = st.columns([1, 1.25])
+            with annual_col1:
+                st.dataframe(annual_table, use_container_width=True, hide_index=True)
+            with annual_col2:
+                chart_df = annual_display.set_index("Year")
+                fig, ax = plt.subplots(figsize=(8, 4), facecolor="#0E1117")
+                style_chart(fig, ax)
+                chart_df.plot(kind="bar", ax=ax, color=["#4DA3FF", "#22C55E"], width=0.75)
+                ax.set_ylabel("Return (%)", color="#CCCCCC")
+                ax.legend(frameon=False)
+                fig.tight_layout()
+                st.pyplot(fig, use_container_width=True)
+                plt.close(fig)
 
         st.markdown("### Structural Insight")
         st.markdown(
@@ -1463,6 +1501,21 @@ def render_eac_dashboard():
             top_ext["Weight"] = top_ext["Weight"].map("{:.2%}".format)
             top_ext = top_ext[["Rank", "Company", "Country", "Weight"]]
             st.dataframe(top_ext, use_container_width=True, hide_index=True)
+
+        capacity_display = pd.DataFrame(
+            {
+                "Metric": [
+                    "Average Daily Traded Value (USD)",
+                    "Investable Capacity (USD, 20%)",
+                ],
+                "EAC25": [f"{eac25_adv_usd:,.0f}", f"{eac25_capacity:,.0f}"],
+                "EAC EXT": [f"{eac_ext_adv_usd:,.0f}", f"{eac_ext_capacity:,.0f}"],
+            }
+        )
+        st.dataframe(capacity_display, use_container_width=True, hide_index=True)
+        st.caption(
+            "Average Daily Traded Value (USD) reflects summed constituent liquidity. Investable Capacity (USD, 20%) applies a conservative institutional participation assumption."
+        )
 
         st.markdown("### Liquidity Profile")
         fig = px.histogram(
