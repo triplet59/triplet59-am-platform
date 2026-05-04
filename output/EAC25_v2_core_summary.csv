@@ -1,0 +1,2 @@
+Product,Description,UniverseCount,CountryCount,MaxStockWeightPct,MinStockWeightPct,StrictMinDeploymentUSD,DeploymentUSD_5pctBuffer,DeploymentUSD_10pctBuffer,BindingSecurity,TopCountry,TopCountryWeightPct
+EAC25_v2_core,Top 25 by liquidity from cumulative AM100 + AM200 EAC names.,25,4,10.0,1.0312,91.62,96.21,100.79,EAST AFRICAN BREWERIES KENYA (KENYA),TANZANIA,40.0001

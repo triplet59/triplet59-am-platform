@@ -1,0 +1,2 @@
+Product,Description,UniverseCount,CountryCount,MaxStockWeightPct,MinStockWeightPct,StrictMinDeploymentUSD,DeploymentUSD_5pctBuffer,DeploymentUSD_10pctBuffer,BindingSecurity,TopCountry,TopCountryWeightPct
+EAC_extended_35,Full audited EAC extended sleeve from cumulative AM100 + AM200 + AM300 names.,35,4,10.0,0.8502,118.03,123.93,129.84,EAST AFRICAN BREWERIES KENYA (KENYA),TANZANIA,40.0

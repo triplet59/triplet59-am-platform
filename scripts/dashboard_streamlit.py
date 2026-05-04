@@ -4581,7 +4581,6 @@ def render_am_series():
 
 def render_eac_series():
     render_global_styles()
-    st.markdown("## EAC ISOLATION TEST ACTIVE")
     st.title("EAC Series")
     st.subheader("EAC25 Core & EAC Extended")
     render_eac_dashboard()
