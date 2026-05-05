@@ -1290,6 +1290,53 @@ def render_eac_dashboard():
     eac_ext_current_top3 = float(eac_ext_portfolio["Weight"].nlargest(3).sum())
     eac25_effective_n = float(1 / np.square(eac25_portfolio["Weight"]).sum())
     eac_ext_effective_n = float(1 / np.square(eac_ext_portfolio["Weight"]).sum())
+
+    def compute_trailing_growth_metrics(series):
+        clean = series.dropna().sort_index()
+        if clean.empty:
+            return {
+                "1Y": np.nan,
+                "3Y": np.nan,
+                "5Y": np.nan,
+                "10Y": np.nan,
+                "AverageAnnualReturn": np.nan,
+                "CAGR": np.nan,
+            }
+
+        latest_date = clean.index[-1]
+        latest_value = float(clean.iloc[-1])
+        metrics = {}
+
+        for years in [1, 3, 5, 10]:
+            target_date = latest_date - pd.DateOffset(years=years)
+            hist = clean[clean.index <= target_date]
+            if hist.empty:
+                metrics[f"{years}Y"] = np.nan
+                continue
+            start_date = hist.index[-1]
+            start_value = float(hist.iloc[-1])
+            elapsed_years = (latest_date - start_date).days / 365.25
+            if elapsed_years <= 0 or start_value <= 0:
+                metrics[f"{years}Y"] = np.nan
+                continue
+            metrics[f"{years}Y"] = (latest_value / start_value) ** (1 / elapsed_years) - 1
+
+        daily_returns = clean.pct_change().dropna()
+        if daily_returns.empty:
+            metrics["AverageAnnualReturn"] = np.nan
+            metrics["CAGR"] = np.nan
+        else:
+            metrics["AverageAnnualReturn"] = float(daily_returns.mean() * 252)
+            total_years = (clean.index[-1] - clean.index[0]).days / 365.25
+            metrics["CAGR"] = (
+                (float(clean.iloc[-1]) / float(clean.iloc[0])) ** (1 / total_years) - 1
+                if total_years > 0 and float(clean.iloc[0]) > 0
+                else np.nan
+            )
+        return metrics
+
+    eac25_growth_metrics = compute_trailing_growth_metrics(eac25_series)
+    eac_ext_growth_metrics = compute_trailing_growth_metrics(eac_ext_series)
     eac25_adv_usd = float(eac25_portfolio["LiquidityUSD"].fillna(0).sum()) if "LiquidityUSD" in eac25_portfolio.columns else np.nan
     eac_ext_adv_usd = float(eac_ext_portfolio["LiquidityUSD"].fillna(0).sum()) if "LiquidityUSD" in eac_ext_portfolio.columns else np.nan
     eac25_capacity = eac25_adv_usd * 0.20 if pd.notna(eac25_adv_usd) else np.nan
@@ -1376,6 +1423,31 @@ def render_eac_dashboard():
         )
         st.dataframe(perf_df, use_container_width=True, hide_index=True)
         st.caption("Metrics reflect full historical series including early periods of high concentration and limited breadth.")
+
+        st.markdown("#### Trailing Returns & Average Growth")
+        growth_df = pd.DataFrame(
+            {
+                "Metric": ["1Y", "3Y CAGR", "5Y CAGR", "10Y CAGR", "Average Annual Return", "CAGR"],
+                "EAC25": [
+                    format_pct(eac25_growth_metrics.get("1Y")),
+                    format_pct(eac25_growth_metrics.get("3Y")),
+                    format_pct(eac25_growth_metrics.get("5Y")),
+                    format_pct(eac25_growth_metrics.get("10Y")),
+                    format_pct(eac25_growth_metrics.get("AverageAnnualReturn")),
+                    format_pct(eac25_growth_metrics.get("CAGR")),
+                ],
+                "EAC EXT": [
+                    format_pct(eac_ext_growth_metrics.get("1Y")),
+                    format_pct(eac_ext_growth_metrics.get("3Y")),
+                    format_pct(eac_ext_growth_metrics.get("5Y")),
+                    format_pct(eac_ext_growth_metrics.get("10Y")),
+                    format_pct(eac_ext_growth_metrics.get("AverageAnnualReturn")),
+                    format_pct(eac_ext_growth_metrics.get("CAGR")),
+                ],
+            }
+        )
+        st.dataframe(growth_df, use_container_width=True, hide_index=True)
+        st.caption("Average Annual Return is the arithmetic annualized mean from daily returns. CAGR is the compounded growth rate over full live history.")
 
         if eac25_annual is not None and eac_ext_annual is not None:
             st.markdown("### Annual Returns (%)")
