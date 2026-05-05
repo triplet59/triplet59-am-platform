@@ -69,6 +69,13 @@ REGIME_WEIGHTS = {
     "LOW": 1.0,
 }
 ELIGIBLE_DIVIDEND_STATUSES = {"OK", "ZERO_CONFIRMED"}
+EXCLUDED_COLLECTIVE_INVESTMENT_SECURITIES = {
+    "CORONATION (NAMIBIA)",
+}
+
+
+def is_excluded_security(company_name):
+    return company_name in EXCLUDED_COLLECTIVE_INVESTMENT_SECURITIES
 
 def extract_country(company_name):
     return company_name.rsplit("(", 1)[-1].rstrip(")")
@@ -316,6 +323,11 @@ for selection_date, implementation_date in rebalance_schedule:
             "Selected": False,
             "RejectReason": "",
         }
+
+        if is_excluded_security(company):
+            decision["RejectReason"] = "EXCLUDED_COLLECTIVE_INVESTMENT_SECURITY"
+            decision_rows.append(decision)
+            continue
 
         if price_col is None or volume_col is None:
             decision["RejectReason"] = "MISSING_PRICE_OR_VOLUME_COLUMN"
