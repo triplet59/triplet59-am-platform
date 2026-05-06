@@ -362,14 +362,52 @@ def load_price_file(filepath):
         return None
 
 
-def load_sa_csv(filepath):
+def load_south_africa_csv(filepath):
     data = load_price_file(filepath)
     if data is None:
         return pd.DataFrame(columns=["Date", "Price", "Price_USD", "Volume"])
     print(f"      📊 Rows loaded: {len(data)}")
-    if data["Price"].dropna().median() > 1000:
-        data["Price"] = data["Price"] / 100
-        data["Price_USD"] = data["Price"]
+    # JSE vendor CSV prices are quoted in cents (ZAc), including lower-priced names.
+    data["Price"] = data["Price"] / 100
+    data["Price_USD"] = data["Price"]
+    data = data[["Date", "Price", "Price_USD", "Volume"]]
+    data = data.dropna(subset=["Date"])
+    data = data.sort_values("Date")
+    return data
+
+
+def normalize_namibia_prices(data):
+    working = data.copy()
+    valid = working[["Date", "Price"]].dropna(subset=["Date", "Price"]).sort_values("Date")
+    if valid.empty:
+        return working
+
+    recent_window = valid.tail(min(60, len(valid)))
+    recent_median = recent_window["Price"].median()
+    overall_median = valid["Price"].median()
+
+    # Some Namibia files switch from older cent-style vendor history to already
+    # normalized recent values. Anchor on the latest observations:
+    # - if recent prices are still cent-style, scale the whole series
+    # - otherwise only scale the obvious older cent-style block
+    if recent_median >= 100:
+        working["Price"] = working["Price"] / 100
+        return working
+
+    if overall_median < 100:
+        return working
+
+    cent_block_mask = working["Price"] >= 100
+    working.loc[cent_block_mask, "Price"] = working.loc[cent_block_mask, "Price"] / 100
+    return working
+
+
+def load_namibia_csv(filepath):
+    data = load_price_file(filepath)
+    if data is None:
+        return pd.DataFrame(columns=["Date", "Price", "Price_USD", "Volume"])
+    print(f"      📊 Rows loaded: {len(data)}")
+    data = normalize_namibia_prices(data)
     data["Price_USD"] = data["Price"]
     data = data[["Date", "Price", "Price_USD", "Volume"]]
     data = data.dropna(subset=["Date"])
@@ -385,8 +423,10 @@ def load_company_data(filepath, country_name):
         print(data.head())
         print(f"[MAURITIUS] Columns: {list(data.columns)}")
         return load_excel_standard(filepath)
-    if country_name in {"SOUTH_AFRICA", "NAMIBIA"}:
-        return load_sa_csv(filepath)
+    if country_name == "SOUTH_AFRICA":
+        return load_south_africa_csv(filepath)
+    if country_name == "NAMIBIA":
+        return load_namibia_csv(filepath)
     return load_excel_standard(filepath)
 
 
