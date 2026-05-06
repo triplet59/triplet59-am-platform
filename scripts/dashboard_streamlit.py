@@ -1422,7 +1422,9 @@ def render_eac_dashboard():
             }
         )
         st.dataframe(perf_df, use_container_width=True, hide_index=True)
-        st.caption("Metrics reflect full historical series including early periods of high concentration and limited breadth.")
+        st.caption(
+            "These metrics use each EAC series over its full historical path, including early periods of high concentration and limited breadth."
+        )
 
         st.markdown("#### Trailing Returns & Average Growth")
         growth_df = pd.DataFrame(
@@ -2984,6 +2986,9 @@ def render_am_series():
         }
     )
     st.dataframe(am_header_metrics, use_container_width=True, hide_index=True)
+    st.caption(
+        "This table uses the shared overlapping period across AM100, AM200, and AM300 so the three series are directly comparable."
+    )
     st.markdown(
         """
         **INTERPRETATION**
@@ -3272,6 +3277,9 @@ def render_am_series():
         }
     )
     st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    st.caption(
+        "These headline metrics use each index's full available history, so they may differ from the shared-period comparison shown above."
+    )
 
 
     def metric_help_text(metric_name, period_label):
