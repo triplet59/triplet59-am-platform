@@ -1,0 +1,6 @@
+Series,Methodology Note,Series Status
+AM100,Published CAGR is verified directly from the live total return series using the same 365-day year convention used by the pipeline metrics helpers. The 365.25-day version is shown only as a reference check.,Live benchmark series
+AM200,Published CAGR is verified directly from the live total return series using the same 365-day year convention used by the pipeline metrics helpers. The 365.25-day version is shown only as a reference check.,Live benchmark series
+AM300,Published CAGR is verified directly from the live total return series using the same 365-day year convention used by the pipeline metrics helpers. The 365.25-day version is shown only as a reference check.,Live benchmark series
+EAC25,Published CAGR is verified directly from the live total return series using the same 365-day year convention used by the pipeline metrics helpers. The 365.25-day version is shown only as a reference check.,Research-only historical series
+EAC_EXT,Published CAGR is verified directly from the live total return series using the same 365-day year convention used by the pipeline metrics helpers. The 365.25-day version is shown only as a reference check.,Research-only historical series

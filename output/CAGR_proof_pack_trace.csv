@@ -1,0 +1,31 @@
+Series,Trace Step,Detail
+AM100,1. Load total return series,/Users/derrythornalley/AM100_DATA/output/AM100_total_return.csv
+AM100,2. Read first and last valid observation,2016-11-01 -> 2026-01-30
+AM100,3. Measure exact elapsed days,3377
+AM100,4. Convert to year fraction using 365-day convention,9.252054794521
+AM100,5. Apply CAGR formula,((27055.008768291300/1000.000000000000)^(1/9.252054794521)) - 1 = 42.824660022554%
+AM100,6. Compare to published metrics file,Published 42.824660022554%; delta 0.000000000000e+00
+AM200,1. Load total return series,/Users/derrythornalley/AM100_DATA/output/AM200_total_return.csv
+AM200,2. Read first and last valid observation,2019-05-02 -> 2026-01-30
+AM200,3. Measure exact elapsed days,2465
+AM200,4. Convert to year fraction using 365-day convention,6.753424657534
+AM200,5. Apply CAGR formula,((18380.672941315352/1000.000000000000)^(1/6.753424657534)) - 1 = 53.892627576509%
+AM200,6. Compare to published metrics file,Published 53.892627576509%; delta 0.000000000000e+00
+AM300,1. Load total return series,/Users/derrythornalley/AM100_DATA/output/AM300_total_return.csv
+AM300,2. Read first and last valid observation,2018-05-01 -> 2026-01-30
+AM300,3. Measure exact elapsed days,2831
+AM300,4. Convert to year fraction using 365-day convention,7.756164383562
+AM300,5. Apply CAGR formula,((17570.004484818863/1000.000000000000)^(1/7.756164383562)) - 1 = 44.706511042085%
+AM300,6. Compare to published metrics file,Published 44.706511042085%; delta 0.000000000000e+00
+EAC25,1. Load total return series,/Users/derrythornalley/AM100_DATA/output/EAC25_total_return.csv
+EAC25,2. Read first and last valid observation,2017-02-01 -> 2026-01-30
+EAC25,3. Measure exact elapsed days,3285
+EAC25,4. Convert to year fraction using 365-day convention,9.000000000000
+EAC25,5. Apply CAGR formula,((2036.224056948332/1000.000000000000)^(1/9.000000000000)) - 1 = 8.221600275546%
+EAC25,6. Compare to published metrics file,Published 8.221600275546%; delta 0.000000000000e+00
+EAC_EXT,1. Load total return series,/Users/derrythornalley/AM100_DATA/output/EAC_EXT_total_return.csv
+EAC_EXT,2. Read first and last valid observation,2017-02-01 -> 2026-01-30
+EAC_EXT,3. Measure exact elapsed days,3285
+EAC_EXT,4. Convert to year fraction using 365-day convention,9.000000000000
+EAC_EXT,5. Apply CAGR formula,((3554.404587994412/1000.000000000000)^(1/9.000000000000)) - 1 = 15.132071273267%
+EAC_EXT,6. Compare to published metrics file,Published 15.132071273267%; delta -8.326672684689e-17
